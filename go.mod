@@ -5,6 +5,7 @@ go 1.24
 require (
 	github.com/apache/thrift v0.22.0
 	github.com/cloudwego/hertz v0.10.3
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

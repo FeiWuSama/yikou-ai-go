@@ -3,12 +3,21 @@
 package main
 
 import (
+	"log"
+	"strconv"
+
 	"github.com/cloudwego/hertz/pkg/app/server"
+	"workspace-yikou-ai-go/config"
 )
 
 func main() {
-	h := server.Default()
+	if err := config.InitConfig(); err != nil {
+		log.Fatalf("初始化配置文件失败: %v", err)
+	}
 
-	register(h)
+	h := server.Default(
+		server.WithHostPorts(":"+strconv.Itoa(config.GlobalConfig.Server.Port)),
+		server.WithBasePath(config.GlobalConfig.Server.ContextPath),
+	)
 	h.Spin()
 }
