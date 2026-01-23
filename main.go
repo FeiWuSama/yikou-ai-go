@@ -19,5 +19,6 @@ func main() {
 		server.WithHostPorts(":"+strconv.Itoa(config.GlobalConfig.Server.Port)),
 		server.WithBasePath(config.GlobalConfig.Server.ContextPath),
 	)
+	customizedRegister(h)
 	h.Spin()
 }
