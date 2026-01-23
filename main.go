@@ -3,10 +3,12 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 
 	"github.com/cloudwego/hertz/pkg/app/server"
+	"github.com/hertz-contrib/swagger"
 	"workspace-yikou-ai-go/config"
 )
 
@@ -14,12 +16,16 @@ func main() {
 	if err := config.InitConfig(); err != nil {
 		log.Fatalf("初始化配置文件失败: %v", err)
 	}
-	// 加载服务器配置
 	h := server.Default(
 		server.WithHostPorts(":"+strconv.Itoa(config.GlobalConfig.Server.Port)),
 		server.WithBasePath(config.GlobalConfig.Server.ContextPath),
 	)
-	// 注册自定义路由
-	customizedRegister(h)
+
+	swaggerPath := fmt.Sprintf("http://localhost:%d/swagger/doc.json", config.GlobalConfig.Server.Port)
+	if config.GlobalConfig.Server.ContextPath != "" {
+		swaggerPath = fmt.Sprintf("http://localhost:%d%s/swagger/doc.json", config.GlobalConfig.Server.Port, config.GlobalConfig.Server.ContextPath)
+	}
+	url := swagger.URL(swaggerPath)
+	customizedRegister(h, url)
 	h.Spin()
 }

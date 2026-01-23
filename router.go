@@ -4,12 +4,14 @@ package main
 
 import (
 	"github.com/cloudwego/hertz/pkg/app/server"
+	"github.com/hertz-contrib/swagger"
+	swaggerFiles "github.com/swaggo/files"
 	handler "workspace-yikou-ai-go/biz/handler"
+	_ "workspace-yikou-ai-go/docs"
 )
 
 // customizeRegister registers customize routers.
-func customizedRegister(r *server.Hertz) {
+func customizedRegister(r *server.Hertz, url func(config *swagger.Config)) {
 	r.GET("/ping", handler.Ping)
-
-	// your code ...
+	r.GET("/swagger/*any", swagger.WrapHandler(swaggerFiles.Handler, url))
 }

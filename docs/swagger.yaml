@@ -1,0 +1,23 @@
+definitions:
+  handler.PingResponse:
+    properties:
+      message:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /api/ping:
+    get:
+      consumes:
+      - application/json
+      description: 根据名字返回问候语
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.PingResponse'
+      summary: 测试接口
+swagger: "2.0"
