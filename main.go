@@ -14,11 +14,12 @@ func main() {
 	if err := config.InitConfig(); err != nil {
 		log.Fatalf("初始化配置文件失败: %v", err)
 	}
-
+	// 加载服务器配置
 	h := server.Default(
 		server.WithHostPorts(":"+strconv.Itoa(config.GlobalConfig.Server.Port)),
 		server.WithBasePath(config.GlobalConfig.Server.ContextPath),
 	)
+	// 注册自定义路由
 	customizedRegister(h)
 	h.Spin()
 }
