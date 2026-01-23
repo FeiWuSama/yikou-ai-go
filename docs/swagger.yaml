@@ -7,7 +7,7 @@ definitions:
 info:
   contact: {}
 paths:
-  /api/ping:
+  /ping:
     get:
       consumes:
       - application/json

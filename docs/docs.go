@@ -15,7 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/ping": {
+        "/ping": {
             "get": {
                 "description": "根据名字返回问候语",
                 "consumes": [

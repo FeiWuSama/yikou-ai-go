@@ -19,7 +19,7 @@ type PingResponse struct {
 // @Accept    json
 // @Produce   json
 // @Success   200 {object} PingResponse
-// @Router    /api/ping [get]
+// @Router    /ping [get]
 func Ping(ctx context.Context, c *app.RequestContext) {
 	c.JSON(consts.StatusOK, PingResponse{
 		Message: "pong",
