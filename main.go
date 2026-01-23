@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 	"workspace-yikou-ai-go/docs"
 
 	"github.com/cloudwego/hertz/pkg/app/server"
+	"github.com/hertz-contrib/cors"
 	"github.com/hertz-contrib/swagger"
 	"workspace-yikou-ai-go/config"
 )
@@ -28,7 +30,15 @@ func main() {
 		server.WithHostPorts(":"+strconv.Itoa(config.GlobalConfig.Server.Port)),
 		server.WithBasePath(config.GlobalConfig.Server.ContextPath),
 	)
-	// 自定义路由
+	// 处理跨域问题
+	h.Use(cors.New(cors.Config{
+		AllowAllOrigins:  true,
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: false,
+		MaxAge:           12 * time.Hour,
+	}))
 	customizedRegister(h, url)
 	h.Spin()
 }
