@@ -40,6 +40,12 @@ const docTemplate = `{
         "handler.PingResponse": {
             "type": "object",
             "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "string"
+                },
                 "message": {
                     "type": "string"
                 }

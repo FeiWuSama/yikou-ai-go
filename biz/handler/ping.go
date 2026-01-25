@@ -4,14 +4,13 @@ package handler
 
 import (
 	"context"
+	"workspace-yikou-ai-go/biz/model/api/common"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 )
 
-type PingResponse struct {
-	Message string `json:"message"`
-}
+type PingResponse common.BaseResponse[string]
 
 // Ping
 // @Summary   测试接口
@@ -21,7 +20,5 @@ type PingResponse struct {
 // @Success   200 {object} PingResponse
 // @Router    /ping [get]
 func Ping(ctx context.Context, c *app.RequestContext) {
-	c.JSON(consts.StatusOK, PingResponse{
-		Message: "pong",
-	})
+	c.JSON(consts.StatusOK, common.NewSuccessResponse[string]("pong"))
 }
