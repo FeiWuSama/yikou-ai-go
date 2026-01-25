@@ -10,7 +10,8 @@ import (
 )
 
 type Config struct {
-	Server ServerConfig `yaml:"server"`
+	Server   ServerConfig   `yaml:"server"`
+	Database DatabaseConfig `yaml:"database"`
 }
 
 var GlobalConfig *Config
@@ -20,6 +21,19 @@ type ServerConfig struct {
 	ConfigValidate string `yaml:"config-validate"`
 	Port           int    `yaml:"port"`
 	ContextPath    string `yaml:"context-path"`
+}
+
+type DatabaseConfig struct {
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+	DBName   string `yaml:"dbname"`
+}
+
+func (d *DatabaseConfig) GetDSN() string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		d.Username, d.Password, d.Host, d.Port, d.DBName)
 }
 
 // mergeServerConfig 合并 ServerConfig 结构体的配置

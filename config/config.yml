@@ -1,3 +1,11 @@
 server:
   port: 8081
   context-path: /api
+
+database:
+  host: 192.168.10.101
+  port: 3306
+  username: root
+  password: 815256031Hc!
+  dbname: yikou_ai
+
