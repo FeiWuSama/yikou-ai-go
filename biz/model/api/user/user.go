@@ -1,6 +1,9 @@
 package api
 
-import "workspace-yikou-ai-go/biz/model/api/common"
+import (
+	"workspace-yikou-ai-go/biz/model/api/common"
+	"workspace-yikou-ai-go/biz/model/vo"
+)
 
 type YiKouUserRegisterRequest struct {
 	UserAccount   string `json:"user_account"`
@@ -9,3 +12,10 @@ type YiKouUserRegisterRequest struct {
 }
 
 type YiKouUserRegisterResponse common.BaseResponse[int64]
+
+type YiKouUserLoginRequest struct {
+	UserAccount  string `json:"user_account"`
+	UserPassword string `json:"user_password"`
+}
+
+type YiKouUserLoginResponse common.BaseResponse[vo.LoginUserVo]

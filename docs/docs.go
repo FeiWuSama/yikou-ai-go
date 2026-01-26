@@ -35,6 +35,63 @@ const docTemplate = `{
                 }
             }
         },
+        "/user/get/login": {
+            "get": {
+                "description": "获取登录用户信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户模块"
+                ],
+                "summary": "获取登录用户信息",
+                "responses": {
+                    "200": {
+                        "description": "登录用户信息",
+                        "schema": {
+                            "$ref": "#/definitions/api.YiKouUserLoginResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/login": {
+            "post": {
+                "description": "用户登录",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户模块"
+                ],
+                "summary": "用户登录",
+                "parameters": [
+                    {
+                        "description": "用户登录请求",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.YiKouUserLoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "登录用户信息",
+                        "schema": {
+                            "$ref": "#/definitions/api.YiKouUserLoginResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/user/register": {
             "post": {
                 "description": "用户注册",
@@ -71,6 +128,31 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "api.YiKouUserLoginRequest": {
+            "type": "object",
+            "properties": {
+                "user_account": {
+                    "type": "string"
+                },
+                "user_password": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.YiKouUserLoginResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/vo.LoginUserVo"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
         "api.YiKouUserRegisterRequest": {
             "type": "object",
             "properties": {
@@ -109,6 +191,35 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "vo.LoginUserVo": {
+            "type": "object",
+            "properties": {
+                "create_time": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "update_time": {
+                    "type": "string"
+                },
+                "user_account": {
+                    "type": "string"
+                },
+                "user_avatar": {
+                    "type": "string"
+                },
+                "user_name": {
+                    "type": "string"
+                },
+                "user_profile": {
+                    "type": "string"
+                },
+                "user_role": {
                     "type": "string"
                 }
             }

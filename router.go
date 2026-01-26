@@ -18,5 +18,7 @@ func customizedRegister(r *server.Hertz, url func(config *swagger.Config)) {
 	userRoute := r.Group("/user")
 	{
 		userRoute.POST("/register", user.UserRegister)
+		userRoute.POST("/login", user.UserLogin)
+		userRoute.GET("/get/login", user.GetLoginUser)
 	}
 }

@@ -1,4 +1,20 @@
 definitions:
+  api.YiKouUserLoginRequest:
+    properties:
+      user_account:
+        type: string
+      user_password:
+        type: string
+    type: object
+  api.YiKouUserLoginResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/vo.LoginUserVo'
+      message:
+        type: string
+    type: object
   api.YiKouUserRegisterRequest:
     properties:
       check_password:
@@ -26,6 +42,25 @@ definitions:
       message:
         type: string
     type: object
+  vo.LoginUserVo:
+    properties:
+      create_time:
+        type: string
+      id:
+        type: integer
+      update_time:
+        type: string
+      user_account:
+        type: string
+      user_avatar:
+        type: string
+      user_name:
+        type: string
+      user_profile:
+        type: string
+      user_role:
+        type: string
+    type: object
 info:
   contact: {}
 paths:
@@ -42,6 +77,43 @@ paths:
           schema:
             $ref: '#/definitions/handler.PingResponse'
       summary: 测试接口
+  /user/get/login:
+    get:
+      consumes:
+      - application/json
+      description: 获取登录用户信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录用户信息
+          schema:
+            $ref: '#/definitions/api.YiKouUserLoginResponse'
+      summary: 获取登录用户信息
+      tags:
+      - 用户模块
+  /user/login:
+    post:
+      consumes:
+      - application/json
+      description: 用户登录
+      parameters:
+      - description: 用户登录请求
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/api.YiKouUserLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录用户信息
+          schema:
+            $ref: '#/definitions/api.YiKouUserLoginResponse'
+      summary: 用户登录
+      tags:
+      - 用户模块
   /user/register:
     post:
       consumes:
