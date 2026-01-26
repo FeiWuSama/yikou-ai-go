@@ -1,6 +1,9 @@
 package common
 
-import "workspace-yikou-ai-go/biz/model/errors"
+import (
+	"errors"
+	"workspace-yikou-ai-go/pkg/errors"
+)
 
 type BaseResponse[T any] struct {
 	Code    int    `json:"code"`
@@ -16,10 +19,19 @@ func NewSuccessResponse[T any](data T) *BaseResponse[T] {
 	}
 }
 
-func NewErrorResponse[T any](err errors.ErrorNo) *BaseResponse[T] {
-	return &BaseResponse[T]{
-		Code:    err.Code,
-		Message: err.Message,
+func NewErrorResponse[T any](err error) *BaseResponse[T] {
+	newError := pkg.ErrorNo{}
+	if errors.As(err, &newError) {
+		return &BaseResponse[T]{
+			Code:    newError.Code,
+			Message: newError.Message,
+		}
+	} else {
+		newError = pkg.ConvertError(err)
+		return &BaseResponse[T]{
+			Code:    newError.Code,
+			Message: newError.Message,
+		}
 	}
 }
 

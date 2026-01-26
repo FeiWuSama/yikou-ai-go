@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -29,6 +30,12 @@ type DatabaseConfig struct {
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
 	DBName   string `yaml:"dbname"`
+}
+
+func init() {
+	if err := InitConfig(); err != nil {
+		log.Fatalf("初始化配置文件失败: %v", err)
+	}
 }
 
 func (d *DatabaseConfig) GetDSN() string {

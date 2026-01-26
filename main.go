@@ -4,21 +4,17 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"strconv"
-	"time"
-	"workspace-yikou-ai-go/docs"
-
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/hertz-contrib/cors"
 	"github.com/hertz-contrib/swagger"
+	"strconv"
+	"time"
+	_ "workspace-yikou-ai-go/biz/dal"
 	"workspace-yikou-ai-go/config"
+	"workspace-yikou-ai-go/docs"
 )
 
 func main() {
-	if err := config.InitConfig(); err != nil {
-		log.Fatalf("初始化配置文件失败: %v", err)
-	}
 	basePath := config.GlobalConfig.Server.ContextPath
 	// 动态补充swagger前缀
 	docs.SwaggerInfo.BasePath = basePath

@@ -34,9 +34,71 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/user/register": {
+            "post": {
+                "description": "用户注册",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户模块"
+                ],
+                "summary": "用户注册",
+                "parameters": [
+                    {
+                        "description": "用户注册请求",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.YiKouUserRegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "用户ID",
+                        "schema": {
+                            "$ref": "#/definitions/api.YiKouUserRegisterResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "api.YiKouUserRegisterRequest": {
+            "type": "object",
+            "properties": {
+                "check_password": {
+                    "type": "string"
+                },
+                "user_account": {
+                    "type": "string"
+                },
+                "user_password": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.YiKouUserRegisterResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
         "handler.PingResponse": {
             "type": "object",
             "properties": {

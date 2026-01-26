@@ -2,10 +2,9 @@ package main
 
 import (
 	"fmt"
+	"workspace-yikou-ai-go/biz/dal"
 
-	"gorm.io/driver/mysql"
 	"gorm.io/gen"
-	"gorm.io/gorm"
 	"workspace-yikou-ai-go/config"
 )
 
@@ -14,21 +13,19 @@ func main() {
 		panic(fmt.Errorf("init config fail: %w", err))
 	}
 
-	dsn := config.GlobalConfig.Database.GetDSN()
-	db, err := gorm.Open(mysql.Open(dsn))
-	if err != nil {
-		panic(fmt.Errorf("connect db fail: %w", err))
+	if err := dal.InitDB(); err != nil {
+		panic(fmt.Errorf("init db fail: %w", err))
 	}
 
 	g := gen.NewGenerator(gen.Config{
 		OutPath:      "./biz/dal/query",
-		ModelPkgPath: "./model",
+		ModelPkgPath: "./biz/dal/model",
 		Mode: gen.WithoutContext |
 			gen.WithDefaultQuery |
 			gen.WithQueryInterface,
 	})
 
-	g.UseDB(db)
+	g.UseDB(dal.DB)
 
 	g.ApplyBasic(g.GenerateAllTable()...)
 

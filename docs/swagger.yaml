@@ -1,4 +1,22 @@
 definitions:
+  api.YiKouUserRegisterRequest:
+    properties:
+      check_password:
+        type: string
+      user_account:
+        type: string
+      user_password:
+        type: string
+    type: object
+  api.YiKouUserRegisterResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        type: integer
+      message:
+        type: string
+    type: object
   handler.PingResponse:
     properties:
       code:
@@ -24,4 +42,26 @@ paths:
           schema:
             $ref: '#/definitions/handler.PingResponse'
       summary: 测试接口
+  /user/register:
+    post:
+      consumes:
+      - application/json
+      description: 用户注册
+      parameters:
+      - description: 用户注册请求
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/api.YiKouUserRegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 用户ID
+          schema:
+            $ref: '#/definitions/api.YiKouUserRegisterResponse'
+      summary: 用户注册
+      tags:
+      - 用户模块
 swagger: "2.0"
