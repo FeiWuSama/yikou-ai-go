@@ -10,6 +10,16 @@ import (
 	service "workspace-yikou-ai-go/biz/service/user"
 )
 
+type UserHandler struct {
+	userService service.IUserService
+}
+
+func NewUserHandler() *UserHandler {
+	return &UserHandler{
+		userService: service.NewUserService(),
+	}
+}
+
 // UserRegister 用户注册
 // @Summary 用户注册
 // @Description 用户注册
@@ -19,15 +29,14 @@ import (
 // @Param req body api.YiKouUserRegisterRequest true "用户注册请求"
 // @Success 200 {object} api.YiKouUserRegisterResponse "用户ID"
 // @Router /user/register [post]
-func UserRegister(ctx context.Context, c *app.RequestContext) {
+func (u *UserHandler) UserRegister(ctx context.Context, c *app.RequestContext) {
 	req := &api.YiKouUserRegisterRequest{}
 	err := c.BindAndValidate(req)
 	if err != nil {
 		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
 		return
 	}
-	userService := service.NewUserService(ctx, c)
-	userId, err := userService.UserRegister(req)
+	userId, err := u.userService.UserRegister(ctx, req)
 	if err != nil {
 		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
 		return
@@ -44,15 +53,14 @@ func UserRegister(ctx context.Context, c *app.RequestContext) {
 // @Param req body api.YiKouUserLoginRequest true "用户登录请求"
 // @Success 200 {object} api.YiKouUserLoginResponse "登录用户信息"
 // @Router /user/login [post]
-func UserLogin(ctx context.Context, c *app.RequestContext) {
+func (u *UserHandler) UserLogin(ctx context.Context, c *app.RequestContext) {
 	req := &api.YiKouUserLoginRequest{}
 	err := c.BindAndValidate(req)
 	if err != nil {
 		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
 		return
 	}
-	userService := service.NewUserService(ctx, c)
-	userVo, err := userService.UserLogin(req)
+	userVo, err := u.userService.UserLogin(ctx, req, c)
 	if err != nil {
 		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
 		return
@@ -68,9 +76,8 @@ func UserLogin(ctx context.Context, c *app.RequestContext) {
 // @Produce json
 // @Success 200 {object} api.YiKouUserLoginResponse "登录用户信息"
 // @Router /user/get/login [get]
-func GetLoginUser(ctx context.Context, c *app.RequestContext) {
-	userService := service.NewUserService(ctx, c)
-	userVo, err := userService.GetLoginUserVo()
+func (u *UserHandler) GetLoginUser(ctx context.Context, c *app.RequestContext) {
+	userVo, err := u.userService.GetLoginUserVo(ctx, c)
 	if err != nil {
 		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
 		return

@@ -18,31 +18,26 @@ import (
 )
 
 type IUserService interface {
-	UserRegister(req *api.YiKouUserRegisterRequest) (int64, error)
-	GetEncryptPassword(password string) string
-	GetLoginUserVo() (vo.LoginUserVo, error)
-	UserLogin(req *api.YiKouUserLoginRequest) (vo.LoginUserVo, error)
+	UserRegister(ctx context.Context, req *api.YiKouUserRegisterRequest) (int64, error)
+	GetEncryptPassword(ctx context.Context, password string) string
+	GetLoginUserVo(ctx context.Context, c *app.RequestContext) (vo.LoginUserVo, error)
+	UserLogin(ctx context.Context, req *api.YiKouUserLoginRequest, c *app.RequestContext) (vo.LoginUserVo, error)
 }
 
 type UserService struct {
-	ctx context.Context
-	c   *app.RequestContext
 }
 
-func NewUserService(ctx context.Context, c *app.RequestContext) *UserService {
-	return &UserService{
-		ctx: ctx,
-		c:   c,
-	}
+func NewUserService() *UserService {
+	return &UserService{}
 }
 
-func (s *UserService) GetEncryptPassword(password string) string {
+func (s *UserService) GetEncryptPassword(ctx context.Context, password string) string {
 	h := md5.New()
 	h.Write([]byte("feiwu" + password)) // 加盐
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-func (s *UserService) UserRegister(req *api.YiKouUserRegisterRequest) (int64, error) {
+func (s *UserService) UserRegister(ctx context.Context, req *api.YiKouUserRegisterRequest) (int64, error) {
 	// 1. 校验参数
 	if req.UserAccount == "" || req.UserPassword == "" || req.CheckPassword == "" {
 		return 0, pkg.ParamsError
@@ -62,7 +57,7 @@ func (s *UserService) UserRegister(req *api.YiKouUserRegisterRequest) (int64, er
 		return 0, pkg.ParamsError.WithMessage("用户名已被注册")
 	}
 	// 3. 密码加密
-	encryptPassword := s.GetEncryptPassword(req.UserPassword)
+	encryptPassword := s.GetEncryptPassword(ctx, req.UserPassword)
 	// 4. 创建用户
 	newUser := &model.User{
 		UserAccount:  req.UserAccount,
@@ -77,9 +72,9 @@ func (s *UserService) UserRegister(req *api.YiKouUserRegisterRequest) (int64, er
 	return newUser.ID, nil
 }
 
-func (s *UserService) GetLoginUserVo() (vo.LoginUserVo, error) {
+func (s *UserService) GetLoginUserVo(ctx context.Context, c *app.RequestContext) (vo.LoginUserVo, error) {
 	// 1. 校验Cookie是否存在
-	userJson := s.c.Request.Header.Cookie(enum.UserLoginState)
+	userJson := c.Request.Header.Cookie(enum.UserLoginState)
 	if userJson == nil {
 		return vo.LoginUserVo{}, pkg.ParamsError
 	}
@@ -111,7 +106,7 @@ func (s *UserService) GetLoginUserVo() (vo.LoginUserVo, error) {
 	return loginUserVo, nil
 }
 
-func (s *UserService) UserLogin(req *api.YiKouUserLoginRequest) (vo.LoginUserVo, error) {
+func (s *UserService) UserLogin(ctx context.Context, req *api.YiKouUserLoginRequest, c *app.RequestContext) (vo.LoginUserVo, error) {
 	// 1. 校验参数
 	if req.UserAccount == "" || req.UserPassword == "" {
 		return vo.LoginUserVo{}, pkg.ParamsError
@@ -122,7 +117,7 @@ func (s *UserService) UserLogin(req *api.YiKouUserLoginRequest) (vo.LoginUserVo,
 		return vo.LoginUserVo{}, err
 	}
 	// 3. 校验密码是否正确
-	encryptPassword := s.GetEncryptPassword(req.UserPassword)
+	encryptPassword := s.GetEncryptPassword(ctx, req.UserPassword)
 	if user.UserPassword != encryptPassword {
 		return vo.LoginUserVo{}, pkg.ParamsError.WithMessage("密码错误")
 	}
@@ -132,10 +127,10 @@ func (s *UserService) UserLogin(req *api.YiKouUserLoginRequest) (vo.LoginUserVo,
 		return vo.LoginUserVo{}, err
 	}
 	// 5. 保存用户信息到cookie
-	s.c.SetCookie(enum.UserLoginState, string(userJson),
+	c.SetCookie(enum.UserLoginState, string(userJson),
 		86400, "/", "", protocol.CookieSameSiteLaxMode, false, true)
 	// 6. 构建userVo对象
-	loginUserVo, err := s.GetLoginUserVo()
+	loginUserVo, err := s.GetLoginUserVo(ctx, c)
 	if err != nil {
 		return vo.LoginUserVo{}, err
 	}
