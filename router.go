@@ -8,6 +8,8 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	"workspace-yikou-ai-go/biz/handler"
 	user "workspace-yikou-ai-go/biz/handler/user"
+	middleware "workspace-yikou-ai-go/biz/middleware"
+	"workspace-yikou-ai-go/biz/model/enum"
 	_ "workspace-yikou-ai-go/docs"
 )
 
@@ -15,18 +17,23 @@ import (
 func customizedRegister(r *server.Hertz, url func(config *swagger.Config)) {
 	r.GET("/ping", handler.Ping)
 	r.GET("/swagger/*any", swagger.WrapHandler(swaggerFiles.Handler, url))
+
 	userRoute := r.Group("/user")
 	{
 		userHandler := user.NewUserHandler()
 		userRoute.POST("/register", userHandler.UserRegister)
 		userRoute.POST("/login", userHandler.UserLogin)
-		userRoute.GET("/get/login", userHandler.GetLoginUser)
-		userRoute.POST("/logout", userHandler.Logout)
-		userRoute.POST("/add", userHandler.AddUser)
-		userRoute.GET("/get", userHandler.GetUser)
 		userRoute.GET("/get/vo", userHandler.GetUserVo)
-		userRoute.POST("/delete", userHandler.DeleteUser)
-		userRoute.POST("/update", userHandler.UpdateUser)
-		userRoute.POST("/list/page/vo", userHandler.ListUserVoByPage)
+
+		// 需要登录的接口
+		userRoute.GET("/get/login", middleware.AuthMiddleware(enum.UserRole), userHandler.GetLoginUser)
+		userRoute.POST("/logout", middleware.AuthMiddleware(enum.UserRole), userHandler.Logout)
+
+		// 需要管理员权限的接口
+		userRoute.POST("/add", middleware.AuthMiddleware(enum.AdminRole), userHandler.AddUser)
+		userRoute.GET("/get", middleware.AuthMiddleware(enum.AdminRole), userHandler.GetUser)
+		userRoute.POST("/delete", middleware.AuthMiddleware(enum.AdminRole), userHandler.DeleteUser)
+		userRoute.POST("/update", middleware.AuthMiddleware(enum.AdminRole), userHandler.UpdateUser)
+		userRoute.POST("/list/page/vo", middleware.AuthMiddleware(enum.AdminRole), userHandler.ListUserVoByPage)
 	}
 }

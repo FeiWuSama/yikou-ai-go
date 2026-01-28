@@ -1,12 +1,14 @@
 package enum
 
-// UserRole 用户角色枚举
+// UserRoleEnum 用户角色枚举
+type UserRoleEnum string
+
 const (
 	UserRole  = "user"
 	AdminRole = "admin"
 )
 
-var RoleTextMap = map[string]string{
+var RoleTextMap = map[UserRoleEnum]string{
 	UserRole:  "用户",
 	AdminRole: "管理员",
 }
