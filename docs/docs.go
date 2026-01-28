@@ -35,6 +35,106 @@ const docTemplate = `{
                 }
             }
         },
+        "/user/add": {
+            "post": {
+                "description": "新增用户",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户模块"
+                ],
+                "summary": "新增用户",
+                "parameters": [
+                    {
+                        "description": "新增用户请求",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.YiKouUserAddRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "用户ID",
+                        "schema": {
+                            "$ref": "#/definitions/api.YiKouUserAddResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/delete": {
+            "post": {
+                "description": "删除用户",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户模块"
+                ],
+                "summary": "删除用户",
+                "parameters": [
+                    {
+                        "description": "删除用户请求",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/common.DeleteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "删除结果",
+                        "schema": {
+                            "$ref": "#/definitions/api.YiKouUserDeleteResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/get": {
+            "get": {
+                "description": "根据ID获取用户",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户模块"
+                ],
+                "summary": "根据ID获取用户",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "用户ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "用户信息",
+                        "schema": {
+                            "$ref": "#/definitions/api.YiKouUserGetResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/user/get/login": {
             "get": {
                 "description": "获取登录用户信息",
@@ -53,6 +153,72 @@ const docTemplate = `{
                         "description": "登录用户信息",
                         "schema": {
                             "$ref": "#/definitions/api.YiKouUserLoginResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/get/vo": {
+            "get": {
+                "description": "根据ID获取用户VO",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户模块"
+                ],
+                "summary": "根据ID获取用户VO",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "用户ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "用户VO信息",
+                        "schema": {
+                            "$ref": "#/definitions/api.YiKouUserGetVoResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/list/page/vo": {
+            "post": {
+                "description": "分页获取用户VO列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户模块"
+                ],
+                "summary": "分页获取用户VO列表",
+                "parameters": [
+                    {
+                        "description": "分页查询请求",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.YiKouUserQueryRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "分页用户VO列表",
+                        "schema": {
+                            "$ref": "#/definitions/api.YiKouUserPageVoResponse"
                         }
                     }
                 }
@@ -82,6 +248,29 @@ const docTemplate = `{
                         }
                     }
                 ],
+                "responses": {
+                    "200": {
+                        "description": "登录用户信息",
+                        "schema": {
+                            "$ref": "#/definitions/api.YiKouUserLoginResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/logout": {
+            "get": {
+                "description": "退出登录",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户模块"
+                ],
+                "summary": "退出登录",
                 "responses": {
                     "200": {
                         "description": "登录用户信息",
@@ -125,9 +314,119 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/user/update": {
+            "post": {
+                "description": "更新用户",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户模块"
+                ],
+                "summary": "更新用户",
+                "parameters": [
+                    {
+                        "description": "更新用户请求",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.YiKouUserUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更新结果",
+                        "schema": {
+                            "$ref": "#/definitions/api.YiKouUserUpdateResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "api.YiKouUserAddRequest": {
+            "type": "object",
+            "properties": {
+                "user_account": {
+                    "type": "string"
+                },
+                "user_avatar": {
+                    "type": "string"
+                },
+                "user_password": {
+                    "type": "string"
+                },
+                "user_profile": {
+                    "type": "string"
+                },
+                "user_role": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.YiKouUserAddResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.YiKouUserDeleteResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "boolean"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.YiKouUserGetResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/model.User"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.YiKouUserGetVoResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/vo.UserVo"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
         "api.YiKouUserLoginRequest": {
             "type": "object",
             "properties": {
@@ -146,9 +445,52 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "data": {
-                    "$ref": "#/definitions/vo.LoginUserVo"
+                    "$ref": "#/definitions/vo.UserVo"
                 },
                 "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.YiKouUserPageVoResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/common.PageResponse-vo_UserVo"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.YiKouUserQueryRequest": {
+            "type": "object",
+            "properties": {
+                "pageNumber": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                },
+                "sortField": {
+                    "type": "string"
+                },
+                "sortOrder": {
+                    "type": "string"
+                },
+                "user_account": {
+                    "type": "string"
+                },
+                "user_name": {
+                    "type": "string"
+                },
+                "user_profile": {
+                    "type": "string"
+                },
+                "user_role": {
                     "type": "string"
                 }
             }
@@ -181,6 +523,74 @@ const docTemplate = `{
                 }
             }
         },
+        "api.YiKouUserUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "user_avatar": {
+                    "type": "string"
+                },
+                "user_name": {
+                    "type": "string"
+                },
+                "user_profile": {
+                    "type": "string"
+                },
+                "user_role": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.YiKouUserUpdateResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "boolean"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "common.DeleteRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "common.PageResponse-vo_UserVo": {
+            "type": "object",
+            "properties": {
+                "optimize_count_query": {
+                    "type": "boolean"
+                },
+                "page_number": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "records": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/vo.UserVo"
+                    }
+                },
+                "total_page": {
+                    "type": "integer"
+                },
+                "total_row": {
+                    "type": "integer"
+                }
+            }
+        },
         "handler.PingResponse": {
             "type": "object",
             "properties": {
@@ -195,14 +605,65 @@ const docTemplate = `{
                 }
             }
         },
-        "vo.LoginUserVo": {
+        "model.User": {
+            "type": "object",
+            "properties": {
+                "create_time": {
+                    "description": "创建时间",
+                    "type": "string"
+                },
+                "edit_time": {
+                    "description": "编辑时间",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "id",
+                    "type": "string",
+                    "example": "0"
+                },
+                "is_delete": {
+                    "description": "是否删除",
+                    "type": "integer"
+                },
+                "update_time": {
+                    "description": "更新时间",
+                    "type": "string"
+                },
+                "user_account": {
+                    "description": "账号",
+                    "type": "string"
+                },
+                "user_avatar": {
+                    "description": "用户头像",
+                    "type": "string"
+                },
+                "user_name": {
+                    "description": "用户昵称",
+                    "type": "string"
+                },
+                "user_password": {
+                    "description": "密码",
+                    "type": "string"
+                },
+                "user_profile": {
+                    "description": "用户简介",
+                    "type": "string"
+                },
+                "user_role": {
+                    "description": "用户角色：user/admin",
+                    "type": "string"
+                }
+            }
+        },
+        "vo.UserVo": {
             "type": "object",
             "properties": {
                 "create_time": {
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string",
+                    "example": "0"
                 },
                 "update_time": {
                     "type": "string"

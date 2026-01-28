@@ -1,4 +1,53 @@
 definitions:
+  api.YiKouUserAddRequest:
+    properties:
+      user_account:
+        type: string
+      user_avatar:
+        type: string
+      user_password:
+        type: string
+      user_profile:
+        type: string
+      user_role:
+        type: string
+    type: object
+  api.YiKouUserAddResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        type: integer
+      message:
+        type: string
+    type: object
+  api.YiKouUserDeleteResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        type: boolean
+      message:
+        type: string
+    type: object
+  api.YiKouUserGetResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/model.User'
+      message:
+        type: string
+    type: object
+  api.YiKouUserGetVoResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/vo.UserVo'
+      message:
+        type: string
+    type: object
   api.YiKouUserLoginRequest:
     properties:
       user_account:
@@ -11,8 +60,36 @@ definitions:
       code:
         type: integer
       data:
-        $ref: '#/definitions/vo.LoginUserVo'
+        $ref: '#/definitions/vo.UserVo'
       message:
+        type: string
+    type: object
+  api.YiKouUserPageVoResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/common.PageResponse-vo_UserVo'
+      message:
+        type: string
+    type: object
+  api.YiKouUserQueryRequest:
+    properties:
+      pageNumber:
+        type: integer
+      pageSize:
+        type: integer
+      sortField:
+        type: string
+      sortOrder:
+        type: string
+      user_account:
+        type: string
+      user_name:
+        type: string
+      user_profile:
+        type: string
+      user_role:
         type: string
     type: object
   api.YiKouUserRegisterRequest:
@@ -33,6 +110,50 @@ definitions:
       message:
         type: string
     type: object
+  api.YiKouUserUpdateRequest:
+    properties:
+      id:
+        type: integer
+      user_avatar:
+        type: string
+      user_name:
+        type: string
+      user_profile:
+        type: string
+      user_role:
+        type: string
+    type: object
+  api.YiKouUserUpdateResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        type: boolean
+      message:
+        type: string
+    type: object
+  common.DeleteRequest:
+    properties:
+      id:
+        type: integer
+    type: object
+  common.PageResponse-vo_UserVo:
+    properties:
+      optimize_count_query:
+        type: boolean
+      page_number:
+        type: integer
+      page_size:
+        type: integer
+      records:
+        items:
+          $ref: '#/definitions/vo.UserVo'
+        type: array
+      total_page:
+        type: integer
+      total_row:
+        type: integer
+    type: object
   handler.PingResponse:
     properties:
       code:
@@ -42,12 +163,50 @@ definitions:
       message:
         type: string
     type: object
-  vo.LoginUserVo:
+  model.User:
+    properties:
+      create_time:
+        description: 创建时间
+        type: string
+      edit_time:
+        description: 编辑时间
+        type: string
+      id:
+        description: id
+        example: "0"
+        type: string
+      is_delete:
+        description: 是否删除
+        type: integer
+      update_time:
+        description: 更新时间
+        type: string
+      user_account:
+        description: 账号
+        type: string
+      user_avatar:
+        description: 用户头像
+        type: string
+      user_name:
+        description: 用户昵称
+        type: string
+      user_password:
+        description: 密码
+        type: string
+      user_profile:
+        description: 用户简介
+        type: string
+      user_role:
+        description: 用户角色：user/admin
+        type: string
+    type: object
+  vo.UserVo:
     properties:
       create_time:
         type: string
       id:
-        type: integer
+        example: "0"
+        type: string
       update_time:
         type: string
       user_account:
@@ -77,6 +236,71 @@ paths:
           schema:
             $ref: '#/definitions/handler.PingResponse'
       summary: 测试接口
+  /user/add:
+    post:
+      consumes:
+      - application/json
+      description: 新增用户
+      parameters:
+      - description: 新增用户请求
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/api.YiKouUserAddRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 用户ID
+          schema:
+            $ref: '#/definitions/api.YiKouUserAddResponse'
+      summary: 新增用户
+      tags:
+      - 用户模块
+  /user/delete:
+    post:
+      consumes:
+      - application/json
+      description: 删除用户
+      parameters:
+      - description: 删除用户请求
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/common.DeleteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除结果
+          schema:
+            $ref: '#/definitions/api.YiKouUserDeleteResponse'
+      summary: 删除用户
+      tags:
+      - 用户模块
+  /user/get:
+    get:
+      consumes:
+      - application/json
+      description: 根据ID获取用户
+      parameters:
+      - description: 用户ID
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 用户信息
+          schema:
+            $ref: '#/definitions/api.YiKouUserGetResponse'
+      summary: 根据ID获取用户
+      tags:
+      - 用户模块
   /user/get/login:
     get:
       consumes:
@@ -90,6 +314,49 @@ paths:
           schema:
             $ref: '#/definitions/api.YiKouUserLoginResponse'
       summary: 获取登录用户信息
+      tags:
+      - 用户模块
+  /user/get/vo:
+    get:
+      consumes:
+      - application/json
+      description: 根据ID获取用户VO
+      parameters:
+      - description: 用户ID
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 用户VO信息
+          schema:
+            $ref: '#/definitions/api.YiKouUserGetVoResponse'
+      summary: 根据ID获取用户VO
+      tags:
+      - 用户模块
+  /user/list/page/vo:
+    post:
+      consumes:
+      - application/json
+      description: 分页获取用户VO列表
+      parameters:
+      - description: 分页查询请求
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/api.YiKouUserQueryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 分页用户VO列表
+          schema:
+            $ref: '#/definitions/api.YiKouUserPageVoResponse'
+      summary: 分页获取用户VO列表
       tags:
       - 用户模块
   /user/login:
@@ -114,6 +381,21 @@ paths:
       summary: 用户登录
       tags:
       - 用户模块
+  /user/logout:
+    get:
+      consumes:
+      - application/json
+      description: 退出登录
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录用户信息
+          schema:
+            $ref: '#/definitions/api.YiKouUserLoginResponse'
+      summary: 退出登录
+      tags:
+      - 用户模块
   /user/register:
     post:
       consumes:
@@ -134,6 +416,28 @@ paths:
           schema:
             $ref: '#/definitions/api.YiKouUserRegisterResponse'
       summary: 用户注册
+      tags:
+      - 用户模块
+  /user/update:
+    post:
+      consumes:
+      - application/json
+      description: 更新用户
+      parameters:
+      - description: 更新用户请求
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/api.YiKouUserUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新结果
+          schema:
+            $ref: '#/definitions/api.YiKouUserUpdateResponse'
+      summary: 更新用户
       tags:
       - 用户模块
 swagger: "2.0"

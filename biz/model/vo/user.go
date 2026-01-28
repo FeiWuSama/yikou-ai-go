@@ -2,8 +2,8 @@ package vo
 
 import "time"
 
-type LoginUserVo struct {
-	ID          int64     `json:"id"`
+type UserVo struct {
+	ID          int64     `json:"id,string"`
 	UserAccount string    `json:"user_account"`
 	UserName    string    `json:"user_name"`
 	UserAvatar  string    `json:"user_avatar"`

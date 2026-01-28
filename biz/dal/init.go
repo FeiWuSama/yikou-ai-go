@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"workspace-yikou-ai-go/biz/dal/query"
 	"workspace-yikou-ai-go/config"
 )
@@ -16,7 +17,9 @@ func InitDB() error {
 	}
 
 	dsn := config.GlobalConfig.Database.GetDSN()
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
 	if err != nil {
 		return fmt.Errorf("数据库连接失败: %w", err)
 	}

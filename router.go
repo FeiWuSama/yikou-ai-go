@@ -21,5 +21,12 @@ func customizedRegister(r *server.Hertz, url func(config *swagger.Config)) {
 		userRoute.POST("/register", userHandler.UserRegister)
 		userRoute.POST("/login", userHandler.UserLogin)
 		userRoute.GET("/get/login", userHandler.GetLoginUser)
+		userRoute.POST("/logout", userHandler.Logout)
+		userRoute.POST("/add", userHandler.AddUser)
+		userRoute.GET("/get", userHandler.GetUser)
+		userRoute.GET("/get/vo", userHandler.GetUserVo)
+		userRoute.POST("/delete", userHandler.DeleteUser)
+		userRoute.POST("/update", userHandler.UpdateUser)
+		userRoute.POST("/list/page/vo", userHandler.ListUserVoByPage)
 	}
 }
