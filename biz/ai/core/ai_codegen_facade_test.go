@@ -1,0 +1,15 @@
+package core
+
+import (
+	"context"
+	"testing"
+	"workspace-yikou-ai-go/biz/model/enum"
+)
+
+func TestNewYiKouAiCodegenFacade(t *testing.T) {
+	aiCodegenFacade := NewYiKouAiCodegenFacade()
+	err := aiCodegenFacade.GenCodeAndSave(context.Background(), "请帮我生成一个登录页面,不超过20行代码", enum.MultiFileGen)
+	if err != nil {
+		t.Fatalf("生成多文件代码并保存失败: %v", err)
+	}
+}

@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	pkg "workspace-yikou-ai-go/pkg/file"
 
 	"gopkg.in/yaml.v3"
-	"workspace-yikou-ai-go/pkg/file"
 )
 
 type Config struct {
@@ -131,7 +131,7 @@ func mergeChatModelConfig(base, override *ChatModelConfig) {
 
 // InitConfig 初始化配置文件
 func InitConfig() error {
-	projectRoot, err := file.GetProjectRoot()
+	projectRoot, err := pkg.GetProjectRoot()
 	if err != nil {
 		return fmt.Errorf("获取项目根目录失败: %w", err)
 	}

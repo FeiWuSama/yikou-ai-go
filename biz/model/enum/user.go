@@ -4,8 +4,8 @@ package enum
 type UserRoleEnum string
 
 const (
-	UserRole  = "user"
-	AdminRole = "admin"
+	UserRole  UserRoleEnum = "user"
+	AdminRole UserRoleEnum = "admin"
 )
 
 var RoleTextMap = map[UserRoleEnum]string{
