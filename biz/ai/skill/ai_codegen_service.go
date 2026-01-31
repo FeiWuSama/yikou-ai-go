@@ -6,15 +6,15 @@ import (
 	"os"
 	"path/filepath"
 	ai "workspace-yikou-ai-go/biz/ai/model"
+	pkg "workspace-yikou-ai-go/pkg/file"
 
 	"github.com/cloudwego/eino/schema"
 	"workspace-yikou-ai-go/biz/ai/agent"
-	"workspace-yikou-ai-go/pkg/file"
 )
 
 type IYiKouAiCodegenService interface {
-	GenerateHtmlCode(ctx context.Context, userMessage string) (string, error)
-	GenerateMutiFileCode(ctx context.Context, userMessage string) (string, error)
+	GenerateHtmlCode(ctx context.Context, userMessage string) (*ai.HtmlCodeResponse, error)
+	GenerateMutiFileCode(ctx context.Context, userMessage string) (*ai.MultiFileCodeResponse, error)
 }
 
 type YiKouAiCodegenService struct {
@@ -25,7 +25,7 @@ func NewYiKouAiCodegenService() *YiKouAiCodegenService {
 }
 
 func (s *YiKouAiCodegenService) GenerateMutiFileCode(ctx context.Context, userMessage string) (*ai.MultiFileCodeResponse, error) {
-	projectRoot, err := file.GetProjectRoot()
+	projectRoot, err := pkg.GetProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("获取项目根目录失败: %w", err)
 	}
@@ -52,7 +52,7 @@ func (s *YiKouAiCodegenService) GenerateMutiFileCode(ctx context.Context, userMe
 }
 
 func (s *YiKouAiCodegenService) GenerateHtmlCode(ctx context.Context, userMessage string) (*ai.HtmlCodeResponse, error) {
-	projectRoot, err := file.GetProjectRoot()
+	projectRoot, err := pkg.GetProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("获取项目根目录失败: %w", err)
 	}
