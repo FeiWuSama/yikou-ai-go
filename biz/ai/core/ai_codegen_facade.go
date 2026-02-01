@@ -3,8 +3,10 @@ package core
 import (
 	"context"
 	"fmt"
+	"github.com/bytedance/gopkg/util/logger"
 	"io"
 	"strings"
+	"workspace-yikou-ai-go/biz/ai/core/saver"
 	ai "workspace-yikou-ai-go/biz/ai/model"
 	"workspace-yikou-ai-go/biz/ai/skill"
 	"workspace-yikou-ai-go/biz/model/enum"
@@ -25,7 +27,12 @@ func (y *YiKouAiCodegenFacade) genHtmlCodeAndSave(ctx context.Context, userMessa
 	if err != nil {
 		return err
 	}
-	return SaveHtmlCode(*resp)
+	dirPath, err := saver.SaveHtmlCode(*resp)
+	if err != nil {
+		return err
+	}
+	logger.Info("HTML代码已保存到目录: %s", dirPath)
+	return nil
 }
 
 func (y *YiKouAiCodegenFacade) genMultiFileCodeAndSave(ctx context.Context, userMessage string) error {
@@ -33,7 +40,12 @@ func (y *YiKouAiCodegenFacade) genMultiFileCodeAndSave(ctx context.Context, user
 	if err != nil {
 		return err
 	}
-	return SaveMutiFileCode(*resp)
+	dirPath, err := saver.SaveMutiFileCode(*resp)
+	if err != nil {
+		return err
+	}
+	logger.Info("多文件代码已保存到目录: %s", dirPath)
+	return nil
 }
 
 func (y *YiKouAiCodegenFacade) GenCodeAndSave(ctx context.Context, userMessage string, typeStr enum.CodeGenType) error {
@@ -69,10 +81,11 @@ func (y *YiKouAiCodegenFacade) genHtmlCodeStreamAndSave(ctx context.Context, use
 	if err != nil {
 		return err
 	}
-	err = SaveHtmlCode(*response)
+	dirPath, err := saver.SaveHtmlCode(*response)
 	if err != nil {
 		return err
 	}
+	logger.Info("HTML代码已保存到目录: %s", dirPath)
 	return nil
 }
 
@@ -98,10 +111,11 @@ func (y *YiKouAiCodegenFacade) genMultiFileCodeStreamAndSave(ctx context.Context
 	if err != nil {
 		return err
 	}
-	err = SaveMutiFileCode(*response)
+	dirPath, err := saver.SaveMutiFileCode(*response)
 	if err != nil {
 		return err
 	}
+	logger.Info("多文件代码已保存到目录: %s", dirPath)
 	return nil
 }
 
