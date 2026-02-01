@@ -15,13 +15,63 @@ import (
 type IYiKouAiCodegenService interface {
 	GenerateHtmlCode(ctx context.Context, userMessage string) (*ai.HtmlCodeResponse, error)
 	GenerateMutiFileCode(ctx context.Context, userMessage string) (*ai.MultiFileCodeResponse, error)
+	GenerateHtmlCodeStream(ctx context.Context, userMessage string) (*schema.StreamReader[*schema.Message], error)
+	GenerateMutiFileCodeStream(ctx context.Context, userMessage string) (*schema.StreamReader[*schema.Message], error)
+}
+
+func NewYiKouAiCodegenService() *YiKouAiCodegenService {
+	return &YiKouAiCodegenService{}
 }
 
 type YiKouAiCodegenService struct {
 }
 
-func NewYiKouAiCodegenService() *YiKouAiCodegenService {
-	return &YiKouAiCodegenService{}
+func (s *YiKouAiCodegenService) GenerateMutiFileCodeStream(ctx context.Context, userMessage string) (*schema.StreamReader[*schema.Message], error) {
+	projectRoot, err := pkg.GetProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("获取项目根目录失败: %w", err)
+	}
+	promptPath := filepath.Join(projectRoot, "prompt/codegen-multi-file-system-prompt.txt")
+	systemPrompt, err := os.ReadFile(promptPath)
+	if err != nil {
+		return nil, fmt.Errorf("读取提示词文件失败: %w", err)
+	}
+	streamResp, err := agent.CodegenAgent.Stream(ctx, []*schema.Message{
+		schema.SystemMessage(string(systemPrompt)),
+		{
+			Role:    schema.User,
+			Content: userMessage,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return streamResp, nil
+}
+
+func (s *YiKouAiCodegenService) GenerateHtmlCodeStream(ctx context.Context, userMessage string) (*schema.StreamReader[*schema.Message], error) {
+	projectRoot, err := pkg.GetProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("获取项目根目录失败: %w", err)
+	}
+	promptPath := filepath.Join(projectRoot, "prompt/codegen-html-system-prompt.txt")
+	systemPrompt, err := os.ReadFile(promptPath)
+	if err != nil {
+		return nil, fmt.Errorf("读取提示词文件失败: %w", err)
+	}
+	streamResp, err := agent.CodegenAgent.Stream(ctx, []*schema.Message{
+		schema.SystemMessage(string(systemPrompt)),
+		{
+			Role:    schema.User,
+			Content: userMessage,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return streamResp, nil
 }
 
 func (s *YiKouAiCodegenService) GenerateMutiFileCode(ctx context.Context, userMessage string) (*ai.MultiFileCodeResponse, error) {
