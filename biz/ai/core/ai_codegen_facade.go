@@ -27,7 +27,11 @@ func (y *YiKouAiCodegenFacade) genHtmlCodeAndSave(ctx context.Context, userMessa
 	if err != nil {
 		return err
 	}
-	dirPath, err := saver.SaveHtmlCode(*resp)
+	parsedResp, err := ai.ParseHtmlCodeResponse(resp.Content)
+	if err != nil {
+		return err
+	}
+	dirPath, err := saver.SaveHtmlCode(*parsedResp)
 	if err != nil {
 		return err
 	}
@@ -40,7 +44,11 @@ func (y *YiKouAiCodegenFacade) genMultiFileCodeAndSave(ctx context.Context, user
 	if err != nil {
 		return err
 	}
-	dirPath, err := saver.SaveMutiFileCode(*resp)
+	parsedResp, err := ai.ParseMultiFileCodeResponse(resp.Content)
+	if err != nil {
+		return err
+	}
+	dirPath, err := saver.SaveMutiFileCode(*parsedResp)
 	if err != nil {
 		return err
 	}

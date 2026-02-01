@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	ai "workspace-yikou-ai-go/biz/ai/model"
 	pkg "workspace-yikou-ai-go/pkg/file"
 
 	"github.com/cloudwego/eino/schema"
@@ -13,8 +12,8 @@ import (
 )
 
 type IYiKouAiCodegenService interface {
-	GenerateHtmlCode(ctx context.Context, userMessage string) (*ai.HtmlCodeResponse, error)
-	GenerateMutiFileCode(ctx context.Context, userMessage string) (*ai.MultiFileCodeResponse, error)
+	GenerateHtmlCode(ctx context.Context, userMessage string) (*schema.Message, error)
+	GenerateMutiFileCode(ctx context.Context, userMessage string) (*schema.Message, error)
 	GenerateHtmlCodeStream(ctx context.Context, userMessage string) (*schema.StreamReader[*schema.Message], error)
 	GenerateMutiFileCodeStream(ctx context.Context, userMessage string) (*schema.StreamReader[*schema.Message], error)
 }
@@ -74,7 +73,7 @@ func (s *YiKouAiCodegenService) GenerateHtmlCodeStream(ctx context.Context, user
 	return streamResp, nil
 }
 
-func (s *YiKouAiCodegenService) GenerateMutiFileCode(ctx context.Context, userMessage string) (*ai.MultiFileCodeResponse, error) {
+func (s *YiKouAiCodegenService) GenerateMutiFileCode(ctx context.Context, userMessage string) (*schema.Message, error) {
 	projectRoot, err := pkg.GetProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("获取项目根目录失败: %w", err)
@@ -94,14 +93,10 @@ func (s *YiKouAiCodegenService) GenerateMutiFileCode(ctx context.Context, userMe
 	if err != nil {
 		return nil, err
 	}
-	parsedResp, err := ai.ParseMultiFileCodeResponse(resp.Content)
-	if err != nil {
-		return nil, err
-	}
-	return parsedResp, nil
+	return resp, nil
 }
 
-func (s *YiKouAiCodegenService) GenerateHtmlCode(ctx context.Context, userMessage string) (*ai.HtmlCodeResponse, error) {
+func (s *YiKouAiCodegenService) GenerateHtmlCode(ctx context.Context, userMessage string) (*schema.Message, error) {
 	projectRoot, err := pkg.GetProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("获取项目根目录失败: %w", err)
@@ -121,9 +116,5 @@ func (s *YiKouAiCodegenService) GenerateHtmlCode(ctx context.Context, userMessag
 	if err != nil {
 		return nil, err
 	}
-	parsedResp, err := ai.ParseHtmlCodeResponse(resp.Content)
-	if err != nil {
-		return nil, err
-	}
-	return parsedResp, nil
+	return resp, nil
 }
