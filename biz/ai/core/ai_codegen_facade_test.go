@@ -16,7 +16,7 @@ func TestYiKouAiCodegenFacade_GenCodeAndSave(t *testing.T) {
 
 func TestYiKouAiCodegenFacade_GenCodeStreamAndSave(t *testing.T) {
 	aiCodegenFacade := NewYiKouAiCodegenFacade()
-	err := aiCodegenFacade.GenCodeStreamAndSave(context.Background(), "请帮我生成一个登录页面,不超过20行代码", enum.HtmlCodeGen)
+	_, err := aiCodegenFacade.GenCodeStreamAndSave(context.Background(), "请帮我生成一个登录页面,不超过20行代码", enum.HtmlCodeGen)
 	if err != nil {
 		t.Fatalf("生成HTML代码并保存失败: %v", err)
 	}

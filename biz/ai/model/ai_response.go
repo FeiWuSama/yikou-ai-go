@@ -52,6 +52,8 @@ func extractDescription(content string) string {
 	return strings.Join(descriptionLines, "\n")
 }
 
+// ParseHtmlCodeResponse
+// Deprecated: 该函数已被废弃，建议使用 ExecuteParser 方法
 func ParseHtmlCodeResponse(content string) (*HtmlCodeResponse, error) {
 	blocks := parseToResponseBlock(content)
 	response := &HtmlCodeResponse{}
@@ -69,6 +71,8 @@ func ParseHtmlCodeResponse(content string) (*HtmlCodeResponse, error) {
 	return response, nil
 }
 
+// ParseMultiFileCodeResponse
+// Deprecated: 该函数已被废弃，建议使用 ExecuteParser 方法
 func ParseMultiFileCodeResponse(content string) (*MultiFileCodeResponse, error) {
 	blocks := parseToResponseBlock(content)
 	response := &MultiFileCodeResponse{}
