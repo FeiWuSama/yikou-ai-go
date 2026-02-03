@@ -82,7 +82,7 @@ func (s *UserService) UserRegister(ctx context.Context, req *api.YiKouUserRegist
 		UserAccount:  req.UserAccount,
 		UserPassword: encryptPassword,
 		UserName:     "无名",
-		UserRole:     enum.UserRole,
+		UserRole:     string(enum.UserRole),
 	}
 	err := query.Use(dal.DB).User.Create(newUser)
 	if err != nil {
@@ -157,7 +157,7 @@ func (s *UserService) AddUser(ctx context.Context, req *api.YiKouUserAddRequest)
 		UserRole:     req.UserRole,
 	}
 	if req.UserRole == "" {
-		newUser.UserRole = enum.UserRole // 默认角色
+		newUser.UserRole = string(enum.UserRole) // 默认角色
 	}
 
 	err := query.Use(dal.DB).User.Create(newUser)
