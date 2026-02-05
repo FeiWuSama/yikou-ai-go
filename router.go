@@ -46,6 +46,9 @@ func customizedRegister(r *server.Hertz, url func(config *swagger.Config)) {
 
 		// 需要登录的接口
 		appRoute.POST("/my/list/page/vo", middleware.AuthMiddleware(enum.UserRole), appHandler.ListMyApp)
+		appRoute.POST("/add", middleware.AuthMiddleware(enum.UserRole), appHandler.AddApp)
+		appRoute.POST("/update", middleware.AuthMiddleware(enum.UserRole), appHandler.UpdateApp)
+		appRoute.POST("/delete", middleware.AuthMiddleware(enum.UserRole), appHandler.DeleteApp)
 
 		// 需要管理员权限的接口
 		appRoute.POST("/admin/update", middleware.AuthMiddleware(enum.AdminRole), appHandler.AdminUpdateApp)
