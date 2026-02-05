@@ -13,8 +13,8 @@ type BaseResponse[T any] struct {
 
 func NewSuccessResponse[T any](data T) *BaseResponse[T] {
 	return &BaseResponse[T]{
-		Code:    20000,
-		Message: "success",
+		Code:    pkg.SuccessErrCode,
+		Message: pkg.Success.Message,
 		Data:    data,
 	}
 }
