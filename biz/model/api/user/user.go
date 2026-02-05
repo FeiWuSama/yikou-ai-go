@@ -7,26 +7,26 @@ import (
 )
 
 type YiKouUserRegisterRequest struct {
-	UserAccount   string `json:"user_account"`
-	UserPassword  string `json:"user_password"`
-	CheckPassword string `json:"check_password"`
+	UserAccount   string `json:"userAccount"`
+	UserPassword  string `json:"userPassword"`
+	CheckPassword string `json:"checkPassword"`
 }
 
 type YiKouUserRegisterResponse common.BaseResponse[int64]
 
 type YiKouUserLoginRequest struct {
-	UserAccount  string `json:"user_account"`
-	UserPassword string `json:"user_password"`
+	UserAccount  string `json:"userAccount"`
+	UserPassword string `json:"userPassword"`
 }
 
 type YiKouUserLoginResponse common.BaseResponse[vo.UserVo]
 
 type YiKouUserAddRequest struct {
-	UserAccount  string `json:"user_account"`
-	UserPassword string `json:"user_password"`
-	UserAvatar   string `json:"user_avatar"`
-	UserProfile  string `json:"user_profile"`
-	UserRole     string `json:"user_role"`
+	UserAccount  string `json:"userAccount"`
+	UserPassword string `json:"userPassword"`
+	UserAvatar   string `json:"userAvatar"`
+	UserProfile  string `json:"userProfile"`
+	UserRole     string `json:"userRole"`
 }
 
 type YiKouUserAddResponse common.BaseResponse[int64]
@@ -39,20 +39,20 @@ type YiKouUserDeleteResponse common.BaseResponse[bool]
 
 type YiKouUserUpdateRequest struct {
 	common.DeleteRequest
-	UserName    string `json:"user_name"`
-	UserAvatar  string `json:"user_avatar"`
-	UserProfile string `json:"user_profile"`
-	UserRole    string `json:"user_role"`
+	UserName    string `json:"userName"`
+	UserAvatar  string `json:"userAvatar"`
+	UserProfile string `json:"userProfile"`
+	UserRole    string `json:"userRole"`
 }
 
 type YiKouUserUpdateResponse common.BaseResponse[bool]
 
 type YiKouUserQueryRequest struct {
 	common.PageRequest
-	UserAccount string `json:"user_account"`
-	UserProfile string `json:"user_profile"`
-	UserName    string `json:"user_name"`
-	UserRole    string `json:"user_role"`
+	UserAccount string `json:"userAccount"`
+	UserProfile string `json:"userProfile"`
+	UserName    string `json:"userName"`
+	UserRole    string `json:"userRole"`
 }
 
 type YiKouUserPageVoResponse common.BaseResponse[common.PageResponse[vo.UserVo]]
