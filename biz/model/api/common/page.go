@@ -1,7 +1,7 @@
 package common
 
 type PageResponse[T any] struct {
-	Records            []T  `json:"records"`
+	List               []T  `json:"list"`
 	PageNumber         int  `json:"page_number"`
 	PageSize           int  `json:"page_size"`
 	TotalPage          int  `json:"total_page"`

@@ -7,6 +7,7 @@ import (
 	"github.com/hertz-contrib/swagger"
 	swaggerFiles "github.com/swaggo/files"
 	"workspace-yikou-ai-go/biz/handler"
+	app "workspace-yikou-ai-go/biz/handler/app"
 	user "workspace-yikou-ai-go/biz/handler/user"
 	middleware "workspace-yikou-ai-go/biz/middleware"
 	"workspace-yikou-ai-go/biz/model/enum"
@@ -35,5 +36,21 @@ func customizedRegister(r *server.Hertz, url func(config *swagger.Config)) {
 		userRoute.POST("/delete", middleware.AuthMiddleware(enum.AdminRole), userHandler.DeleteUser)
 		userRoute.POST("/update", middleware.AuthMiddleware(enum.AdminRole), userHandler.UpdateUser)
 		userRoute.POST("/list/page/vo", middleware.AuthMiddleware(enum.AdminRole), userHandler.ListUserVoByPage)
+	}
+
+	appRoute := r.Group("/app")
+	{
+		appHandler := app.NewAppHandler()
+		appRoute.POST("/good/list/page/vo", appHandler.ListGoodApp)
+		appRoute.GET("/get/vo", middleware.AuthMiddleware(enum.UserRole), appHandler.GetAppVo)
+
+		// 需要登录的接口
+		appRoute.POST("/my/list/page/vo", middleware.AuthMiddleware(enum.UserRole), appHandler.ListMyApp)
+
+		// 需要管理员权限的接口
+		appRoute.POST("/admin/update", middleware.AuthMiddleware(enum.AdminRole), appHandler.AdminUpdateApp)
+		appRoute.POST("/admin/delete", middleware.AuthMiddleware(enum.AdminRole), appHandler.AdminDeleteApp)
+		appRoute.GET("/admin/get/vo", middleware.AuthMiddleware(enum.AdminRole), appHandler.AdminGetAppVo)
+		appRoute.POST("/admin/list/page/vo", middleware.AuthMiddleware(enum.AdminRole), appHandler.AdminListApp)
 	}
 }
