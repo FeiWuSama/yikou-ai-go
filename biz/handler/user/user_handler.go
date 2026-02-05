@@ -94,7 +94,7 @@ func (u *UserHandler) GetLoginUser(ctx context.Context, c *app.RequestContext) {
 // @Tags 用户模块
 // @Accept json
 // @Produce json
-// @Success 200 {object} api.YiKouUserLoginResponse "登录用户信息"
+// @Success 200 {object} bool "退出登录成功"
 // @Router /user/logout [get]
 func (u *UserHandler) Logout(ctx context.Context, c *app.RequestContext) {
 	err := u.userService.Logout(ctx, c)
@@ -102,7 +102,7 @@ func (u *UserHandler) Logout(ctx context.Context, c *app.RequestContext) {
 		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
 		return
 	}
-	c.JSON(consts.StatusOK, common.NewSuccessResponse[any](nil))
+	c.JSON(consts.StatusOK, common.NewSuccessResponse[any](true))
 }
 
 // AddUser 新增用户

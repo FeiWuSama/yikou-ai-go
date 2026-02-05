@@ -42,7 +42,7 @@ func (s *UserService) Logout(ctx context.Context, c *app.RequestContext) error {
 		return pkg.ParamsError.WithMessage("用户未登录")
 	}
 	// 2. 清除Cookie
-	c.Request.Header.SetCookie(enum.UserLoginState, "")
+	c.SetCookie(enum.UserLoginState, "", 0, "/", "", protocol.CookieSameSiteLaxMode, false, true)
 	return nil
 }
 
