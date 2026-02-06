@@ -111,7 +111,7 @@ func (s *UserService) GetLoginUserVo(ctx context.Context, c *app.RequestContext)
 	if err != nil {
 		return vo.UserVo{}, err
 	}
-	// 3. 构建 UserVo
+	// 3. 构建 User
 	loginUserVo := vo.UserVo{
 		ID:          user.ID,
 		UserAccount: user.UserAccount,

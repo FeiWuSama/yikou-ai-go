@@ -1025,7 +1025,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "data": {
-                    "$ref": "#/definitions/vo.UserVo"
+                    "$ref": "#/definitions/vo.User"
                 },
                 "message": {
                     "type": "string"
@@ -1050,7 +1050,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "data": {
-                    "$ref": "#/definitions/vo.UserVo"
+                    "$ref": "#/definitions/vo.User"
                 },
                 "message": {
                     "type": "string"
@@ -1237,7 +1237,7 @@ const docTemplate = `{
                 "records": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/vo.UserVo"
+                        "$ref": "#/definitions/vo.User"
                     }
                 },
                 "total_page": {
@@ -1407,7 +1407,7 @@ const docTemplate = `{
                 }
             }
         },
-        "vo.UserVo": {
+        "vo.User": {
             "type": "object",
             "properties": {
                 "create_time": {

@@ -11,6 +11,7 @@ import (
 	"workspace-yikou-ai-go/biz/model/api/common"
 	"workspace-yikou-ai-go/biz/model/enum"
 	"workspace-yikou-ai-go/biz/model/vo"
+	user "workspace-yikou-ai-go/biz/service/user"
 	pkg "workspace-yikou-ai-go/pkg/errors"
 )
 
@@ -21,6 +22,7 @@ type IAppService interface {
 	DeleteApp(ctx context.Context, id int64, userId int64) (bool, error)
 	GetApp(ctx context.Context, id int64, userId int64) (*model.App, error)
 	GetAppVo(ctx context.Context, id int64, userId int64) (vo.AppVo, error)
+	GetAppVoList(ctx context.Context, appList []*model.App) ([]vo.AppVo, error)
 	ListMyApp(ctx context.Context, req *appApi.YiKouAppMyListRequest, userId int64) (*common.PageResponse[vo.AppVo], error)
 	ListGoodApp(ctx context.Context, req *appApi.YiKouAppFeaturedListRequest) (*common.PageResponse[vo.AppVo], error)
 	AdminUpdateApp(ctx context.Context, req *appApi.YiKouAppAdminUpdateRequest) (bool, error)
@@ -32,11 +34,13 @@ type IAppService interface {
 func NewAppService() *AppService {
 	return &AppService{
 		aiCodeGenFacade: core.NewYiKouAiCodegenFacade(),
+		userService:     user.NewUserService(),
 	}
 }
 
 type AppService struct {
 	aiCodeGenFacade *core.YiKouAiCodegenFacade
+	userService     *user.UserService
 }
 
 func (s *AppService) ChatToGenCode(ctx context.Context, appId int64, message string, loginUser *vo.UserVo) (*schema.StreamReader[*schema.Message], error) {
@@ -157,6 +161,12 @@ func (s *AppService) GetAppVo(ctx context.Context, id int64, userId int64) (vo.A
 		return vo.AppVo{}, err
 	}
 
+	// 获取用户信息
+	userVo, err := s.userService.GetUserVo(ctx, app.UserID)
+	if err != nil {
+		return vo.AppVo{}, err
+	}
+
 	appVo := vo.AppVo{
 		ID:           app.ID,
 		AppName:      app.AppName,
@@ -167,10 +177,61 @@ func (s *AppService) GetAppVo(ctx context.Context, id int64, userId int64) (vo.A
 		DeployedTime: app.DeployedTime,
 		Priority:     app.Priority,
 		UserID:       app.UserID,
+		User:         userVo,
 		CreateTime:   app.CreateTime,
 		UpdateTime:   app.UpdateTime,
 	}
 	return appVo, nil
+}
+
+func (s *AppService) GetAppVoList(ctx context.Context, appList []*model.App) ([]vo.AppVo, error) {
+	// 批量获取用户信息（去重）
+	userIdSet := make(map[int64]bool)
+	for _, app := range appList {
+		userIdSet[app.UserID] = true
+	}
+
+	// 转换为切片
+	userIdList := make([]int64, 0, len(userIdSet))
+	for userId := range userIdSet {
+		userIdList = append(userIdList, userId)
+	}
+
+	// 获取所有用户信息
+	userList, err := query.Use(dal.DB).User.Where(query.User.ID.In(userIdList...)).Find()
+	if err != nil {
+		return nil, err
+	}
+	userVoMap := make(map[int64]vo.UserVo)
+	for _, dbUser := range userList {
+		userVo, err := s.userService.GetUserVo(ctx, dbUser.ID)
+		if err != nil {
+			return nil, err
+		}
+		userVoMap[dbUser.ID] = userVo
+	}
+
+	// 转换为AppVo列表
+	var appVoList []vo.AppVo
+	for _, app := range appList {
+		appVo := vo.AppVo{
+			ID:           app.ID,
+			AppName:      app.AppName,
+			Cover:        app.Cover,
+			InitPrompt:   app.InitPrompt,
+			CodeGenType:  app.CodeGenType,
+			DeployKey:    app.DeployKey,
+			DeployedTime: app.DeployedTime,
+			Priority:     app.Priority,
+			UserID:       app.UserID,
+			User:         userVoMap[app.UserID],
+			CreateTime:   app.CreateTime,
+			UpdateTime:   app.UpdateTime,
+		}
+		appVoList = append(appVoList, appVo)
+	}
+
+	return appVoList, nil
 }
 
 func (s *AppService) ListMyApp(ctx context.Context, req *appApi.YiKouAppMyListRequest, userId int64) (*common.PageResponse[vo.AppVo], error) {
@@ -212,29 +273,18 @@ func (s *AppService) ListMyApp(ctx context.Context, req *appApi.YiKouAppMyListRe
 		queryBuilder = queryBuilder.Order(query.App.CreateTime.Desc())
 	}
 
-	apps, err := queryBuilder.Offset(offset).Limit(req.PageSize).Find()
+	appList, err := queryBuilder.Offset(offset).Limit(req.PageSize).Find()
 	if err != nil {
 		return nil, err
 	}
 
-	var appVoList []vo.AppVo
-	for _, app := range apps {
-		appVo := vo.AppVo{
-			ID:           app.ID,
-			AppName:      app.AppName,
-			Cover:        app.Cover,
-			InitPrompt:   app.InitPrompt,
-			CodeGenType:  app.CodeGenType,
-			DeployKey:    app.DeployKey,
-			DeployedTime: app.DeployedTime,
-			Priority:     app.Priority,
-			UserID:       app.UserID,
-			CreateTime:   app.CreateTime,
-			UpdateTime:   app.UpdateTime,
-		}
-		appVoList = append(appVoList, appVo)
+	// 转换为AppVo列表
+	appVoList, err := s.GetAppVoList(ctx, appList)
+	if err != nil {
+		return nil, err
 	}
-	// 8. 构建分页响应
+
+	// 构建分页响应
 	pageResponse := &common.PageResponse[vo.AppVo]{
 		Records:            appVoList,
 		PageNum:            req.PageNum,
@@ -295,28 +345,13 @@ func (s *AppService) ListGoodApp(ctx context.Context, req *appApi.YiKouAppFeatur
 		queryBuilder = queryBuilder.Order(query.App.Priority.Desc(), query.App.CreateTime.Desc())
 	}
 
-	apps, err := queryBuilder.Offset(offset).Limit(req.PageSize).Find()
+	appList, err := queryBuilder.Offset(offset).Limit(req.PageSize).Find()
 	if err != nil {
 		return nil, err
 	}
 
-	var appVoList []vo.AppVo
-	for _, app := range apps {
-		appVo := vo.AppVo{
-			ID:           app.ID,
-			AppName:      app.AppName,
-			Cover:        app.Cover,
-			InitPrompt:   app.InitPrompt,
-			CodeGenType:  app.CodeGenType,
-			DeployKey:    app.DeployKey,
-			DeployedTime: app.DeployedTime,
-			Priority:     app.Priority,
-			UserID:       app.UserID,
-			CreateTime:   app.CreateTime,
-			UpdateTime:   app.UpdateTime,
-		}
-		appVoList = append(appVoList, appVo)
-	}
+	// 转换为AppVo列表
+	appVoList, err := s.GetAppVoList(ctx, appList)
 
 	pageResponse := &common.PageResponse[vo.AppVo]{
 		Records:            appVoList,
@@ -370,6 +405,13 @@ func (s *AppService) AdminGetAppVo(ctx context.Context, id int64) (vo.AppVo, err
 		return vo.AppVo{}, err
 	}
 
+	// 获取用户信息
+	userService := user.NewUserService()
+	userVo, err := userService.GetUserVo(ctx, app.UserID)
+	if err != nil {
+		return vo.AppVo{}, err
+	}
+
 	appVo := vo.AppVo{
 		ID:           app.ID,
 		AppName:      app.AppName,
@@ -380,6 +422,7 @@ func (s *AppService) AdminGetAppVo(ctx context.Context, id int64) (vo.AppVo, err
 		DeployedTime: app.DeployedTime,
 		Priority:     app.Priority,
 		UserID:       app.UserID,
+		User:         userVo,
 		CreateTime:   app.CreateTime,
 		UpdateTime:   app.UpdateTime,
 	}
@@ -443,13 +486,13 @@ func (s *AppService) AdminListApp(ctx context.Context, req *appApi.YiKouAppAdmin
 		queryBuilder = queryBuilder.Order(query.App.CreateTime.Desc())
 	}
 
-	apps, err := queryBuilder.Offset(offset).Limit(req.PageSize).Find()
+	appList, err := queryBuilder.Offset(offset).Limit(req.PageSize).Find()
 	if err != nil {
 		return nil, err
 	}
 
 	pageResponse := &common.PageResponse[*model.App]{
-		Records:            apps,
+		Records:            appList,
 		PageNum:            req.PageNum,
 		PageSize:           req.PageSize,
 		TotalPage:          totalPage,
