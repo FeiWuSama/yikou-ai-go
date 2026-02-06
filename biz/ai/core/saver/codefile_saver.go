@@ -105,6 +105,7 @@ type DefaultCodeFileSaver[T any] struct {
 
 func (d *DefaultCodeFileSaver[T]) saveCode(
 	response T,
+	appId int64,
 	getCodeType func() enum.CodeGenType,
 	saveFiles func(response T, baseDir string) error,
 	validateInput func(response T) error,
@@ -113,7 +114,7 @@ func (d *DefaultCodeFileSaver[T]) saveCode(
 	if err != nil {
 		return "", err
 	}
-	dirPath, err := d.buildUniqueDir(getCodeType)
+	dirPath, err := d.buildUniqueDir(getCodeType, appId)
 	if err != nil {
 		return "", err
 	}
@@ -122,20 +123,21 @@ func (d *DefaultCodeFileSaver[T]) saveCode(
 
 // buildUniqueDir 构建唯一的目录名
 // 目录名格式: {代码生成类型}_{唯一ID}
-func (d *DefaultCodeFileSaver[T]) buildUniqueDir(getCodeType func() enum.CodeGenType) (string, error) {
-	// 生成雪花id
-	var sf = sonyflake.NewSonyflake(sonyflake.Settings{
-		MachineID: func() (uint16, error) { return 1, nil },
-	})
-	id, err := sf.NextID()
-	if err != nil {
-		return "", err
-	}
+func (d *DefaultCodeFileSaver[T]) buildUniqueDir(getCodeType func() enum.CodeGenType, appId int64) (string, error) {
+	//// 生成雪花id
+	//var sf = sonyflake.NewSonyflake(sonyflake.Settings{
+	//	MachineID: func() (uint16, error) { return 1, nil },
+	//})
+	//id, err := sf.NextID()
+	//if err != nil {
+	//	return "", err
+	//}
 	// 构建唯一目录名
-	uniqueDirName := fmt.Sprintf("%s_%s", getCodeType(), strconv.FormatUint(id, 20))
+	//uniqueDirName := fmt.Sprintf("%s_%s", getCodeType(), strconv.FormatUint(id, 20))
+	uniqueDirName := fmt.Sprintf("%s_%s", getCodeType(), strconv.Itoa(int(appId)))
 	dirPath := filepath.Join(FileSaveDir, uniqueDirName)
 	// 创建目录
-	err = os.MkdirAll(dirPath, os.ModePerm)
+	err := os.MkdirAll(dirPath, os.ModePerm)
 	if err != nil {
 		return "", err
 	}
@@ -230,11 +232,12 @@ func NewCodeFileSaverExecutor() *CodeFileSaverExecutor {
 	}
 }
 
-func (e *CodeFileSaverExecutor) ExecuteSaver(content interface{}, saveType enum.CodeGenType) (string, error) {
+func (e *CodeFileSaverExecutor) ExecuteSaver(content interface{}, saveType enum.CodeGenType, appId int64) (string, error) {
 	switch saveType {
 	case enum.HtmlCodeGen:
 		return e.htmlCodeFileSaver.saveCode(
 			content.(*ai.HtmlCodeResponse),
+			appId,
 			e.htmlCodeFileSaver.getCodeType,
 			e.htmlCodeFileSaver.saveFiles,
 			e.htmlCodeFileSaver.validateInput,
@@ -242,6 +245,7 @@ func (e *CodeFileSaverExecutor) ExecuteSaver(content interface{}, saveType enum.
 	case enum.MultiFileGen:
 		return e.multiFileCodeFileSaver.saveCode(
 			content.(*ai.MultiFileCodeResponse),
+			appId,
 			e.multiFileCodeFileSaver.getCodeType,
 			e.multiFileCodeFileSaver.saveFiles,
 			e.multiFileCodeFileSaver.validateInput,

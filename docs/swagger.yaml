@@ -672,28 +672,6 @@ paths:
       summary: 分页获取精选应用列表
       tags:
       - 应用模块
-  /app/my/list/page/vo:
-    post:
-      consumes:
-      - application/json
-      description: 分页获取我的应用列表
-      parameters:
-      - description: 分页查询请求
-        in: body
-        name: req
-        required: true
-        schema:
-          $ref: '#/definitions/api.YiKouAppMyListRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 分页应用VO列表
-          schema:
-            $ref: '#/definitions/api.YiKouAppMyListResponse'
-      summary: 分页获取我的应用列表
-      tags:
-      - 应用模块
   /app/update:
     post:
       consumes:
@@ -714,6 +692,28 @@ paths:
           schema:
             $ref: '#/definitions/api.YiKouAppUpdateResponse'
       summary: 更新应用
+      tags:
+      - 应用模块
+  /application/list/my:
+    post:
+      consumes:
+      - application/json
+      description: 分页获取我的应用列表
+      parameters:
+      - description: 分页查询请求
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/api.YiKouAppMyListRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 分页应用VO列表
+          schema:
+            $ref: '#/definitions/api.YiKouAppMyListResponse'
+      summary: 分页获取我的应用列表
       tags:
       - 应用模块
   /ping:

@@ -66,7 +66,7 @@ func (y *YiKouAiCodegenFacade) genMultiFileCodeAndSave(ctx context.Context, user
 	return nil
 }
 
-func (y *YiKouAiCodegenFacade) GenCodeAndSave(ctx context.Context, userMessage string, typeStr enum.CodeGenType) error {
+func (y *YiKouAiCodegenFacade) GenCodeAndSave(ctx context.Context, userMessage string, typeStr enum.CodeGenType, appId int64) error {
 	switch typeStr {
 	case enum.MultiFileGen:
 		resp, err := y.codegenService.GenerateMutiFileCode(ctx, userMessage)
@@ -77,7 +77,7 @@ func (y *YiKouAiCodegenFacade) GenCodeAndSave(ctx context.Context, userMessage s
 		if err != nil {
 			return err
 		}
-		dirPath, err := y.codeFileSaverExecutor.ExecuteSaver(parsedResp, typeStr)
+		dirPath, err := y.codeFileSaverExecutor.ExecuteSaver(parsedResp, typeStr, appId)
 		if err != nil {
 			return err
 		}
@@ -92,7 +92,7 @@ func (y *YiKouAiCodegenFacade) GenCodeAndSave(ctx context.Context, userMessage s
 		if err != nil {
 			return err
 		}
-		dirPath, err := y.codeFileSaverExecutor.ExecuteSaver(parsedResp, typeStr)
+		dirPath, err := y.codeFileSaverExecutor.ExecuteSaver(parsedResp, typeStr, appId)
 		if err != nil {
 			return err
 		}
@@ -167,26 +167,26 @@ func (y *YiKouAiCodegenFacade) genMultiFileCodeStreamAndSave(ctx context.Context
 	return nil
 }
 
-func (y *YiKouAiCodegenFacade) GenCodeStreamAndSave(ctx context.Context, userMessage string, typeStr enum.CodeGenType) (*schema.StreamReader[*schema.Message], error) {
+func (y *YiKouAiCodegenFacade) GenCodeStreamAndSave(ctx context.Context, userMessage string, typeStr enum.CodeGenType, appId int64) (*schema.StreamReader[*schema.Message], error) {
 	switch typeStr {
 	case enum.HtmlCodeGen:
 		streamResp, err := y.codegenService.GenerateHtmlCodeStream(ctx, userMessage)
 		if err != nil {
 			return nil, err
 		}
-		return y.processCodeStream(streamResp, typeStr)
+		return y.processCodeStream(streamResp, typeStr, appId)
 	case enum.MultiFileGen:
 		streamResp, err := y.codegenService.GenerateMutiFileCodeStream(ctx, userMessage)
 		if err != nil {
 			return nil, err
 		}
-		return y.processCodeStream(streamResp, typeStr)
+		return y.processCodeStream(streamResp, typeStr, appId)
 	default:
 		return nil, fmt.Errorf("不支持的代码生成类型: %s", typeStr)
 	}
 }
 
-func (y *YiKouAiCodegenFacade) processCodeStream(respStream *schema.StreamReader[*schema.Message], typeStr enum.CodeGenType) (*schema.StreamReader[*schema.Message], error) {
+func (y *YiKouAiCodegenFacade) processCodeStream(respStream *schema.StreamReader[*schema.Message], typeStr enum.CodeGenType, appId int64) (*schema.StreamReader[*schema.Message], error) {
 	var builder strings.Builder
 	for {
 		chunk, err := respStream.Recv()
@@ -203,7 +203,7 @@ func (y *YiKouAiCodegenFacade) processCodeStream(respStream *schema.StreamReader
 	if err != nil {
 		return nil, err
 	}
-	dirPath, err := y.codeFileSaverExecutor.ExecuteSaver(parsedResp, typeStr)
+	dirPath, err := y.codeFileSaverExecutor.ExecuteSaver(parsedResp, typeStr, appId)
 	if err != nil {
 		return nil, err
 	}

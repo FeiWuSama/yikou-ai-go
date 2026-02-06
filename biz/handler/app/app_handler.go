@@ -2,8 +2,12 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
+	"github.com/cloudwego/hertz/pkg/protocol/sse"
+	"io"
 	"strconv"
 	"workspace-yikou-ai-go/biz/dal/model"
 	appApi "workspace-yikou-ai-go/biz/model/api/app"
@@ -24,6 +28,77 @@ func NewAppHandler() *AppHandler {
 		appService:  application.NewAppService(),
 		userService: user.NewUserService(),
 	}
+}
+
+// ChatToGenCode 应用聊天生成代码（流式）
+// @Summary 应用聊天生成代码（流式）
+// @Description 应用聊天生成代码（流式）
+// @Tags 应用模块
+// @Accept json
+// @Produce json
+// @Param appId  query string true "应用ID"
+// @Param message query string true "消息"
+func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
+	appIdStr := c.Query("appId")
+	if appIdStr == "" {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.ParamsError.WithMessage("应用ID不能为空")))
+		return
+	}
+	message := c.Query("message")
+	if message == "" {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.ParamsError.WithMessage("消息不能为空")))
+		return
+	}
+	userVo, err := a.userService.GetLoginUserVo(ctx, c)
+	if err != nil {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
+		return
+	}
+	appId, err := strconv.ParseInt(appIdStr, 10, 64)
+	if err != nil {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
+		return
+	}
+	streamResp, err := a.appService.ChatToGenCode(ctx, appId, message, &userVo)
+	if err != nil {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
+		return
+	}
+	defer streamResp.Close()
+
+	lastEventID := sse.GetLastEventID(&c.Request)
+	// Create SSE writer
+	w := sse.NewWriter(c)
+	// Create a channel to detect client disconnection
+	connClosed := ctx.Done()
+	for {
+		// Check if connection is closed
+		select {
+		case <-connClosed:
+			fmt.Println("Client disconnected, stopping event transmission")
+			return
+		default:
+		}
+		chunk, err := streamResp.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
+			return
+		}
+		wrapper := &map[string]string{
+			"d": chunk.Content,
+		}
+		data, err := json.Marshal(wrapper)
+		err = w.WriteEvent(lastEventID, "message", data)
+		if err != nil {
+			c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
+			return
+		}
+	}
+	w.WriteEvent(lastEventID, "done", nil)
+	w.Close()
 }
 
 // AddApp 新增应用

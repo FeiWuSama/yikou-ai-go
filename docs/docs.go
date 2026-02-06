@@ -283,40 +283,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/app/my/list/page/vo": {
-            "post": {
-                "description": "分页获取我的应用列表",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "应用模块"
-                ],
-                "summary": "分页获取我的应用列表",
-                "parameters": [
-                    {
-                        "description": "分页查询请求",
-                        "name": "req",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/api.YiKouAppMyListRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "分页应用VO列表",
-                        "schema": {
-                            "$ref": "#/definitions/api.YiKouAppMyListResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/app/update": {
             "post": {
                 "description": "更新应用",
@@ -346,6 +312,40 @@ const docTemplate = `{
                         "description": "更新结果",
                         "schema": {
                             "$ref": "#/definitions/api.YiKouAppUpdateResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/application/list/my": {
+            "post": {
+                "description": "分页获取我的应用列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "应用模块"
+                ],
+                "summary": "分页获取我的应用列表",
+                "parameters": [
+                    {
+                        "description": "分页查询请求",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.YiKouAppMyListRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "分页应用VO列表",
+                        "schema": {
+                            "$ref": "#/definitions/api.YiKouAppMyListResponse"
                         }
                     }
                 }

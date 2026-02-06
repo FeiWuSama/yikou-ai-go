@@ -2,44 +2,85 @@ package service
 
 import (
 	"context"
+	"github.com/cloudwego/eino/schema"
+	"workspace-yikou-ai-go/biz/ai/core"
 	"workspace-yikou-ai-go/biz/dal"
 	"workspace-yikou-ai-go/biz/dal/model"
 	"workspace-yikou-ai-go/biz/dal/query"
-	appModel "workspace-yikou-ai-go/biz/model/api/app"
+	appApi "workspace-yikou-ai-go/biz/model/api/app"
 	"workspace-yikou-ai-go/biz/model/api/common"
+	"workspace-yikou-ai-go/biz/model/enum"
 	"workspace-yikou-ai-go/biz/model/vo"
 	pkg "workspace-yikou-ai-go/pkg/errors"
 )
 
 type IAppService interface {
-	AddApp(ctx context.Context, req *appModel.YiKouAppAddRequest, userId int64) (int64, error)
-	UpdateApp(ctx context.Context, req *appModel.YiKouAppUpdateRequest, userId int64) (bool, error)
+	ChatToGenCode(ctx context.Context, appId int64, message string, loginUser *vo.UserVo) (*schema.StreamReader[*schema.Message], error)
+	AddApp(ctx context.Context, req *appApi.YiKouAppAddRequest, userId int64) (int64, error)
+	UpdateApp(ctx context.Context, req *appApi.YiKouAppUpdateRequest, userId int64) (bool, error)
 	DeleteApp(ctx context.Context, id int64, userId int64) (bool, error)
 	GetApp(ctx context.Context, id int64, userId int64) (*model.App, error)
 	GetAppVo(ctx context.Context, id int64, userId int64) (vo.AppVo, error)
-	ListMyApp(ctx context.Context, req *appModel.YiKouAppMyListRequest, userId int64) (*common.PageResponse[vo.AppVo], error)
-	ListGoodApp(ctx context.Context, req *appModel.YiKouAppFeaturedListRequest) (*common.PageResponse[vo.AppVo], error)
-	AdminUpdateApp(ctx context.Context, req *appModel.YiKouAppAdminUpdateRequest) (bool, error)
+	ListMyApp(ctx context.Context, req *appApi.YiKouAppMyListRequest, userId int64) (*common.PageResponse[vo.AppVo], error)
+	ListGoodApp(ctx context.Context, req *appApi.YiKouAppFeaturedListRequest) (*common.PageResponse[vo.AppVo], error)
+	AdminUpdateApp(ctx context.Context, req *appApi.YiKouAppAdminUpdateRequest) (bool, error)
 	AdminDeleteApp(ctx context.Context, id int64) (bool, error)
 	AdminGetAppVo(ctx context.Context, id int64) (vo.AppVo, error)
-	AdminListApp(ctx context.Context, req *appModel.YiKouAppAdminListRequest) (*common.PageResponse[*model.App], error)
-}
-
-type AppService struct {
+	AdminListApp(ctx context.Context, req *appApi.YiKouAppAdminListRequest) (*common.PageResponse[*model.App], error)
 }
 
 func NewAppService() *AppService {
-	return &AppService{}
+	return &AppService{
+		aiCodeGenFacade: core.NewYiKouAiCodegenFacade(),
+	}
 }
 
-func (s *AppService) AddApp(ctx context.Context, req *appModel.YiKouAppAddRequest, userId int64) (int64, error) {
+type AppService struct {
+	aiCodeGenFacade *core.YiKouAiCodegenFacade
+}
+
+func (s *AppService) ChatToGenCode(ctx context.Context, appId int64, message string, loginUser *vo.UserVo) (*schema.StreamReader[*schema.Message], error) {
+	// 1. 校验参数
+	if message == "" {
+		return nil, pkg.ParamsError.WithMessage("消息不能为空")
+	}
+	if appId == 0 || appId < 0 {
+		return nil, pkg.ParamsError.WithMessage("应用ID不能为空")
+	}
+	// 2. 校验应用是否存在
+	app, err := query.Use(dal.DB).App.Where(query.App.ID.Eq(appId), query.App.IsDelete.Eq(0)).First()
+	if err != nil {
+		return nil, err
+	}
+	// 3. 校验用户是否有权限使用该应用
+	if app.UserID != loginUser.ID {
+		return nil, pkg.NotAuthError.WithMessage("无权使用该应用")
+	}
+	// 4. 获取代码生成类型
+	if enum.CodeGenTypeTextMap[enum.CodeGenType(app.CodeGenType)] == "" {
+		return nil, pkg.ParamsError.WithMessage("应用代码生成类型不支持")
+	}
+	// 5. 调用代码生成服务
+	streamResp, err := s.aiCodeGenFacade.GenCodeStreamAndSave(ctx, message, enum.CodeGenType(app.CodeGenType), appId)
+	if err != nil {
+		return nil, err
+	}
+	return streamResp, nil
+}
+
+func (s *AppService) AddApp(ctx context.Context, req *appApi.YiKouAppAddRequest, userId int64) (int64, error) {
 	if req.InitPrompt == "" {
 		return 0, pkg.ParamsError.WithMessage("初始化prompt不能为空")
 	}
 
 	appName := req.InitPrompt
-	if len(appName) > 8 {
-		appName = appName[:8]
+	count := 0
+	for i := range appName {
+		if count >= 12 {
+			appName = appName[:i]
+			break
+		}
+		count++
 	}
 
 	newApp := &model.App{
@@ -48,15 +89,14 @@ func (s *AppService) AddApp(ctx context.Context, req *appModel.YiKouAppAddReques
 		UserID:     userId,
 		Priority:   0,
 	}
-
-	err := query.Use(dal.DB).App.Create(newApp)
+	err := query.Use(dal.DB).App.Select(query.App.AppName, query.App.InitPrompt, query.App.UserID, query.App.Priority).Create(newApp)
 	if err != nil {
 		return 0, err
 	}
 	return newApp.ID, nil
 }
 
-func (s *AppService) UpdateApp(ctx context.Context, req *appModel.YiKouAppUpdateRequest, userId int64) (bool, error) {
+func (s *AppService) UpdateApp(ctx context.Context, req *appApi.YiKouAppUpdateRequest, userId int64) (bool, error) {
 	if req.Id == 0 {
 		return false, pkg.ParamsError.WithMessage("应用ID不能为空")
 	}
@@ -133,7 +173,7 @@ func (s *AppService) GetAppVo(ctx context.Context, id int64, userId int64) (vo.A
 	return appVo, nil
 }
 
-func (s *AppService) ListMyApp(ctx context.Context, req *appModel.YiKouAppMyListRequest, userId int64) (*common.PageResponse[vo.AppVo], error) {
+func (s *AppService) ListMyApp(ctx context.Context, req *appApi.YiKouAppMyListRequest, userId int64) (*common.PageResponse[vo.AppVo], error) {
 	if req.PageNumber <= 0 {
 		req.PageNumber = 1
 	}
@@ -196,7 +236,7 @@ func (s *AppService) ListMyApp(ctx context.Context, req *appModel.YiKouAppMyList
 	}
 	// 8. 构建分页响应
 	pageResponse := &common.PageResponse[vo.AppVo]{
-		List:               appVoList,
+		Records:            appVoList,
 		PageNumber:         req.PageNumber,
 		PageSize:           req.PageSize,
 		TotalPage:          totalPage,
@@ -207,7 +247,7 @@ func (s *AppService) ListMyApp(ctx context.Context, req *appModel.YiKouAppMyList
 	return pageResponse, nil
 }
 
-func (s *AppService) ListGoodApp(ctx context.Context, req *appModel.YiKouAppFeaturedListRequest) (*common.PageResponse[vo.AppVo], error) {
+func (s *AppService) ListGoodApp(ctx context.Context, req *appApi.YiKouAppFeaturedListRequest) (*common.PageResponse[vo.AppVo], error) {
 	if req.PageNumber <= 0 {
 		req.PageNumber = 1
 	}
@@ -279,7 +319,7 @@ func (s *AppService) ListGoodApp(ctx context.Context, req *appModel.YiKouAppFeat
 	}
 
 	pageResponse := &common.PageResponse[vo.AppVo]{
-		List:               appVoList,
+		Records:            appVoList,
 		PageNumber:         req.PageNumber,
 		PageSize:           req.PageSize,
 		TotalPage:          totalPage,
@@ -290,7 +330,7 @@ func (s *AppService) ListGoodApp(ctx context.Context, req *appModel.YiKouAppFeat
 	return pageResponse, nil
 }
 
-func (s *AppService) AdminUpdateApp(ctx context.Context, req *appModel.YiKouAppAdminUpdateRequest) (bool, error) {
+func (s *AppService) AdminUpdateApp(ctx context.Context, req *appApi.YiKouAppAdminUpdateRequest) (bool, error) {
 	if req.Id == 0 {
 		return false, pkg.ParamsError.WithMessage("应用ID不能为空")
 	}
@@ -346,7 +386,7 @@ func (s *AppService) AdminGetAppVo(ctx context.Context, id int64) (vo.AppVo, err
 	return appVo, nil
 }
 
-func (s *AppService) AdminListApp(ctx context.Context, req *appModel.YiKouAppAdminListRequest) (*common.PageResponse[*model.App], error) {
+func (s *AppService) AdminListApp(ctx context.Context, req *appApi.YiKouAppAdminListRequest) (*common.PageResponse[*model.App], error) {
 	if req.PageNumber <= 0 {
 		req.PageNumber = 1
 	}
@@ -409,7 +449,7 @@ func (s *AppService) AdminListApp(ctx context.Context, req *appModel.YiKouAppAdm
 	}
 
 	pageResponse := &common.PageResponse[*model.App]{
-		List:               apps,
+		Records:            apps,
 		PageNumber:         req.PageNumber,
 		PageSize:           req.PageSize,
 		TotalPage:          totalPage,
