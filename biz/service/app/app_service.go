@@ -174,8 +174,8 @@ func (s *AppService) GetAppVo(ctx context.Context, id int64, userId int64) (vo.A
 }
 
 func (s *AppService) ListMyApp(ctx context.Context, req *appApi.YiKouAppMyListRequest, userId int64) (*common.PageResponse[vo.AppVo], error) {
-	if req.PageNumber <= 0 {
-		req.PageNumber = 1
+	if req.PageNum <= 0 {
+		req.PageNum = 1
 	}
 	if req.PageSize <= 0 {
 		req.PageSize = 20
@@ -196,7 +196,7 @@ func (s *AppService) ListMyApp(ctx context.Context, req *appApi.YiKouAppMyListRe
 	}
 
 	totalPage := int((totalCount + int64(req.PageSize) - 1) / int64(req.PageSize))
-	offset := (req.PageNumber - 1) * req.PageSize
+	offset := (req.PageNum - 1) * req.PageSize
 
 	if req.SortField != "" {
 		if orderExpr, ok := query.App.GetFieldByName(req.SortField); ok {
@@ -237,7 +237,7 @@ func (s *AppService) ListMyApp(ctx context.Context, req *appApi.YiKouAppMyListRe
 	// 8. 构建分页响应
 	pageResponse := &common.PageResponse[vo.AppVo]{
 		Records:            appVoList,
-		PageNumber:         req.PageNumber,
+		PageNum:            req.PageNum,
 		PageSize:           req.PageSize,
 		TotalPage:          totalPage,
 		TotalRow:           int(totalCount),
@@ -248,8 +248,8 @@ func (s *AppService) ListMyApp(ctx context.Context, req *appApi.YiKouAppMyListRe
 }
 
 func (s *AppService) ListGoodApp(ctx context.Context, req *appApi.YiKouAppFeaturedListRequest) (*common.PageResponse[vo.AppVo], error) {
-	if req.PageNumber <= 0 {
-		req.PageNumber = 1
+	if req.PageNum <= 0 {
+		req.PageNum = 1
 	}
 	if req.PageSize <= 0 {
 		req.PageSize = 20
@@ -279,7 +279,7 @@ func (s *AppService) ListGoodApp(ctx context.Context, req *appApi.YiKouAppFeatur
 	}
 
 	totalPage := int((totalCount + int64(req.PageSize) - 1) / int64(req.PageSize))
-	offset := (req.PageNumber - 1) * req.PageSize
+	offset := (req.PageNum - 1) * req.PageSize
 
 	if req.SortField != "" {
 		if orderExpr, ok := query.App.GetFieldByName(req.SortField); ok {
@@ -320,7 +320,7 @@ func (s *AppService) ListGoodApp(ctx context.Context, req *appApi.YiKouAppFeatur
 
 	pageResponse := &common.PageResponse[vo.AppVo]{
 		Records:            appVoList,
-		PageNumber:         req.PageNumber,
+		PageNum:            req.PageNum,
 		PageSize:           req.PageSize,
 		TotalPage:          totalPage,
 		TotalRow:           int(totalCount),
@@ -387,8 +387,8 @@ func (s *AppService) AdminGetAppVo(ctx context.Context, id int64) (vo.AppVo, err
 }
 
 func (s *AppService) AdminListApp(ctx context.Context, req *appApi.YiKouAppAdminListRequest) (*common.PageResponse[*model.App], error) {
-	if req.PageNumber <= 0 {
-		req.PageNumber = 1
+	if req.PageNum <= 0 {
+		req.PageNum = 1
 	}
 	if req.PageSize <= 0 {
 		req.PageSize = 10
@@ -427,7 +427,7 @@ func (s *AppService) AdminListApp(ctx context.Context, req *appApi.YiKouAppAdmin
 	}
 
 	totalPage := int((totalCount + int64(req.PageSize) - 1) / int64(req.PageSize))
-	offset := (req.PageNumber - 1) * req.PageSize
+	offset := (req.PageNum - 1) * req.PageSize
 
 	if req.SortField != "" {
 		if orderExpr, ok := query.App.GetFieldByName(req.SortField); ok {
@@ -450,7 +450,7 @@ func (s *AppService) AdminListApp(ctx context.Context, req *appApi.YiKouAppAdmin
 
 	pageResponse := &common.PageResponse[*model.App]{
 		Records:            apps,
-		PageNumber:         req.PageNumber,
+		PageNum:            req.PageNum,
 		PageSize:           req.PageSize,
 		TotalPage:          totalPage,
 		TotalRow:           int(totalCount),

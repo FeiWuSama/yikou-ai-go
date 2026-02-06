@@ -230,8 +230,8 @@ func (s *UserService) UpdateUser(ctx context.Context, req *api.YiKouUserUpdateRe
 // ListUserVoByPage 分页获取用户VO列表
 func (s *UserService) ListUserVoByPage(ctx context.Context, req *api.YiKouUserQueryRequest) (*common.PageResponse[vo.UserVo], error) {
 	// 1. 设置默认分页参数
-	if req.PageNumber <= 0 {
-		req.PageNumber = 1
+	if req.PageNum <= 0 {
+		req.PageNum = 1
 	}
 	if req.PageSize <= 0 {
 		req.PageSize = 10
@@ -261,7 +261,7 @@ func (s *UserService) ListUserVoByPage(ctx context.Context, req *api.YiKouUserQu
 
 	// 4. 计算分页
 	totalPage := int((totalCount + int64(req.PageSize) - 1) / int64(req.PageSize))
-	offset := (req.PageNumber - 1) * req.PageSize
+	offset := (req.PageNum - 1) * req.PageSize
 
 	// 5. 排序
 	if req.SortField != "" {
@@ -304,7 +304,7 @@ func (s *UserService) ListUserVoByPage(ctx context.Context, req *api.YiKouUserQu
 	// 8. 构建分页响应
 	pageResponse := &common.PageResponse[vo.UserVo]{
 		Records:            userVoList,
-		PageNumber:         req.PageNumber,
+		PageNum:            req.PageNum,
 		PageSize:           req.PageSize,
 		TotalPage:          totalPage,
 		TotalRow:           int(totalCount),

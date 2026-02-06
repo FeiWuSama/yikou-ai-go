@@ -5,8 +5,8 @@ type DeleteRequest struct {
 }
 
 type PageRequest struct {
-	PageNumber int    `json:"pageNumber"`
-	PageSize   int    `json:"pageSize"`
-	SortField  string `json:"sortField"`
-	SortOrder  string `json:"sortOrder"`
+	PageNum   int    `json:"pageNum"`
+	PageSize  int    `json:"pageSize"`
+	SortField string `json:"sortField"`
+	SortOrder string `json:"sortOrder"`
 }
