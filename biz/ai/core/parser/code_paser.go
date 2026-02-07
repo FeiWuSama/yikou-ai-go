@@ -118,7 +118,7 @@ func NewCodeParserExecutor() *CodeParserExecutor {
 	}
 }
 
-func (e *CodeParserExecutor) ExecuteParser(content string, parserType enum.CodeGenType) (interface{}, error) {
+func (e *CodeParserExecutor) ExecuteParser(content string, parserType enum.CodeGenTypeEnum) (interface{}, error) {
 	switch parserType {
 	case enum.HtmlCodeGen:
 		return e.htmlCodeParser.Parse(content)

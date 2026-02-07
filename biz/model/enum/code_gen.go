@@ -1,13 +1,13 @@
 package enum
 
-type CodeGenType string
+type CodeGenTypeEnum string
 
 const (
-	HtmlCodeGen  CodeGenType = "html"
-	MultiFileGen CodeGenType = "multi_file"
+	HtmlCodeGen  CodeGenTypeEnum = "html"
+	MultiFileGen CodeGenTypeEnum = "multi_file"
 )
 
-var CodeGenTypeTextMap = map[CodeGenType]string{
+var CodeGenTypeTextMap = map[CodeGenTypeEnum]string{
 	HtmlCodeGen:  "原生 HTML 模式",
 	MultiFileGen: "原生多文件模式",
 }

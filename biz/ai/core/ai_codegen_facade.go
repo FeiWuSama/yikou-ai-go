@@ -66,7 +66,7 @@ func (y *YiKouAiCodegenFacade) genMultiFileCodeAndSave(ctx context.Context, user
 	return nil
 }
 
-func (y *YiKouAiCodegenFacade) GenCodeAndSave(ctx context.Context, userMessage string, typeStr enum.CodeGenType, appId int64) error {
+func (y *YiKouAiCodegenFacade) GenCodeAndSave(ctx context.Context, userMessage string, typeStr enum.CodeGenTypeEnum, appId int64) error {
 	switch typeStr {
 	case enum.MultiFileGen:
 		resp, err := y.codegenService.GenerateMutiFileCode(ctx, userMessage)
@@ -167,7 +167,7 @@ func (y *YiKouAiCodegenFacade) genMultiFileCodeStreamAndSave(ctx context.Context
 	return nil
 }
 
-func (y *YiKouAiCodegenFacade) GenCodeStreamAndSave(ctx context.Context, userMessage string, typeStr enum.CodeGenType, appId int64) (*schema.StreamReader[*schema.Message], error) {
+func (y *YiKouAiCodegenFacade) GenCodeStreamAndSave(ctx context.Context, userMessage string, typeStr enum.CodeGenTypeEnum, appId int64) (*schema.StreamReader[*schema.Message], error) {
 	switch typeStr {
 	case enum.HtmlCodeGen:
 		streamResp, err := y.codegenService.GenerateHtmlCodeStream(ctx, userMessage)
@@ -186,7 +186,7 @@ func (y *YiKouAiCodegenFacade) GenCodeStreamAndSave(ctx context.Context, userMes
 	}
 }
 
-func (y *YiKouAiCodegenFacade) processCodeStream(respStream *schema.StreamReader[*schema.Message], typeStr enum.CodeGenType, appId int64) (*schema.StreamReader[*schema.Message], error) {
+func (y *YiKouAiCodegenFacade) processCodeStream(respStream *schema.StreamReader[*schema.Message], typeStr enum.CodeGenTypeEnum, appId int64) (*schema.StreamReader[*schema.Message], error) {
 	var builder strings.Builder
 	for {
 		chunk, err := respStream.Recv()

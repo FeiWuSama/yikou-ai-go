@@ -9,24 +9,29 @@ import (
 	"github.com/cloudwego/hertz/pkg/protocol/sse"
 	"io"
 	"strconv"
+	"strings"
 	"workspace-yikou-ai-go/biz/dal/model"
 	appApi "workspace-yikou-ai-go/biz/model/api/app"
 	"workspace-yikou-ai-go/biz/model/api/common"
+	"workspace-yikou-ai-go/biz/model/enum"
 	"workspace-yikou-ai-go/biz/model/vo"
 	application "workspace-yikou-ai-go/biz/service/app"
+	chatHistory "workspace-yikou-ai-go/biz/service/chat_history"
 	user "workspace-yikou-ai-go/biz/service/user"
 	pkg "workspace-yikou-ai-go/pkg/errors"
 )
 
 type AppHandler struct {
-	appService  application.IAppService
-	userService user.IUserService
+	appService         application.IAppService
+	userService        user.IUserService
+	chatHistoryService chatHistory.IChatHistoryService
 }
 
 func NewAppHandler() *AppHandler {
 	return &AppHandler{
-		appService:  application.NewAppService(),
-		userService: user.NewUserService(),
+		appService:         application.NewAppService(),
+		userService:        user.NewUserService(),
+		chatHistoryService: chatHistory.NewChatHistoryService(),
 	}
 }
 
@@ -68,27 +73,29 @@ func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
 	}
 	defer streamResp.Close()
 
+	var aiResponseBuilder strings.Builder
 	lastEventID := sse.GetLastEventID(&c.Request)
-	// Create SSE writer
 	w := sse.NewWriter(c)
-	// Create a channel to detect client disconnection
 	connClosed := ctx.Done()
 	for {
-		// Check if connection is closed
 		select {
 		case <-connClosed:
 			fmt.Println("Client disconnected, stopping event transmission")
 			return
 		default:
 		}
+
 		chunk, err := streamResp.Recv()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
+			_ = a.chatHistoryService.AddChatMessage(ctx, appId, fmt.Sprintf("AI 回复失败：%v", err), enum.AIMessageType, userVo.ID)
 			c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
 			return
 		}
+		aiResponseBuilder.WriteString(chunk.Content)
+
 		wrapper := &map[string]string{
 			"d": chunk.Content,
 		}
@@ -99,6 +106,14 @@ func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
 			return
 		}
 	}
+	if aiResponseBuilder.String() != "" {
+		err = a.chatHistoryService.AddChatMessage(ctx, appId, aiResponseBuilder.String(), enum.AIMessageType, userVo.ID)
+		if err != nil {
+			c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
+			return
+		}
+	}
+
 	w.WriteEvent(lastEventID, "done", nil)
 	w.Close()
 }

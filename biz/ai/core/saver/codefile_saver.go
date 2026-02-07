@@ -27,7 +27,7 @@ func init() {
 // buildUniqueDir 构建唯一的目录名
 // 目录名格式: {代码生成类型}_{唯一ID}
 // Deprecated: 该函数已被废弃
-func buildUniqueDir(typeStr enum.CodeGenType) (string, error) {
+func buildUniqueDir(typeStr enum.CodeGenTypeEnum) (string, error) {
 	// 生成雪花id
 	var sf = sonyflake.NewSonyflake(sonyflake.Settings{
 		MachineID: func() (uint16, error) { return 1, nil },
@@ -95,7 +95,7 @@ func SaveMutiFileCode(response ai.MultiFileCodeResponse) (string, error) {
 }
 
 type CodeFileSaverTemplate[T any] interface {
-	getCodeType() enum.CodeGenType
+	getCodeType() enum.CodeGenTypeEnum
 	saveFiles(response T, baseDir string) error
 	validateInput(response T) error
 }
@@ -106,7 +106,7 @@ type DefaultCodeFileSaver[T any] struct {
 func (d *DefaultCodeFileSaver[T]) saveCode(
 	response T,
 	appId int64,
-	getCodeType func() enum.CodeGenType,
+	getCodeType func() enum.CodeGenTypeEnum,
 	saveFiles func(response T, baseDir string) error,
 	validateInput func(response T) error,
 ) (string, error) {
@@ -123,7 +123,7 @@ func (d *DefaultCodeFileSaver[T]) saveCode(
 
 // buildUniqueDir 构建唯一的目录名
 // 目录名格式: {代码生成类型}_{唯一ID}
-func (d *DefaultCodeFileSaver[T]) buildUniqueDir(getCodeType func() enum.CodeGenType, appId int64) (string, error) {
+func (d *DefaultCodeFileSaver[T]) buildUniqueDir(getCodeType func() enum.CodeGenTypeEnum, appId int64) (string, error) {
 	//// 生成雪花id
 	//var sf = sonyflake.NewSonyflake(sonyflake.Settings{
 	//	MachineID: func() (uint16, error) { return 1, nil },
@@ -158,7 +158,7 @@ type HtmlCodeFileSaverTemplate struct {
 	DefaultCodeFileSaver[*ai.HtmlCodeResponse]
 }
 
-func (h *HtmlCodeFileSaverTemplate) getCodeType() enum.CodeGenType {
+func (h *HtmlCodeFileSaverTemplate) getCodeType() enum.CodeGenTypeEnum {
 	return enum.HtmlCodeGen
 }
 
@@ -181,7 +181,7 @@ type MultiFileCodeFileSaverTemplate struct {
 	DefaultCodeFileSaver[*ai.MultiFileCodeResponse]
 }
 
-func (m *MultiFileCodeFileSaverTemplate) getCodeType() enum.CodeGenType {
+func (m *MultiFileCodeFileSaverTemplate) getCodeType() enum.CodeGenTypeEnum {
 	return enum.MultiFileGen
 }
 
@@ -232,7 +232,7 @@ func NewCodeFileSaverExecutor() *CodeFileSaverExecutor {
 	}
 }
 
-func (e *CodeFileSaverExecutor) ExecuteSaver(content interface{}, saveType enum.CodeGenType, appId int64) (string, error) {
+func (e *CodeFileSaverExecutor) ExecuteSaver(content interface{}, saveType enum.CodeGenTypeEnum, appId int64) (string, error) {
 	switch saveType {
 	case enum.HtmlCodeGen:
 		return e.htmlCodeFileSaver.saveCode(

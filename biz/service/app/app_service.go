@@ -130,11 +130,11 @@ func (s *AppService) ChatToGenCode(ctx context.Context, appId int64, message str
 		return nil, pkg.NotAuthError.WithMessage("无权使用该应用")
 	}
 	// 4. 获取代码生成类型
-	if enum.CodeGenTypeTextMap[enum.CodeGenType(app.CodeGenType)] == "" {
+	if enum.CodeGenTypeTextMap[enum.CodeGenTypeEnum(app.CodeGenType)] == "" {
 		return nil, pkg.ParamsError.WithMessage("应用代码生成类型不支持")
 	}
 	// 5. 调用代码生成服务
-	streamResp, err := s.aiCodeGenFacade.GenCodeStreamAndSave(ctx, message, enum.CodeGenType(app.CodeGenType), appId)
+	streamResp, err := s.aiCodeGenFacade.GenCodeStreamAndSave(ctx, message, enum.CodeGenTypeEnum(app.CodeGenType), appId)
 	if err != nil {
 		return nil, err
 	}
