@@ -16,6 +16,7 @@ import (
 	"workspace-yikou-ai-go/biz/model/api/common"
 	"workspace-yikou-ai-go/biz/model/enum"
 	"workspace-yikou-ai-go/biz/model/vo"
+	"workspace-yikou-ai-go/biz/service/chat_history"
 	user "workspace-yikou-ai-go/biz/service/user"
 	"workspace-yikou-ai-go/pkg/constants"
 	pkg "workspace-yikou-ai-go/pkg/errors"
@@ -42,14 +43,16 @@ type IAppService interface {
 
 func NewAppService() *AppService {
 	return &AppService{
-		aiCodeGenFacade: core.NewYiKouAiCodegenFacade(),
-		userService:     user.NewUserService(),
+		aiCodeGenFacade:    core.NewYiKouAiCodegenFacade(),
+		userService:        user.NewUserService(),
+		chatHistoryService: chat_history.NewChatHistoryService(),
 	}
 }
 
 type AppService struct {
-	aiCodeGenFacade *core.YiKouAiCodegenFacade
-	userService     *user.UserService
+	aiCodeGenFacade    *core.YiKouAiCodegenFacade
+	userService        user.IUserService
+	chatHistoryService chat_history.IChatHistoryService
 }
 
 func (s *AppService) DeployApp(ctx context.Context, appId int64, loginUser *vo.UserVo) (string, error) {
@@ -133,7 +136,9 @@ func (s *AppService) ChatToGenCode(ctx context.Context, appId int64, message str
 	if enum.CodeGenTypeTextMap[enum.CodeGenTypeEnum(app.CodeGenType)] == "" {
 		return nil, pkg.ParamsError.WithMessage("应用代码生成类型不支持")
 	}
-	// 5. 调用代码生成服务
+	// 5. 将用户消息保存到对话记录
+	_ = s.chatHistoryService.AddChatMessage(ctx, appId, message, enum.UserMessageType, loginUser.ID)
+	// 6. 调用代码生成服务
 	streamResp, err := s.aiCodeGenFacade.GenCodeStreamAndSave(ctx, message, enum.CodeGenTypeEnum(app.CodeGenType), appId)
 	if err != nil {
 		return nil, err
