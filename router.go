@@ -8,6 +8,7 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	"workspace-yikou-ai-go/biz/handler"
 	app "workspace-yikou-ai-go/biz/handler/app"
+	"workspace-yikou-ai-go/biz/handler/static"
 	user "workspace-yikou-ai-go/biz/handler/user"
 	middleware "workspace-yikou-ai-go/biz/middleware"
 	"workspace-yikou-ai-go/biz/model/enum"
@@ -57,5 +58,11 @@ func customizedRegister(r *server.Hertz, url func(config *swagger.Config)) {
 		appRoute.POST("/admin/delete", middleware.AuthMiddleware(enum.AdminRole), appHandler.AdminDeleteApp)
 		appRoute.GET("/admin/get/vo", middleware.AuthMiddleware(enum.AdminRole), appHandler.AdminGetAppVo)
 		appRoute.POST("/admin/list/page/vo", middleware.AuthMiddleware(enum.AdminRole), appHandler.AdminListApp)
+	}
+
+	staticRoute := r.Group("/static")
+	{
+		staticHandler := static.NewStaticResourceHandler()
+		staticRoute.GET("/:deployKey/*", staticHandler.ServeStaticResource)
 	}
 }
