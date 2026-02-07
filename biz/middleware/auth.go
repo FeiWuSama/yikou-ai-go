@@ -8,6 +8,7 @@ import (
 	"workspace-yikou-ai-go/biz/dal/model"
 	"workspace-yikou-ai-go/biz/dal/query"
 	"workspace-yikou-ai-go/biz/model/enum"
+	"workspace-yikou-ai-go/pkg/constants"
 	pkg "workspace-yikou-ai-go/pkg/errors"
 
 	"github.com/cloudwego/hertz/pkg/app"
@@ -20,7 +21,7 @@ func AuthMiddleware(roleEnum enum.UserRoleEnum) app.HandlerFunc {
 		var userJson []byte
 		if roleEnum == enum.UserRole {
 			// 2. 校验Cookie是否存在
-			userJson = c.Request.Header.Cookie(enum.UserLoginState)
+			userJson = c.Request.Header.Cookie(constants.UserLoginState)
 			if userJson == nil {
 				c.JSON(200, pkg.NotLoginError)
 				c.Abort()

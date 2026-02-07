@@ -12,5 +12,3 @@ var RoleTextMap = map[UserRoleEnum]string{
 	UserRole:  "用户",
 	AdminRole: "管理员",
 }
-
-const UserLoginState = "user_login"

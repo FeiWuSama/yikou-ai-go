@@ -69,3 +69,9 @@ type YiKouAppAdminListRequest struct {
 }
 
 type YiKouAppAdminListResponse common.BaseResponse[common.PageResponse[model.App]]
+
+type YiKouAppDeployRequest struct {
+	common.DeleteRequest
+}
+
+type YiKouAppDeployResponse common.BaseResponse[string]

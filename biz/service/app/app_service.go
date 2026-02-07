@@ -2,7 +2,12 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"github.com/cloudwego/eino/schema"
+	"io"
+	"os"
+	"path/filepath"
+	"time"
 	"workspace-yikou-ai-go/biz/ai/core"
 	"workspace-yikou-ai-go/biz/dal"
 	"workspace-yikou-ai-go/biz/dal/model"
@@ -12,10 +17,14 @@ import (
 	"workspace-yikou-ai-go/biz/model/enum"
 	"workspace-yikou-ai-go/biz/model/vo"
 	user "workspace-yikou-ai-go/biz/service/user"
+	"workspace-yikou-ai-go/pkg/constants"
 	pkg "workspace-yikou-ai-go/pkg/errors"
+	file "workspace-yikou-ai-go/pkg/file"
+	"workspace-yikou-ai-go/pkg/random"
 )
 
 type IAppService interface {
+	DeployApp(ctx context.Context, appId int64, loginUser *vo.UserVo) (string, error)
 	ChatToGenCode(ctx context.Context, appId int64, message string, loginUser *vo.UserVo) (*schema.StreamReader[*schema.Message], error)
 	AddApp(ctx context.Context, req *appApi.YiKouAppAddRequest, userId int64) (int64, error)
 	UpdateApp(ctx context.Context, req *appApi.YiKouAppUpdateRequest, userId int64) (bool, error)
@@ -41,6 +50,66 @@ func NewAppService() *AppService {
 type AppService struct {
 	aiCodeGenFacade *core.YiKouAiCodegenFacade
 	userService     *user.UserService
+}
+
+func (s *AppService) DeployApp(ctx context.Context, appId int64, loginUser *vo.UserVo) (string, error) {
+	// 1. 校验参数
+	if loginUser == nil || appId == 0 || appId < 0 {
+		return "", pkg.ParamsError
+	}
+	// 2. 校验应用是否存在
+	app, err := query.Use(dal.DB).App.Where(query.App.ID.Eq(appId), query.App.IsDelete.Eq(0)).First()
+	if err != nil {
+		return "", pkg.ParamsError.WithMessage("应用不存在")
+	}
+	// 3. 校验用户是否有该应用部署权限
+	if app.UserID != loginUser.ID {
+		return "", pkg.NotAuthError.WithMessage("无权部署该应用")
+	}
+	// 4. 校验应用是否已被部署
+	deployKey := app.DeployKey
+	if deployKey == "" {
+		deployKey = random.RandString(6)
+	}
+	// 5. 构建部署目录
+	sourceDirName := fmt.Sprintf("%s_%v", app.CodeGenType, appId)
+	codeDeployRoot, err := file.GetCodeDeployRoot()
+	if err != nil {
+		return "", err
+	}
+	sourceDirPath := filepath.Join(codeDeployRoot, sourceDirName)
+	srcDir, err := os.Open(sourceDirPath)
+	if err != nil {
+		return "", pkg.ParamsError.WithMessage("应用不存在")
+	}
+	defer srcDir.Close()
+	// 6. 复制文件到部署目录
+	codeDeployRoot, err = file.GetCodeDeployRoot()
+	if err != nil {
+		return "", err
+	}
+	disDir, err := os.Open(codeDeployRoot)
+	if err != nil {
+		return "", err
+	}
+	defer disDir.Close()
+	_, err = io.Copy(disDir, srcDir)
+	if err != nil {
+		return "", pkg.SystemError.WithMessage("部署应用失败:" + err.Error())
+	}
+	// 7. 更新应用的deployKey
+	appUpdate := &model.App{
+		DeployKey:    deployKey,
+		DeployedTime: time.Now(),
+	}
+	_, err = query.Use(dal.DB).App.
+		Where(query.App.ID.Eq(appId), query.App.IsDelete.Eq(0)).
+		Updates(appUpdate)
+	if err != nil {
+		return "", pkg.SystemError.WithMessage("部署应用失败:" + err.Error())
+	}
+	// 8. 返回部署URL
+	return fmt.Sprintf("%s/%s/", constants.CodeDeployHost, deployKey), nil
 }
 
 func (s *AppService) ChatToGenCode(ctx context.Context, appId int64, message string, loginUser *vo.UserVo) (*schema.StreamReader[*schema.Message], error) {

@@ -12,7 +12,7 @@ type AppVo struct {
 	DeployedTime time.Time `json:"deployedTime"`
 	Priority     int32     `json:"priority"`
 	UserID       int64     `json:"userId"`
-	User         UserVo    `json:"user"`
+	User         UserVo    `json:"userVo"`
 	CreateTime   time.Time `json:"createTime"`
 	UpdateTime   time.Time `json:"updateTime"`
 }

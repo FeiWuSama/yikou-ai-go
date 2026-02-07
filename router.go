@@ -50,6 +50,7 @@ func customizedRegister(r *server.Hertz, url func(config *swagger.Config)) {
 		appRoute.POST("/update", middleware.AuthMiddleware(enum.UserRole), appHandler.UpdateApp)
 		appRoute.POST("/delete", middleware.AuthMiddleware(enum.UserRole), appHandler.DeleteApp)
 		appRoute.POST("/chat/gen/code", middleware.AuthMiddleware(enum.UserRole), appHandler.ChatToGenCode)
+		appRoute.POST("/deploy", middleware.AuthMiddleware(enum.UserRole), appHandler.DeployApp)
 
 		// 需要管理员权限的接口
 		appRoute.POST("/admin/update", middleware.AuthMiddleware(enum.AdminRole), appHandler.AdminUpdateApp)

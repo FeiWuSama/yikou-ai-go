@@ -6,6 +6,22 @@ import (
 	"path/filepath"
 )
 
+func GetCodeDeployRoot() (string, error) {
+	projectRoot, err := GetProjectRoot()
+	if err != nil {
+		return "", fmt.Errorf("获取项目根目录失败: %w", err)
+	}
+	return filepath.Join(projectRoot, "tmp/code_deploy"), nil
+}
+
+func GetCodeOutputRoot() (string, error) {
+	projectRoot, err := GetProjectRoot()
+	if err != nil {
+		return "", fmt.Errorf("获取项目根目录失败: %w", err)
+	}
+	return filepath.Join(projectRoot, "tmp/code_output"), nil
+}
+
 func GetProjectRoot() (string, error) {
 	cwd, err := os.Getwd()
 	if err == nil {

@@ -38,6 +38,8 @@ func NewAppHandler() *AppHandler {
 // @Produce json
 // @Param appId  query string true "应用ID"
 // @Param message query string true "消息"
+// @Success 200 {object} schema.StreamReader[*schema.Message] "流式消息"
+// @Router /app/chat/gen/code [get]
 func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
 	appIdStr := c.Query("appId")
 	if appIdStr == "" {
@@ -99,6 +101,32 @@ func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
 	}
 	w.WriteEvent(lastEventID, "done", nil)
 	w.Close()
+}
+
+// DeployApp
+// @Summary 部署应用
+// @Description 部署应用
+// @Param req body appApi.YiKouAppDeployRequest true "部署应用请求"
+// @Success 200 {object} appApi.YiKouAppDeployResponse "部署URL"
+// @Router /app/deploy [post]
+func (a *AppHandler) DeployApp(ctx context.Context, c *app.RequestContext) {
+	req := &appApi.YiKouAppDeployRequest{}
+	err := c.BindAndValidate(req)
+	if err != nil {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
+		return
+	}
+	userVo, err := a.userService.GetLoginUserVo(ctx, c)
+	if err != nil {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
+		return
+	}
+	deployKey, err := a.appService.DeployApp(ctx, int64(req.Id), &userVo)
+	if err != nil {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
+		return
+	}
+	c.JSON(consts.StatusOK, common.NewSuccessResponse[string](deployKey))
 }
 
 // AddApp 新增应用
