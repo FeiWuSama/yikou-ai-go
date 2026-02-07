@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/eino/schema"
 	"io"
 	"os"
@@ -210,6 +211,12 @@ func (s *AppService) DeleteApp(ctx context.Context, id int64, userId int64) (boo
 		return false, pkg.ParamsError.WithMessage("无权删除该应用")
 	}
 
+	// 删除应用的对话记录
+	err = s.chatHistoryService.DeleteByAppId(ctx, id)
+	if err != nil {
+		logger.Errorf("删除应用关联对话记录失败:%v", err.Error())
+	}
+	// 逻辑删除应用
 	_, err = query.Use(dal.DB).App.Where(query.App.ID.Eq(id)).Update(query.App.IsDelete, 1)
 	if err != nil {
 		return false, err

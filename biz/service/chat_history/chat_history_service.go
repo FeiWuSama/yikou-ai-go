@@ -11,13 +11,25 @@ import (
 
 type IChatHistoryService interface {
 	AddChatMessage(ctx context.Context, appId int64, message string, messageType enum.ChatHistoryMessageTypeEnum, userId int64) error
+	DeleteByAppId(ctx context.Context, appId int64) error
 }
 
-func NewChatHistoryService() IChatHistoryService {
+func NewChatHistoryService() *ChatHistoryService {
 	return &ChatHistoryService{}
 }
 
 type ChatHistoryService struct{}
+
+func (s *ChatHistoryService) DeleteByAppId(ctx context.Context, appId int64) error {
+	if appId == 0 || appId < 0 {
+		return pkg.ParamsError.WithMessage("应用ID不能为空")
+	}
+	_, err := query.Use(dal.DB).ChatHistory.Where(query.ChatHistory.AppID.Eq(appId)).Delete()
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 func (s *ChatHistoryService) AddChatMessage(ctx context.Context, appId int64,
 	message string, messageType enum.ChatHistoryMessageTypeEnum, userId int64) error {
