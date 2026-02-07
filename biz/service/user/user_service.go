@@ -15,6 +15,7 @@ import (
 	"workspace-yikou-ai-go/biz/model/api/user"
 	"workspace-yikou-ai-go/biz/model/enum"
 	"workspace-yikou-ai-go/biz/model/vo"
+	"workspace-yikou-ai-go/pkg/constants"
 	pkg "workspace-yikou-ai-go/pkg/errors"
 )
 
@@ -37,12 +38,12 @@ type UserService struct {
 
 func (s *UserService) Logout(ctx context.Context, c *app.RequestContext) error {
 	// 1. 校验Cookie是否存在
-	userJson := c.Request.Header.Cookie(enum.UserLoginState)
+	userJson := c.Request.Header.Cookie(constants.UserLoginState)
 	if userJson == nil {
 		return pkg.ParamsError.WithMessage("用户未登录")
 	}
 	// 2. 清除Cookie
-	c.SetCookie(enum.UserLoginState, "", 0, "/", "", protocol.CookieSameSiteLaxMode, false, true)
+	c.SetCookie(constants.UserLoginState, "", 0, "/", "", protocol.CookieSameSiteLaxMode, false, true)
 	return nil
 }
 
@@ -93,7 +94,7 @@ func (s *UserService) UserRegister(ctx context.Context, req *api.YiKouUserRegist
 
 func (s *UserService) GetLoginUserVo(ctx context.Context, c *app.RequestContext) (vo.UserVo, error) {
 	// 1. 校验Cookie是否存在
-	userJson := c.Request.Header.Cookie(enum.UserLoginState)
+	userJson := c.Request.Header.Cookie(constants.UserLoginState)
 	if userJson == nil {
 		return vo.UserVo{}, pkg.ParamsError
 	}
@@ -335,7 +336,7 @@ func (s *UserService) UserLogin(ctx context.Context, req *api.YiKouUserLoginRequ
 		return vo.UserVo{}, err
 	}
 	// 5. 保存用户信息到cookie
-	c.SetCookie(enum.UserLoginState, string(userJson),
+	c.SetCookie(constants.UserLoginState, string(userJson),
 		86400, "/", "", protocol.CookieSameSiteLaxMode, false, true)
 	// 6. 构建userVo对象
 	loginUserVo, err := s.GetLoginUserVo(ctx, c)
