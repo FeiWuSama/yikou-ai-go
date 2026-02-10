@@ -1,4 +1,4 @@
-package chat_history
+package chathistory
 
 import (
 	"time"

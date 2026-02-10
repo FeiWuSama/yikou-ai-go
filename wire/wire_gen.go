@@ -22,11 +22,12 @@ import (
 	"workspace-yikou-ai-go/biz/ai/skill"
 	"workspace-yikou-ai-go/biz/dal"
 	"workspace-yikou-ai-go/biz/handler/app"
+	chathistory2 "workspace-yikou-ai-go/biz/handler/chathistory"
 	"workspace-yikou-ai-go/biz/handler/static"
 	handler2 "workspace-yikou-ai-go/biz/handler/user"
 	"workspace-yikou-ai-go/biz/router"
 	service2 "workspace-yikou-ai-go/biz/service/app"
-	"workspace-yikou-ai-go/biz/service/chat_history"
+	"workspace-yikou-ai-go/biz/service/chathistory"
 	"workspace-yikou-ai-go/biz/service/user"
 	"workspace-yikou-ai-go/config"
 	"workspace-yikou-ai-go/docs"
@@ -44,12 +45,13 @@ func InitializeApp() (*server.Hertz, error) {
 	yiKouAiCodegenFacade := core.NewYiKouAiCodegenFacade(yiKouAiCodegenService, codeParserExecutor, codeFileSaverExecutor)
 	db := dal.InitDB(configConfig)
 	userService := service.NewUserService(db)
-	chatHistoryService := chat_history.NewChatHistoryService(db)
+	chatHistoryService := chathistory.NewChatHistoryService(db)
 	appService := service2.NewAppService(yiKouAiCodegenFacade, userService, chatHistoryService, db)
 	appHandler := handler.NewAppHandler(appService, userService, chatHistoryService)
 	userHandler := handler2.NewUserHandler(userService)
+	chatHistoryHandler := chathistory2.NewChatHistoryHandler(chatHistoryService, userService)
 	staticResourceHandler := static.NewStaticResourceHandler()
-	hertz := InitServer(configConfig, appHandler, userHandler, staticResourceHandler, db)
+	hertz := InitServer(configConfig, appHandler, userHandler, chatHistoryHandler, staticResourceHandler, db)
 	return hertz, nil
 }
 
@@ -62,16 +64,17 @@ var configSet = wire.NewSet(config.InitConfig)
 var dbSet = wire.NewSet(dal.InitDB)
 
 // Service依赖
-var serviceSet = wire.NewSet(core.NewYiKouAiCodegenFacade, service2.NewAppService, wire.Bind(new(service2.IAppService), new(*service2.AppService)), service.NewUserService, wire.Bind(new(service.IUserService), new(*service.UserService)), chat_history.NewChatHistoryService, wire.Bind(new(chat_history.IChatHistoryService), new(*chat_history.ChatHistoryService)))
+var serviceSet = wire.NewSet(core.NewYiKouAiCodegenFacade, service2.NewAppService, wire.Bind(new(service2.IAppService), new(*service2.AppService)), service.NewUserService, wire.Bind(new(service.IUserService), new(*service.UserService)), chathistory.NewChatHistoryService, wire.Bind(new(chathistory.IChatHistoryService), new(*chathistory.ChatHistoryService)))
 
 // Handler依赖
-var handlerSet = wire.NewSet(handler.NewAppHandler, handler2.NewUserHandler, static.NewStaticResourceHandler)
+var handlerSet = wire.NewSet(handler.NewAppHandler, handler2.NewUserHandler, chathistory2.NewChatHistoryHandler, static.NewStaticResourceHandler)
 
 // Server依赖
 func InitServer(
 	serverConfig *config.Config,
 	appHandler *handler.AppHandler,
 	userHandler *handler2.UserHandler,
+	chatHistoryHandler *chathistory2.ChatHistoryHandler,
 	staticResourceHandler *static.StaticResourceHandler,
 	db *gorm.DB,
 ) *server.Hertz {
@@ -91,6 +94,6 @@ func InitServer(
 		AllowCredentials: false,
 		MaxAge:           12 * time.Hour,
 	}))
-	router.CustomizedRegister(h, db, appHandler, userHandler, staticResourceHandler, url)
+	router.CustomizedRegister(h, db, appHandler, userHandler, chatHistoryHandler, staticResourceHandler, url)
 	return h
 }

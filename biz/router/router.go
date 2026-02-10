@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 	"workspace-yikou-ai-go/biz/handler"
 	app "workspace-yikou-ai-go/biz/handler/app"
+	chatHistory "workspace-yikou-ai-go/biz/handler/chathistory"
 	"workspace-yikou-ai-go/biz/handler/static"
 	user "workspace-yikou-ai-go/biz/handler/user"
 	middleware "workspace-yikou-ai-go/biz/middleware"
@@ -18,7 +19,7 @@ import (
 
 // CustomizedRegister registers customize routers.
 func CustomizedRegister(r *server.Hertz, db *gorm.DB, appHandler *app.AppHandler,
-	userHandler *user.UserHandler, staticHandler *static.StaticResourceHandler, url func(config *swagger.Config)) {
+	userHandler *user.UserHandler, chatHistoryHandler *chatHistory.ChatHistoryHandler, staticHandler *static.StaticResourceHandler, url func(config *swagger.Config)) {
 	r.GET("/ping", handler.Ping)
 	r.GET("/swagger/*any", swagger.WrapHandler(swaggerFiles.Handler, url))
 
@@ -63,5 +64,10 @@ func CustomizedRegister(r *server.Hertz, db *gorm.DB, appHandler *app.AppHandler
 	staticRoute := r.Group("/static")
 	{
 		staticRoute.GET("/:deployKey/*filepath", staticHandler.ServeStaticResource)
+	}
+
+	chatHistoryRoute := r.Group("/chatHistory")
+	{
+		chatHistoryRoute.GET("/:appId", middleware.AuthMiddleware(enum.UserRole, db), chatHistoryHandler.ListAppChatHistory)
 	}
 }

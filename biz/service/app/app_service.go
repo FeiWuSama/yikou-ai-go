@@ -17,7 +17,7 @@ import (
 	"workspace-yikou-ai-go/biz/model/api/common"
 	"workspace-yikou-ai-go/biz/model/enum"
 	"workspace-yikou-ai-go/biz/model/vo"
-	"workspace-yikou-ai-go/biz/service/chat_history"
+	"workspace-yikou-ai-go/biz/service/chathistory"
 	user "workspace-yikou-ai-go/biz/service/user"
 	"workspace-yikou-ai-go/pkg/constants"
 	pkg "workspace-yikou-ai-go/pkg/errors"
@@ -45,7 +45,7 @@ type IAppService interface {
 func NewAppService(
 	aiCodeGenFacade *core.YiKouAiCodegenFacade,
 	userService user.IUserService,
-	chatHistoryService chat_history.IChatHistoryService,
+	chatHistoryService chathistory.IChatHistoryService,
 	db *gorm.DB,
 ) *AppService {
 	return &AppService{
@@ -59,7 +59,7 @@ func NewAppService(
 type AppService struct {
 	aiCodeGenFacade    *core.YiKouAiCodegenFacade
 	userService        user.IUserService
-	chatHistoryService chat_history.IChatHistoryService
+	chatHistoryService chathistory.IChatHistoryService
 	db                 *gorm.DB
 }
 

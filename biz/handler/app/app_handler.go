@@ -16,7 +16,7 @@ import (
 	"workspace-yikou-ai-go/biz/model/enum"
 	"workspace-yikou-ai-go/biz/model/vo"
 	application "workspace-yikou-ai-go/biz/service/app"
-	chatHistory "workspace-yikou-ai-go/biz/service/chat_history"
+	chatHistory "workspace-yikou-ai-go/biz/service/chathistory"
 	user "workspace-yikou-ai-go/biz/service/user"
 	pkg "workspace-yikou-ai-go/pkg/errors"
 )

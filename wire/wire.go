@@ -8,7 +8,7 @@ import (
 	"github.com/google/wire"
 	"github.com/hertz-contrib/cors"
 	"github.com/hertz-contrib/swagger"
-	"gorm.io/
+	"gorm.io/gorm"
 	"strconv"
 	"time"
 	"workspace-yikou-ai-go/biz/ai/agent"
@@ -18,11 +18,12 @@ import (
 	"workspace-yikou-ai-go/biz/ai/skill"
 	"workspace-yikou-ai-go/biz/dal"
 	appHandler "workspace-yikou-ai-go/biz/handler/app"
+	chatHistoryHandler "workspace-yikou-ai-go/biz/handler/chathistory"
 	static "workspace-yikou-ai-go/biz/handler/static"
 	userHandler "workspace-yikou-ai-go/biz/handler/user"
 	"workspace-yikou-ai-go/biz/router"
 	application "workspace-yikou-ai-go/biz/service/app"
-	"workspace-yikou-ai-go/biz/service/chat_history"
+	"workspace-yikou-ai-go/biz/service/chathistory"
 	user "workspace-yikou-ai-go/biz/service/user"
 	"workspace-yikou-ai-go/config"
 	"workspace-yikou-ai-go/docs"
@@ -45,14 +46,15 @@ var serviceSet = wire.NewSet(
 	wire.Bind(new(application.IAppService), new(*application.AppService)),
 	user.NewUserService,
 	wire.Bind(new(user.IUserService), new(*user.UserService)),
-	chat_history.NewChatHistoryService,
-	wire.Bind(new(chat_history.IChatHistoryService), new(*chat_history.ChatHistoryService)),
+	chathistory.NewChatHistoryService,
+	wire.Bind(new(chathistory.IChatHistoryService), new(*chathistory.ChatHistoryService)),
 )
 
 // Handler依赖
 var handlerSet = wire.NewSet(
 	appHandler.NewAppHandler,
 	userHandler.NewUserHandler,
+	chatHistoryHandler.NewChatHistoryHandler,
 	static.NewStaticResourceHandler,
 )
 
@@ -61,6 +63,7 @@ func InitServer(
 	serverConfig *config.Config,
 	appHandler *appHandler.AppHandler,
 	userHandler *userHandler.UserHandler,
+	chatHistoryHandler *chatHistoryHandler.ChatHistoryHandler,
 	staticResourceHandler *static.StaticResourceHandler,
 	db *gorm.DB,
 ) *server.Hertz {
@@ -84,7 +87,7 @@ func InitServer(
 		MaxAge:           12 * time.Hour,
 	}))
 	// 注册路由
-	router.CustomizedRegister(h, db, appHandler, userHandler, staticResourceHandler, url)
+	router.CustomizedRegister(h, db, appHandler, userHandler, chatHistoryHandler, staticResourceHandler, url)
 	return h
 }
 
