@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"workspace-yikou-ai-go/biz/dal"
 
 	"gorm.io/gen"
@@ -9,14 +8,8 @@ import (
 )
 
 func main() {
-	if err := config.InitConfig(); err != nil {
-		panic(fmt.Errorf("init config fail: %w", err))
-	}
-
-	if err := dal.InitDB(); err != nil {
-		panic(fmt.Errorf("init db fail: %w", err))
-	}
-
+	initConfig := config.InitConfig()
+	db := dal.InitDB(initConfig)
 	g := gen.NewGenerator(gen.Config{
 		OutPath:      "./biz/dal/query",
 		ModelPkgPath: "./biz/dal/model",
@@ -25,7 +18,7 @@ func main() {
 			gen.WithQueryInterface,
 	})
 
-	g.UseDB(dal.DB)
+	g.UseDB(db)
 
 	g.ApplyBasic(g.GenerateAllTable()...)
 
