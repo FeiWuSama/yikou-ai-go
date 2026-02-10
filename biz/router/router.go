@@ -66,8 +66,12 @@ func CustomizedRegister(r *server.Hertz, db *gorm.DB, appHandler *app.AppHandler
 		staticRoute.GET("/:deployKey/*filepath", staticHandler.ServeStaticResource)
 	}
 
+	// 聊天历史路由
 	chatHistoryRoute := r.Group("/chatHistory")
 	{
-		chatHistoryRoute.GET("/:appId", middleware.AuthMiddleware(enum.UserRole, db), chatHistoryHandler.ListAppChatHistory)
+		// 需要管理员权限的接口
+		chatHistoryRoute.POST("/admin/list/page/vo", middleware.AuthMiddleware(enum.AdminRole, db), chatHistoryHandler.ListAllChatHistoryByPageForAdmin)
+
+		appRoute.GET("/:appId", middleware.AuthMiddleware(enum.UserRole, db), chatHistoryHandler.ListAppChatHistory)
 	}
 }

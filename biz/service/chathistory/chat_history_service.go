@@ -6,6 +6,7 @@ import (
 	"time"
 	"workspace-yikou-ai-go/biz/dal/model"
 	"workspace-yikou-ai-go/biz/dal/query"
+	"workspace-yikou-ai-go/biz/model/api/chathistory"
 	"workspace-yikou-ai-go/biz/model/api/common"
 	"workspace-yikou-ai-go/biz/model/enum"
 	"workspace-yikou-ai-go/biz/model/vo"
@@ -16,6 +17,7 @@ type IChatHistoryService interface {
 	AddChatMessage(ctx context.Context, appId int64, message string, messageType enum.ChatHistoryMessageTypeEnum, userId int64) error
 	DeleteByAppId(ctx context.Context, appId int64) error
 	ListAppChatHistoryByPage(ctx context.Context, appId int64, pageSize int32, lastCreateTime time.Time, loginUser *vo.UserVo) (*common.PageResponse[*model.ChatHistory], error)
+	ListAllChatHistoryByPageForAdmin(ctx context.Context, pageNum int32, pageSize int32, queryRequest *chathistory.YiKouChatHistoryQueryRequest) (*common.PageResponse[*model.ChatHistory], error)
 }
 
 func NewChatHistoryService(db *gorm.DB) *ChatHistoryService {
@@ -111,4 +113,71 @@ func (s *ChatHistoryService) AddChatMessage(ctx context.Context, appId int64,
 		return err
 	}
 	return nil
+}
+
+func (s *ChatHistoryService) ListAllChatHistoryByPageForAdmin(ctx context.Context, pageNum int32, pageSize int32, queryRequest *chathistory.YiKouChatHistoryQueryRequest) (*common.PageResponse[*model.ChatHistory], error) {
+	// 校验参数
+	if pageNum <= 0 || pageSize <= 0 || pageSize > 50 {
+		return nil, pkg.ParamsError
+	}
+	if queryRequest == nil {
+		return nil, pkg.ParamsError
+	}
+
+	// 构建查询条件
+	chatHistoryQuery := query.Use(s.db).ChatHistory.Where(query.ChatHistory.ID.IsNotNull())
+
+	// 应用查询条件
+	if queryRequest.Id > 0 {
+		chatHistoryQuery = chatHistoryQuery.Where(query.ChatHistory.ID.Eq(queryRequest.Id))
+	}
+	if queryRequest.AppId > 0 {
+		chatHistoryQuery = chatHistoryQuery.Where(query.ChatHistory.AppID.Eq(queryRequest.AppId))
+	}
+	if queryRequest.UserId > 0 {
+		chatHistoryQuery = chatHistoryQuery.Where(query.ChatHistory.UserID.Eq(queryRequest.UserId))
+	}
+	if queryRequest.MessageType != "" {
+		chatHistoryQuery = chatHistoryQuery.Where(query.ChatHistory.MessageType.Eq(queryRequest.MessageType))
+	}
+	if queryRequest.Message != "" {
+		chatHistoryQuery = chatHistoryQuery.Where(query.ChatHistory.Message.Like("%" + queryRequest.Message + "%"))
+	}
+	if !queryRequest.LastCreateTime.IsZero() {
+		chatHistoryQuery = chatHistoryQuery.Where(query.ChatHistory.CreateTime.Lt(queryRequest.LastCreateTime))
+	}
+
+	// 查询总记录数
+	totalRow, err := chatHistoryQuery.Count()
+	if err != nil {
+		return nil, err
+	}
+
+	// 计算总页数
+	totalPage := 0
+	if totalRow > 0 {
+		totalPage = int((totalRow + int64(pageSize) - 1) / int64(pageSize))
+	}
+
+	// 计算偏移量
+	offset := int((pageNum - 1) * pageSize)
+
+	// 分页查询
+	chatHistoryList, err := chatHistoryQuery.
+		Order(query.ChatHistory.CreateTime.Desc()).
+		Limit(int(pageSize)).
+		Offset(offset).
+		Find()
+	if err != nil {
+		return nil, err
+	}
+
+	return &common.PageResponse[*model.ChatHistory]{
+		Records:            chatHistoryList,
+		PageNum:            int(pageNum),
+		PageSize:           int(pageSize),
+		TotalPage:          totalPage,
+		TotalRow:           int(totalRow),
+		OptimizeCountQuery: true,
+	}, nil
 }

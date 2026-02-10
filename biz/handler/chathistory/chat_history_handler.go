@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 	"workspace-yikou-ai-go/biz/dal/model"
+	"workspace-yikou-ai-go/biz/model/api/chathistory"
 	"workspace-yikou-ai-go/biz/model/api/common"
 	chatHistory "workspace-yikou-ai-go/biz/service/chathistory"
 	user "workspace-yikou-ai-go/biz/service/user"
@@ -37,7 +38,7 @@ func NewChatHistoryHandler(
 // @Param appId path int true "应用ID"
 // @Param pageSize query int false "页面大小，默认值为10"
 // @Param lastCreateTime query string false "最后一条记录的创建时间"
-// @Success 200 {object} common.SuccessResponse[*common.PageResponse[*model.ChatHistory]] "对话历史分页"
+// @Success 200 {object} chathistory.YiKouChatHistoryQueryResponse "对话历史分页"
 // @Router /app/{appId} [get]
 func (h *ChatHistoryHandler) ListAppChatHistory(ctx context.Context, c *app.RequestContext) {
 	// 获取路径参数appId
@@ -75,6 +76,39 @@ func (h *ChatHistoryHandler) ListAppChatHistory(ctx context.Context, c *app.Requ
 
 	// 调用服务层方法
 	result, err := h.chatHistoryService.ListAppChatHistoryByPage(ctx, appId, pageSize, lastCreateTime, &loginUser)
+	if err != nil {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
+		return
+	}
+
+	// 返回成功响应
+	c.JSON(consts.StatusOK, common.NewSuccessResponse[*common.PageResponse[*model.ChatHistory]](result))
+}
+
+// ListAllChatHistoryByPageForAdmin 管理员分页查询所有对话历史
+// @Summary 管理员分页查询所有对话历史
+// @Description 管理员分页查询所有对话历史
+// @Tags 聊天历史模块
+// @Accept json
+// @Produce json
+// @Param req body chathistory.YiKouChatHistoryQueryRequest true "对话历史查询请求"
+// @Success 200 {object} chathistory.YiKouChatHistoryQueryResponse "对话历史分页"
+// @Router /admin/list/page/vo [post]
+func (h *ChatHistoryHandler) ListAllChatHistoryByPageForAdmin(ctx context.Context, c *app.RequestContext) {
+	// 绑定请求参数
+	req := &chathistory.YiKouChatHistoryQueryRequest{}
+	err := c.BindAndValidate(req)
+	if err != nil {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.ParamsError))
+		return
+	}
+
+	// 获取分页参数
+	pageNum := int32(1)   // 默认值
+	pageSize := int32(10) // 默认值
+
+	// 调用服务层方法
+	result, err := h.chatHistoryService.ListAllChatHistoryByPageForAdmin(ctx, pageNum, pageSize, req)
 	if err != nil {
 		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
 		return
