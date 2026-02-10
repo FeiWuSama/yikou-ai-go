@@ -52,6 +52,7 @@ require (
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/google/wire v0.7.0 // indirect
 	github.com/goph/emperror v0.17.2 // indirect
 	github.com/hertz-contrib/cors v0.1.0 // indirect
 	github.com/hertz-contrib/swagger v0.1.1 // indirect

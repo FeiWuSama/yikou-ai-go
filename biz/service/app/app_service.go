@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/eino/schema"
+	"gorm.io/gorm"
 	"io"
 	"os"
 	"path/filepath"
 	"time"
 	"workspace-yikou-ai-go/biz/ai/core"
-	"workspace-yikou-ai-go/biz/dal"
 	"workspace-yikou-ai-go/biz/dal/model"
 	"workspace-yikou-ai-go/biz/dal/query"
 	appApi "workspace-yikou-ai-go/biz/model/api/app"
@@ -42,11 +42,17 @@ type IAppService interface {
 	AdminListApp(ctx context.Context, req *appApi.YiKouAppAdminListRequest) (*common.PageResponse[*model.App], error)
 }
 
-func NewAppService() *AppService {
+func NewAppService(
+	aiCodeGenFacade *core.YiKouAiCodegenFacade,
+	userService user.IUserService,
+	chatHistoryService chat_history.IChatHistoryService,
+	db *gorm.DB,
+) *AppService {
 	return &AppService{
-		aiCodeGenFacade:    core.NewYiKouAiCodegenFacade(),
-		userService:        user.NewUserService(),
-		chatHistoryService: chat_history.NewChatHistoryService(),
+		aiCodeGenFacade:    aiCodeGenFacade,
+		userService:        userService,
+		chatHistoryService: chatHistoryService,
+		db:                 db,
 	}
 }
 
@@ -54,6 +60,7 @@ type AppService struct {
 	aiCodeGenFacade    *core.YiKouAiCodegenFacade
 	userService        user.IUserService
 	chatHistoryService chat_history.IChatHistoryService
+	db                 *gorm.DB
 }
 
 func (s *AppService) DeployApp(ctx context.Context, appId int64, loginUser *vo.UserVo) (string, error) {
@@ -62,7 +69,7 @@ func (s *AppService) DeployApp(ctx context.Context, appId int64, loginUser *vo.U
 		return "", pkg.ParamsError
 	}
 	// 2. 校验应用是否存在
-	app, err := query.Use(dal.DB).App.Where(query.App.ID.Eq(appId), query.App.IsDelete.Eq(0)).First()
+	app, err := query.Use(s.db).App.Where(query.App.ID.Eq(appId), query.App.IsDelete.Eq(0)).First()
 	if err != nil {
 		return "", pkg.ParamsError.WithMessage("应用不存在")
 	}
@@ -106,7 +113,7 @@ func (s *AppService) DeployApp(ctx context.Context, appId int64, loginUser *vo.U
 		DeployKey:    deployKey,
 		DeployedTime: time.Now(),
 	}
-	_, err = query.Use(dal.DB).App.
+	_, err = query.Use(s.db).App.
 		Where(query.App.ID.Eq(appId), query.App.IsDelete.Eq(0)).
 		Updates(appUpdate)
 	if err != nil {
@@ -125,7 +132,7 @@ func (s *AppService) ChatToGenCode(ctx context.Context, appId int64, message str
 		return nil, pkg.ParamsError.WithMessage("应用ID不能为空")
 	}
 	// 2. 校验应用是否存在
-	app, err := query.Use(dal.DB).App.Where(query.App.ID.Eq(appId), query.App.IsDelete.Eq(0)).First()
+	app, err := query.Use(s.db).App.Where(query.App.ID.Eq(appId), query.App.IsDelete.Eq(0)).First()
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +175,7 @@ func (s *AppService) AddApp(ctx context.Context, req *appApi.YiKouAppAddRequest,
 		UserID:     userId,
 		Priority:   0,
 	}
-	err := query.Use(dal.DB).App.Select(query.App.AppName, query.App.InitPrompt, query.App.UserID, query.App.Priority).Create(newApp)
+	err := query.Use(s.db).App.Select(query.App.AppName, query.App.InitPrompt, query.App.UserID, query.App.Priority).Create(newApp)
 	if err != nil {
 		return 0, err
 	}
@@ -180,7 +187,7 @@ func (s *AppService) UpdateApp(ctx context.Context, req *appApi.YiKouAppUpdateRe
 		return false, pkg.ParamsError.WithMessage("应用ID不能为空")
 	}
 
-	app, err := query.Use(dal.DB).App.Where(query.App.ID.Eq(int64(req.Id))).First()
+	app, err := query.Use(s.db).App.Where(query.App.ID.Eq(int64(req.Id))).First()
 	if err != nil {
 		return false, err
 	}
@@ -194,7 +201,7 @@ func (s *AppService) UpdateApp(ctx context.Context, req *appApi.YiKouAppUpdateRe
 		updateMap["appName"] = req.AppName
 	}
 
-	_, err = query.Use(dal.DB).App.Where(query.App.ID.Eq(int64(req.Id))).Updates(updateMap)
+	_, err = query.Use(s.db).App.Where(query.App.ID.Eq(int64(req.Id))).Updates(updateMap)
 	if err != nil {
 		return false, err
 	}
@@ -202,7 +209,7 @@ func (s *AppService) UpdateApp(ctx context.Context, req *appApi.YiKouAppUpdateRe
 }
 
 func (s *AppService) DeleteApp(ctx context.Context, id int64, userId int64) (bool, error) {
-	app, err := query.Use(dal.DB).App.Where(query.App.ID.Eq(id)).First()
+	app, err := query.Use(s.db).App.Where(query.App.ID.Eq(id)).First()
 	if err != nil {
 		return false, err
 	}
@@ -217,7 +224,7 @@ func (s *AppService) DeleteApp(ctx context.Context, id int64, userId int64) (boo
 		logger.Errorf("删除应用关联对话记录失败:%v", err.Error())
 	}
 	// 逻辑删除应用
-	_, err = query.Use(dal.DB).App.Where(query.App.ID.Eq(id)).Update(query.App.IsDelete, 1)
+	_, err = query.Use(s.db).App.Where(query.App.ID.Eq(id)).Update(query.App.IsDelete, 1)
 	if err != nil {
 		return false, err
 	}
@@ -225,7 +232,7 @@ func (s *AppService) DeleteApp(ctx context.Context, id int64, userId int64) (boo
 }
 
 func (s *AppService) GetApp(ctx context.Context, id int64, userId int64) (*model.App, error) {
-	app, err := query.Use(dal.DB).App.Where(query.App.ID.Eq(id)).First()
+	app, err := query.Use(s.db).App.Where(query.App.ID.Eq(id)).First()
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +286,7 @@ func (s *AppService) GetAppVoList(ctx context.Context, appList []*model.App) ([]
 	}
 
 	// 获取所有用户信息
-	userList, err := query.Use(dal.DB).User.Where(query.User.ID.In(userIdList...)).Find()
+	userList, err := query.Use(s.db).User.Where(query.User.ID.In(userIdList...)).Find()
 	if err != nil {
 		return nil, err
 	}
@@ -326,7 +333,7 @@ func (s *AppService) ListMyApp(ctx context.Context, req *appApi.YiKouAppMyListRe
 		req.PageSize = 20
 	}
 
-	queryBuilder := query.Use(dal.DB).App.Where(query.App.IsDelete.Eq(0), query.App.UserID.Eq(userId))
+	queryBuilder := query.Use(s.db).App.Where(query.App.IsDelete.Eq(0), query.App.UserID.Eq(userId))
 
 	if req.AppName != "" {
 		queryBuilder = queryBuilder.Where(query.App.AppName.Like("%" + req.AppName + "%"))
@@ -389,7 +396,7 @@ func (s *AppService) ListGoodApp(ctx context.Context, req *appApi.YiKouAppFeatur
 		req.PageSize = 20
 	}
 
-	queryBuilder := query.Use(dal.DB).App.Where(query.App.IsDelete.Eq(0), query.App.Priority.Gt(0))
+	queryBuilder := query.Use(s.db).App.Where(query.App.IsDelete.Eq(0), query.App.Priority.Gt(0))
 
 	if req.AppName != "" {
 		queryBuilder = queryBuilder.Where(query.App.AppName.Like("%" + req.AppName + "%"))
@@ -451,7 +458,7 @@ func (s *AppService) AdminUpdateApp(ctx context.Context, req *appApi.YiKouAppAdm
 		return false, pkg.ParamsError.WithMessage("应用ID不能为空")
 	}
 
-	_, err := query.Use(dal.DB).App.Where(query.App.ID.Eq(int64(req.Id))).First()
+	_, err := query.Use(s.db).App.Where(query.App.ID.Eq(int64(req.Id))).First()
 	if err != nil {
 		return false, err
 	}
@@ -465,7 +472,7 @@ func (s *AppService) AdminUpdateApp(ctx context.Context, req *appApi.YiKouAppAdm
 	}
 	updateMap["priority"] = req.Priority
 
-	_, err = query.Use(dal.DB).App.Where(query.App.ID.Eq(int64(req.Id))).Updates(updateMap)
+	_, err = query.Use(s.db).App.Where(query.App.ID.Eq(int64(req.Id))).Updates(updateMap)
 	if err != nil {
 		return false, err
 	}
@@ -473,7 +480,7 @@ func (s *AppService) AdminUpdateApp(ctx context.Context, req *appApi.YiKouAppAdm
 }
 
 func (s *AppService) AdminDeleteApp(ctx context.Context, id int64) (bool, error) {
-	_, err := query.Use(dal.DB).App.Where(query.App.ID.Eq(id)).Update(query.App.IsDelete, 1)
+	_, err := query.Use(s.db).App.Where(query.App.ID.Eq(id)).Update(query.App.IsDelete, 1)
 	if err != nil {
 		return false, err
 	}
@@ -481,14 +488,13 @@ func (s *AppService) AdminDeleteApp(ctx context.Context, id int64) (bool, error)
 }
 
 func (s *AppService) AdminGetAppVo(ctx context.Context, id int64) (vo.AppVo, error) {
-	app, err := query.Use(dal.DB).App.Where(query.App.ID.Eq(id)).First()
+	app, err := query.Use(s.db).App.Where(query.App.ID.Eq(id)).First()
 	if err != nil {
 		return vo.AppVo{}, err
 	}
 
 	// 获取用户信息
-	userService := user.NewUserService()
-	userVo, err := userService.GetUserVo(ctx, app.UserID)
+	userVo, err := s.userService.GetUserVo(ctx, app.UserID)
 	if err != nil {
 		return vo.AppVo{}, err
 	}
@@ -518,7 +524,7 @@ func (s *AppService) AdminListApp(ctx context.Context, req *appApi.YiKouAppAdmin
 		req.PageSize = 10
 	}
 
-	queryBuilder := query.Use(dal.DB).App.Where(query.App.IsDelete.Eq(0))
+	queryBuilder := query.Use(s.db).App.Where(query.App.IsDelete.Eq(0))
 
 	if req.ID != 0 {
 		queryBuilder = queryBuilder.Where(query.App.ID.Eq(req.ID))

@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -17,7 +16,7 @@ type Config struct {
 	AI       AIConfig       `yaml:"ai"`
 }
 
-var GlobalConfig *Config
+//var GlobalConfig *Config
 
 type ServerConfig struct {
 	ConfigActive string `yaml:"config-active"`
@@ -43,11 +42,11 @@ type ChatModelConfig struct {
 	ModelName string `yaml:"model-name"`
 }
 
-func init() {
-	if err := InitConfig(); err != nil {
-		log.Fatalf("初始化配置文件失败: %v", err)
-	}
-}
+//func init() {
+//	if err := InitConfig(); err != nil {
+//		log.Fatalf("初始化配置文件失败: %v", err)
+//	}
+//}
 
 func (d *DatabaseConfig) GetDSN() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
@@ -130,21 +129,21 @@ func mergeChatModelConfig(base, override *ChatModelConfig) {
 }
 
 // InitConfig 初始化配置文件
-func InitConfig() error {
+func InitConfig() *Config {
 	projectRoot, err := pkg.GetProjectRoot()
 	if err != nil {
-		return fmt.Errorf("获取项目根目录失败: %w", err)
+		panic(fmt.Errorf("获取项目根目录失败: %w", err))
 	}
 	configPath := filepath.Join(projectRoot, "config/config.yml")
 	// 读取配置文件内容
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		return fmt.Errorf("读取配置文件失败: %w", err)
+		panic(fmt.Errorf("读取配置文件失败: %w", err))
 	}
 	// 解析配置文件内容到 Config 结构体
 	var config Config
 	if err := yaml.Unmarshal(data, &config); err != nil {
-		return fmt.Errorf("解析配置文件失败: %w", err)
+		panic(fmt.Errorf("解析配置文件失败: %w", err))
 	}
 	// 如果配置文件中指定了配置验证模式，合并验证模式下的配置
 	if config.Server.ConfigActive != "" {
@@ -159,6 +158,5 @@ func InitConfig() error {
 		}
 	}
 
-	GlobalConfig = &config
-	return nil
+	return &config
 }

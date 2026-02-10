@@ -3,6 +3,7 @@ package skill
 import (
 	"context"
 	"fmt"
+	"github.com/cloudwego/eino-ext/components/model/openai"
 	"os"
 	"path/filepath"
 	pkg "workspace-yikou-ai-go/pkg/file"
@@ -18,11 +19,12 @@ type IYiKouAiCodegenService interface {
 	GenerateMutiFileCodeStream(ctx context.Context, userMessage string) (*schema.StreamReader[*schema.Message], error)
 }
 
-func NewYiKouAiCodegenService() *YiKouAiCodegenService {
-	return &YiKouAiCodegenService{}
+func NewYiKouAiCodegenService(agent *openai.ChatModel) *YiKouAiCodegenService {
+	return &YiKouAiCodegenService{agent: agent}
 }
 
 type YiKouAiCodegenService struct {
+	agent *openai.ChatModel
 }
 
 func (s *YiKouAiCodegenService) GenerateMutiFileCodeStream(ctx context.Context, userMessage string) (*schema.StreamReader[*schema.Message], error) {

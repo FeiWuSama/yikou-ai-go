@@ -7,8 +7,8 @@ import (
 	"encoding/json"
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol"
+	"gorm.io/gorm"
 	"net/url"
-	"workspace-yikou-ai-go/biz/dal"
 	"workspace-yikou-ai-go/biz/dal/model"
 	"workspace-yikou-ai-go/biz/dal/query"
 	"workspace-yikou-ai-go/biz/model/api/common"
@@ -34,6 +34,7 @@ type IUserService interface {
 }
 
 type UserService struct {
+	db *gorm.DB
 }
 
 func (s *UserService) Logout(ctx context.Context, c *app.RequestContext) error {
@@ -47,8 +48,10 @@ func (s *UserService) Logout(ctx context.Context, c *app.RequestContext) error {
 	return nil
 }
 
-func NewUserService() *UserService {
-	return &UserService{}
+func NewUserService(db *gorm.DB) *UserService {
+	return &UserService{
+		db: db,
+	}
 }
 
 func (s *UserService) GetEncryptPassword(ctx context.Context, password string) string {
@@ -72,7 +75,7 @@ func (s *UserService) UserRegister(ctx context.Context, req *api.YiKouUserRegist
 		return 0, pkg.ParamsError.WithMessage("两次输入密码不一致")
 	}
 	// 2. 校验用户名是否已被注册
-	count, _ := query.Use(dal.DB).User.Where(query.User.UserAccount.Eq(req.UserAccount)).Count()
+	count, _ := query.Use(s.db).User.Where(query.User.UserAccount.Eq(req.UserAccount)).Count()
 	if count > 0 {
 		return 0, pkg.ParamsError.WithMessage("用户名已被注册")
 	}
@@ -85,7 +88,7 @@ func (s *UserService) UserRegister(ctx context.Context, req *api.YiKouUserRegist
 		UserName:     "无名",
 		UserRole:     string(enum.UserRole),
 	}
-	err := query.Use(dal.DB).User.Create(newUser)
+	err := query.Use(s.db).User.Create(newUser)
 	if err != nil {
 		return 0, err
 	}
@@ -108,7 +111,7 @@ func (s *UserService) GetLoginUserVo(ctx context.Context, c *app.RequestContext)
 		return vo.UserVo{}, err
 	}
 	// 2. 校验用户是否存在
-	_, err = query.Use(dal.DB).User.Where(query.User.ID.Eq(user.ID)).First()
+	_, err = query.Use(s.db).User.Where(query.User.ID.Eq(user.ID)).First()
 	if err != nil {
 		return vo.UserVo{}, err
 	}
@@ -140,7 +143,7 @@ func (s *UserService) AddUser(ctx context.Context, req *api.YiKouUserAddRequest)
 	}
 
 	// 2. 校验用户名是否已被注册
-	count, _ := query.Use(dal.DB).User.Where(query.User.UserAccount.Eq(req.UserAccount)).Count()
+	count, _ := query.Use(s.db).User.Where(query.User.UserAccount.Eq(req.UserAccount)).Count()
 	if count > 0 {
 		return 0, pkg.ParamsError.WithMessage("用户名已被注册")
 	}
@@ -161,7 +164,7 @@ func (s *UserService) AddUser(ctx context.Context, req *api.YiKouUserAddRequest)
 		newUser.UserRole = string(enum.UserRole) // 默认角色
 	}
 
-	err := query.Use(dal.DB).User.Create(newUser)
+	err := query.Use(s.db).User.Create(newUser)
 	if err != nil {
 		return 0, err
 	}
@@ -170,7 +173,7 @@ func (s *UserService) AddUser(ctx context.Context, req *api.YiKouUserAddRequest)
 
 // GetUser 根据ID获取用户
 func (s *UserService) GetUser(ctx context.Context, id int64) (*model.User, error) {
-	user, err := query.Use(dal.DB).User.Where(query.User.ID.Eq(id)).First()
+	user, err := query.Use(s.db).User.Where(query.User.ID.Eq(id)).First()
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +203,7 @@ func (s *UserService) GetUserVo(ctx context.Context, id int64) (vo.UserVo, error
 // DeleteUser 删除用户
 func (s *UserService) DeleteUser(ctx context.Context, id int64) (bool, error) {
 	// 软删除
-	_, err := query.Use(dal.DB).User.Where(query.User.ID.Eq(id)).Update(query.User.IsDelete, 1)
+	_, err := query.Use(s.db).User.Where(query.User.ID.Eq(id)).Update(query.User.IsDelete, 1)
 	if err != nil {
 		return false, err
 	}
@@ -210,7 +213,7 @@ func (s *UserService) DeleteUser(ctx context.Context, id int64) (bool, error) {
 // UpdateUser 更新用户
 func (s *UserService) UpdateUser(ctx context.Context, req *api.YiKouUserUpdateRequest) (bool, error) {
 	// 1. 检查用户是否存在
-	_, err := query.Use(dal.DB).User.Where(query.User.ID.Eq(int64(req.Id))).First()
+	_, err := query.Use(s.db).User.Where(query.User.ID.Eq(int64(req.Id))).First()
 	if err != nil {
 		return false, err
 	}
@@ -221,7 +224,7 @@ func (s *UserService) UpdateUser(ctx context.Context, req *api.YiKouUserUpdateRe
 	updateMap["user_avatar"] = req.UserAvatar
 	updateMap["user_profile"] = req.UserProfile
 	updateMap["user_role"] = req.UserRole
-	_, err = query.Use(dal.DB).User.Where(query.User.ID.Eq(int64(req.Id))).Updates(updateMap)
+	_, err = query.Use(s.db).User.Where(query.User.ID.Eq(int64(req.Id))).Updates(updateMap)
 	if err != nil {
 		return false, err
 	}
@@ -239,7 +242,7 @@ func (s *UserService) ListUserVoByPage(ctx context.Context, req *api.YiKouUserQu
 	}
 
 	// 2. 构建查询条件
-	queryBuilder := query.Use(dal.DB).User.Where(query.User.IsDelete.Eq(0))
+	queryBuilder := query.Use(s.db).User.Where(query.User.IsDelete.Eq(0))
 
 	if req.UserAccount != "" {
 		queryBuilder = queryBuilder.Where(query.User.UserAccount.Like("%" + req.UserAccount + "%"))
@@ -321,7 +324,7 @@ func (s *UserService) UserLogin(ctx context.Context, req *api.YiKouUserLoginRequ
 		return vo.UserVo{}, pkg.ParamsError
 	}
 	// 2. 校验用户是否存在
-	user, err := query.Use(dal.DB).User.Where(query.User.UserAccount.Eq(req.UserAccount)).First()
+	user, err := query.Use(s.db).User.Where(query.User.UserAccount.Eq(req.UserAccount)).First()
 	if err != nil {
 		return vo.UserVo{}, err
 	}

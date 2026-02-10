@@ -3,8 +3,8 @@ package middleware
 import (
 	"context"
 	"encoding/json"
+	"gorm.io/gorm"
 	"net/url"
-	"workspace-yikou-ai-go/biz/dal"
 	"workspace-yikou-ai-go/biz/dal/model"
 	"workspace-yikou-ai-go/biz/dal/query"
 	"workspace-yikou-ai-go/biz/model/enum"
@@ -15,7 +15,7 @@ import (
 )
 
 // AuthMiddleware 鉴权中间件
-func AuthMiddleware(roleEnum enum.UserRoleEnum) app.HandlerFunc {
+func AuthMiddleware(roleEnum enum.UserRoleEnum, db *gorm.DB) app.HandlerFunc {
 	return func(ctx context.Context, c *app.RequestContext) {
 		// 1. 校验权限
 		var userJson []byte
@@ -46,7 +46,7 @@ func AuthMiddleware(roleEnum enum.UserRoleEnum) app.HandlerFunc {
 		}
 
 		// 4. 校验用户权限等级是否符合要求
-		dbUser, err := query.Use(dal.DB).User.Where(query.User.ID.Eq(user.ID), query.User.IsDelete.Eq(0)).First()
+		dbUser, err := query.Use(db).User.Where(query.User.ID.Eq(user.ID), query.User.IsDelete.Eq(0)).First()
 		if err != nil {
 			c.JSON(200, pkg.NotAuthError)
 			c.Abort()

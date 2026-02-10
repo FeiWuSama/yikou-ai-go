@@ -20,11 +20,13 @@ type YiKouAiCodegenFacade struct {
 	codeFileSaverExecutor *saver.CodeFileSaverExecutor
 }
 
-func NewYiKouAiCodegenFacade() *YiKouAiCodegenFacade {
+func NewYiKouAiCodegenFacade(codegenService skill.IYiKouAiCodegenService,
+	codeParserExecutor *parser.CodeParserExecutor,
+	codeFileSaverExecutor *saver.CodeFileSaverExecutor) *YiKouAiCodegenFacade {
 	return &YiKouAiCodegenFacade{
-		codegenService:        skill.NewYiKouAiCodegenService(),
-		codeParserExecutor:    parser.NewCodeParserExecutor(),
-		codeFileSaverExecutor: saver.NewCodeFileSaverExecutor(),
+		codegenService:        codegenService,
+		codeParserExecutor:    codeParserExecutor,
+		codeFileSaverExecutor: codeFileSaverExecutor,
 	}
 }
 

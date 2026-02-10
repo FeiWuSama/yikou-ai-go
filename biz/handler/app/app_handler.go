@@ -27,11 +27,15 @@ type AppHandler struct {
 	chatHistoryService chatHistory.IChatHistoryService
 }
 
-func NewAppHandler() *AppHandler {
+func NewAppHandler(
+	appService application.IAppService,
+	userService user.IUserService,
+	chatHistoryService chatHistory.IChatHistoryService,
+) *AppHandler {
 	return &AppHandler{
-		appService:         application.NewAppService(),
-		userService:        user.NewUserService(),
-		chatHistoryService: chatHistory.NewChatHistoryService(),
+		appService:         appService,
+		userService:        userService,
+		chatHistoryService: chatHistoryService,
 	}
 }
 

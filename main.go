@@ -4,37 +4,36 @@ package main
 
 import (
 	"fmt"
-	"github.com/cloudwego/hertz/pkg/app/server"
-	"github.com/hertz-contrib/cors"
-	"github.com/hertz-contrib/swagger"
-	"strconv"
-	"time"
 	_ "workspace-yikou-ai-go/biz/dal"
-	"workspace-yikou-ai-go/config"
-	"workspace-yikou-ai-go/docs"
+	"workspace-yikou-ai-go/wire"
 )
 
 func main() {
-	basePath := config.GlobalConfig.Server.ContextPath
-	// 动态补充swagger前缀
-	docs.SwaggerInfo.BasePath = basePath
-	// 初始化swagger路径
-	swaggerPath := fmt.Sprintf("http://localhost:%d%s/swagger/doc.json", config.GlobalConfig.Server.Port, basePath)
-	url := swagger.URL(swaggerPath)
-	// 加载服务器配置
-	h := server.Default(
-		server.WithHostPorts(":"+strconv.Itoa(config.GlobalConfig.Server.Port)),
-		server.WithBasePath(config.GlobalConfig.Server.ContextPath),
-	)
-	// 处理跨域问题
-	h.Use(cors.New(cors.Config{
-		AllowAllOrigins:  true,
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: false,
-		MaxAge:           12 * time.Hour,
-	}))
-	customizedRegister(h, url)
+	//basePath := config.GlobalConfig.Server.ContextPath
+	//// 动态补充swagger前缀
+	//docs.SwaggerInfo.BasePath = basePath
+	//// 初始化swagger路径
+	//swaggerPath := fmt.Sprintf("http://localhost:%d%s/swagger/doc.json", config.GlobalConfig.Server.Port, basePath)
+	//url := swagger.URL(swaggerPath)
+	//// 加载服务器配置
+	//h := server.Default(
+	//	server.WithHostPorts(":"+strconv.Itoa(config.GlobalConfig.Server.Port)),
+	//	server.WithBasePath(config.GlobalConfig.Server.ContextPath),
+	//)
+	//// 处理跨域问题
+	//h.Use(cors.New(cors.Config{
+	//	AllowAllOrigins:  true,
+	//	AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+	//	AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+	//	ExposeHeaders:    []string{"Content-Length"},
+	//	AllowCredentials: false,
+	//	MaxAge:           12 * time.Hour,
+	//}))
+	//customizedRegister(h, url)
+	// 使用自动注入
+	h, err := wire.InitializeApp()
+	if err != nil {
+		panic(fmt.Errorf("注入失败: %w", err))
+	}
 	h.Spin()
 }

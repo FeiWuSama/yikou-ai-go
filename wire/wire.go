@@ -1,0 +1,105 @@
+//go:build wireinject
+
+package wire
+
+import (
+	"fmt"
+	"github.com/cloudwego/hertz/pkg/app/server"
+	"github.com/google/wire"
+	"github.com/hertz-contrib/cors"
+	"github.com/hertz-contrib/swagger"
+	"gorm.io/
+	"strconv"
+	"time"
+	"workspace-yikou-ai-go/biz/ai/agent"
+	"workspace-yikou-ai-go/biz/ai/core"
+	"workspace-yikou-ai-go/biz/ai/core/parser"
+	"workspace-yikou-ai-go/biz/ai/core/saver"
+	"workspace-yikou-ai-go/biz/ai/skill"
+	"workspace-yikou-ai-go/biz/dal"
+	appHandler "workspace-yikou-ai-go/biz/handler/app"
+	static "workspace-yikou-ai-go/biz/handler/static"
+	userHandler "workspace-yikou-ai-go/biz/handler/user"
+	"workspace-yikou-ai-go/biz/router"
+	application "workspace-yikou-ai-go/biz/service/app"
+	"workspace-yikou-ai-go/biz/service/chat_history"
+	user "workspace-yikou-ai-go/biz/service/user"
+	"workspace-yikou-ai-go/config"
+	"workspace-yikou-ai-go/docs"
+)
+
+// 配置依赖
+var configSet = wire.NewSet(
+	config.InitConfig,
+)
+
+// 数据库依赖
+var dbSet = wire.NewSet(
+	dal.InitDB,
+)
+
+// Service依赖
+var serviceSet = wire.NewSet(
+	core.NewYiKouAiCodegenFacade,
+	application.NewAppService,
+	wire.Bind(new(application.IAppService), new(*application.AppService)),
+	user.NewUserService,
+	wire.Bind(new(user.IUserService), new(*user.UserService)),
+	chat_history.NewChatHistoryService,
+	wire.Bind(new(chat_history.IChatHistoryService), new(*chat_history.ChatHistoryService)),
+)
+
+// Handler依赖
+var handlerSet = wire.NewSet(
+	appHandler.NewAppHandler,
+	userHandler.NewUserHandler,
+	static.NewStaticResourceHandler,
+)
+
+// Server依赖
+func InitServer(
+	serverConfig *config.Config,
+	appHandler *appHandler.AppHandler,
+	userHandler *userHandler.UserHandler,
+	staticResourceHandler *static.StaticResourceHandler,
+	db *gorm.DB,
+) *server.Hertz {
+	basePath := serverConfig.Server.ContextPath
+	// 动态补充swagger前缀
+	docs.SwaggerInfo.BasePath = basePath
+	// 初始化swagger路径
+	swaggerPath := fmt.Sprintf("http://localhost:%d%s/swagger/doc.json", serverConfig.Server.Port, basePath)
+	url := swagger.URL(swaggerPath)
+	h := server.Default(
+		server.WithHostPorts(":"+strconv.Itoa(serverConfig.Server.Port)),
+		server.WithBasePath(serverConfig.Server.ContextPath),
+	)
+	// 处理跨域问题
+	h.Use(cors.New(cors.Config{
+		AllowAllOrigins:  true,
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: false,
+		MaxAge:           12 * time.Hour,
+	}))
+	// 注册路由
+	router.CustomizedRegister(h, db, appHandler, userHandler, staticResourceHandler, url)
+	return h
+}
+
+// 初始化所有依赖（依赖图）
+func InitializeApp() (*server.Hertz, error) {
+	panic(wire.Build(
+		configSet,
+		dbSet,
+		serviceSet,
+		handlerSet,
+		InitServer,
+		agent.NewChatAgent,
+		skill.NewYiKouAiCodegenService,
+		wire.Bind(new(skill.IYiKouAiCodegenService), new(*skill.YiKouAiCodegenService)),
+		parser.NewCodeParserExecutor,
+		saver.NewCodeFileSaverExecutor,
+	))
+}
