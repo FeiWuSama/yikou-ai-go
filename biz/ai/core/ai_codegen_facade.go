@@ -7,6 +7,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 	"io"
 	"strings"
+	"workspace-yikou-ai-go/biz/ai/agent"
 	"workspace-yikou-ai-go/biz/ai/core/parser"
 	"workspace-yikou-ai-go/biz/ai/core/saver"
 	ai "workspace-yikou-ai-go/biz/ai/model"
@@ -18,13 +19,15 @@ type YiKouAiCodegenFacade struct {
 	codegenService        skill.IYiKouAiCodegenService
 	codeParserExecutor    *parser.CodeParserExecutor
 	codeFileSaverExecutor *saver.CodeFileSaverExecutor
+	codeGenAgent          *agent.CodeGenAgent
 }
 
 func NewYiKouAiCodegenFacade(codegenService skill.IYiKouAiCodegenService,
 	codeParserExecutor *parser.CodeParserExecutor,
-	codeFileSaverExecutor *saver.CodeFileSaverExecutor) *YiKouAiCodegenFacade {
+	codeFileSaverExecutor *saver.CodeFileSaverExecutor, codeGenAgent *agent.CodeGenAgent) *YiKouAiCodegenFacade {
 	return &YiKouAiCodegenFacade{
 		codegenService:        codegenService,
+		codeGenAgent:          codeGenAgent,
 		codeParserExecutor:    codeParserExecutor,
 		codeFileSaverExecutor: codeFileSaverExecutor,
 	}
@@ -52,7 +55,7 @@ func (y *YiKouAiCodegenFacade) genHtmlCodeAndSave(ctx context.Context, userMessa
 // GenMultiFileCodeAndSave 生成多文件代码并保存到文件系统
 // Deprecated: 请使用执行器的方法
 func (y *YiKouAiCodegenFacade) genMultiFileCodeAndSave(ctx context.Context, userMessage string) error {
-	resp, err := y.codegenService.GenerateMutiFileCode(ctx, userMessage)
+	resp, err := y.codegenService.GenerateMultiFileCode(ctx, userMessage)
 	if err != nil {
 		return err
 	}
@@ -71,7 +74,7 @@ func (y *YiKouAiCodegenFacade) genMultiFileCodeAndSave(ctx context.Context, user
 func (y *YiKouAiCodegenFacade) GenCodeAndSave(ctx context.Context, userMessage string, typeStr enum.CodeGenTypeEnum, appId int64) error {
 	switch typeStr {
 	case enum.MultiFileGen:
-		resp, err := y.codegenService.GenerateMutiFileCode(ctx, userMessage)
+		resp, err := y.codeGenAgent.GenerateMultiFileCode(ctx, userMessage)
 		if err != nil {
 			return err
 		}
@@ -86,7 +89,7 @@ func (y *YiKouAiCodegenFacade) GenCodeAndSave(ctx context.Context, userMessage s
 		logger.Info("多文件代码已保存到目录: %s", dirPath)
 		return nil
 	case enum.HtmlCodeGen:
-		resp, err := y.codegenService.GenerateHtmlCode(ctx, userMessage)
+		resp, err := y.codeGenAgent.GenerateHtmlCode(ctx, userMessage)
 		if err != nil {
 			return err
 		}
@@ -140,7 +143,7 @@ func (y *YiKouAiCodegenFacade) genHtmlCodeStreamAndSave(ctx context.Context, use
 // GenMultiFileCodeStreamAndSave 生成多文件代码流并保存到文件系统
 // Deprecated: 请使用执行器的方法
 func (y *YiKouAiCodegenFacade) genMultiFileCodeStreamAndSave(ctx context.Context, userMessage string) error {
-	streamResp, err := y.codegenService.GenerateMutiFileCodeStream(ctx, userMessage)
+	streamResp, err := y.codegenService.GenerateMultiFileCodeStream(ctx, userMessage)
 	if err != nil {
 		return err
 	}
@@ -172,13 +175,13 @@ func (y *YiKouAiCodegenFacade) genMultiFileCodeStreamAndSave(ctx context.Context
 func (y *YiKouAiCodegenFacade) GenCodeStreamAndSave(ctx context.Context, userMessage string, typeStr enum.CodeGenTypeEnum, appId int64) (*schema.StreamReader[*schema.Message], error) {
 	switch typeStr {
 	case enum.HtmlCodeGen:
-		streamResp, err := y.codegenService.GenerateHtmlCodeStream(ctx, userMessage)
+		streamResp, err := y.codeGenAgent.GenerateHtmlCodeStream(ctx, userMessage)
 		if err != nil {
 			return nil, err
 		}
 		return y.processCodeStream(streamResp, typeStr, appId)
 	case enum.MultiFileGen:
-		streamResp, err := y.codegenService.GenerateMutiFileCodeStream(ctx, userMessage)
+		streamResp, err := y.codeGenAgent.GenerateMultiFileCodeStream(ctx, userMessage)
 		if err != nil {
 			return nil, err
 		}

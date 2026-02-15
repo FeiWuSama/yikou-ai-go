@@ -12,6 +12,7 @@ import (
 	"github.com/google/wire"
 	"github.com/hertz-contrib/cors"
 	"github.com/hertz-contrib/swagger"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"strconv"
 	"time"
@@ -19,7 +20,9 @@ import (
 	"workspace-yikou-ai-go/biz/ai/core"
 	"workspace-yikou-ai-go/biz/ai/core/parser"
 	"workspace-yikou-ai-go/biz/ai/core/saver"
+	"workspace-yikou-ai-go/biz/ai/llm"
 	"workspace-yikou-ai-go/biz/ai/skill"
+	"workspace-yikou-ai-go/biz/ai/store"
 	"workspace-yikou-ai-go/biz/dal"
 	"workspace-yikou-ai-go/biz/handler/app"
 	chathistory2 "workspace-yikou-ai-go/biz/handler/chathistory"
@@ -38,11 +41,15 @@ import (
 // 初始化所有依赖（依赖图）
 func InitializeApp() (*server.Hertz, error) {
 	configConfig := config.InitConfig()
-	chatModel := agent.NewChatAgent(configConfig)
+	chatModel := llm.NewChatModel(configConfig)
 	yiKouAiCodegenService := skill.NewYiKouAiCodegenService(chatModel)
 	codeParserExecutor := parser.NewCodeParserExecutor()
 	codeFileSaverExecutor := saver.NewCodeFileSaverExecutor()
-	yiKouAiCodegenFacade := core.NewYiKouAiCodegenFacade(yiKouAiCodegenService, codeParserExecutor, codeFileSaverExecutor)
+	baseAiChatModel := llm.NewBaseAiChatModel(configConfig)
+	client := dal.InitRedis(configConfig)
+	redisStore := store.NewRedisStore(client)
+	codeGenAgent := agent.NewCodeGenAgent(baseAiChatModel, redisStore)
+	yiKouAiCodegenFacade := core.NewYiKouAiCodegenFacade(yiKouAiCodegenService, codeParserExecutor, codeFileSaverExecutor, codeGenAgent)
 	db := dal.InitDB(configConfig)
 	userService := service.NewUserService(db)
 	chatHistoryService := chathistory.NewChatHistoryService(db)
@@ -51,7 +58,7 @@ func InitializeApp() (*server.Hertz, error) {
 	userHandler := handler2.NewUserHandler(userService)
 	chatHistoryHandler := chathistory2.NewChatHistoryHandler(chatHistoryService, userService)
 	staticResourceHandler := static.NewStaticResourceHandler()
-	hertz := InitServer(configConfig, appHandler, userHandler, chatHistoryHandler, staticResourceHandler, db)
+	hertz := InitServer(configConfig, appHandler, userHandler, chatHistoryHandler, staticResourceHandler, db, client)
 	return hertz, nil
 }
 
@@ -61,7 +68,7 @@ func InitializeApp() (*server.Hertz, error) {
 var configSet = wire.NewSet(config.InitConfig)
 
 // 数据库依赖
-var dbSet = wire.NewSet(dal.InitDB)
+var dbSet = wire.NewSet(dal.InitDB, dal.InitRedis)
 
 // Service依赖
 var serviceSet = wire.NewSet(core.NewYiKouAiCodegenFacade, service2.NewAppService, wire.Bind(new(service2.IAppService), new(*service2.AppService)), service.NewUserService, wire.Bind(new(service.IUserService), new(*service.UserService)), chathistory.NewChatHistoryService, wire.Bind(new(chathistory.IChatHistoryService), new(*chathistory.ChatHistoryService)))
@@ -77,6 +84,7 @@ func InitServer(
 	chatHistoryHandler *chathistory2.ChatHistoryHandler,
 	staticResourceHandler *static.StaticResourceHandler,
 	db *gorm.DB,
+	redisClient *redis.Client,
 ) *server.Hertz {
 	basePath := serverConfig.Server.ContextPath
 	docs.SwaggerInfo.

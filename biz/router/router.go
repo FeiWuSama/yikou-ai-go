@@ -18,8 +18,7 @@ import (
 )
 
 // CustomizedRegister registers customize routers.
-func CustomizedRegister(r *server.Hertz, db *gorm.DB, appHandler *app.AppHandler,
-	userHandler *user.UserHandler, chatHistoryHandler *chatHistory.ChatHistoryHandler, staticHandler *static.StaticResourceHandler, url func(config *swagger.Config)) {
+func CustomizedRegister(r *server.Hertz, db *gorm.DB, appHandler *app.AppHandler, userHandler *user.UserHandler, chatHistoryHandler *chatHistory.ChatHistoryHandler, staticHandler *static.StaticResourceHandler, url func(config *swagger.Config)) {
 	r.GET("/ping", handler.Ping)
 	r.GET("/swagger/*any", swagger.WrapHandler(swaggerFiles.Handler, url))
 

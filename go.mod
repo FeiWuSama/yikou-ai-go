@@ -1,12 +1,11 @@
 module workspace-yikou-ai-go
 
-go 1.24.0
-
-toolchain go1.24.9
+go 1.24.9
 
 require (
 	github.com/apache/thrift v0.22.0
 	github.com/cloudwego/hertz v0.10.3
+	github.com/redis/go-redis/v9 v9.7.3
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -20,6 +19,7 @@ require (
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/bytedance/sonic v1.15.0 // indirect
 	github.com/bytedance/sonic/loader v0.5.0 // indirect
+	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/cloudwego/eino v0.7.13 // indirect
 	github.com/cloudwego/eino-ext/components/model/openai v0.1.8 // indirect
@@ -27,6 +27,7 @@ require (
 	github.com/cloudwego/gopkg v0.1.4 // indirect
 	github.com/cloudwego/netpoll v0.7.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/eino-contrib/jsonschema v1.0.3 // indirect
 	github.com/evanphx/json-patch v0.5.2 // indirect
@@ -71,6 +72,7 @@ require (
 	github.com/nyaruka/phonenumbers v1.6.8 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.9 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/redis/rueidis v1.0.71 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect

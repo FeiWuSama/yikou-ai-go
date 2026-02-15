@@ -23,7 +23,7 @@ func TestGenerateHtmlFileCode(t *testing.T) {
 func TestGenerateMutiFileCode(t *testing.T) {
 	ctx := context.Background()
 	service := NewYiKouAiCodegenService()
-	resp, err := service.GenerateMutiFileCode(ctx, "请帮我生成一个登录页面,不超过20行代码")
+	resp, err := service.GenerateMultiFileCode(ctx, "请帮我生成一个登录页面,不超过20行代码")
 	if err != nil {
 		t.Fatalf("生成多文件代码失败: %v", err)
 	}

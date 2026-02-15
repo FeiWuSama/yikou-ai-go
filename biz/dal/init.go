@@ -2,6 +2,7 @@ package dal
 
 import (
 	"fmt"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -24,6 +25,20 @@ func InitDB(config *config.Config) *gorm.DB {
 	}
 
 	return db
+}
+
+func InitRedis(config *config.Config) *redis.Client {
+	if config == nil {
+		panic(fmt.Errorf("配置加载失败"))
+	}
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%d", config.Redis.Host, config.Redis.Port),
+		Password: config.Redis.Password,
+		DB:       config.Redis.DB,
+	})
+
+	return redisClient
 }
 
 //func init() {

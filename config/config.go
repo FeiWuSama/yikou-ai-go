@@ -13,6 +13,7 @@ import (
 type Config struct {
 	Server   ServerConfig   `yaml:"server"`
 	Database DatabaseConfig `yaml:"database"`
+	Redis    RedisConfig    `yaml:"redis"`
 	AI       AIConfig       `yaml:"ai"`
 }
 
@@ -32,14 +33,23 @@ type DatabaseConfig struct {
 	DBName   string `yaml:"dbname"`
 }
 
+type RedisConfig struct {
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	Password string `yaml:"password"`
+	DB       int    `yaml:"db"`
+}
+
 type AIConfig struct {
 	ChatModel ChatModelConfig `yaml:"chat-model"`
 }
 
 type ChatModelConfig struct {
-	BaseURL   string `yaml:"base-url"`
-	APIKey    string `yaml:"api-key"`
-	ModelName string `yaml:"model-name"`
+	BaseURL     string `yaml:"base-url"`
+	APIKey      string `yaml:"api-key"`
+	ModelName   string `yaml:"model-name"`
+	MemoryStore string `yaml:"memory-store"`
+	MemoryTTL   int    `yaml:"memory-ttl"`
 }
 
 //func init() {
@@ -92,6 +102,40 @@ func mergeServerConfig(base, override *ServerConfig) {
 // mergeAIConfig 合并 AIConfig 结构体的配置
 func mergeAIConfig(base, override *AIConfig) {
 	mergeChatModelConfig(&base.ChatModel, &override.ChatModel)
+}
+
+// mergeRedisConfig 合并 RedisConfig 结构体的配置
+func mergeRedisConfig(base, override *RedisConfig) {
+	baseValue := reflect.ValueOf(base).Elem()
+	overrideValue := reflect.ValueOf(override).Elem()
+	overrideType := overrideValue.Type()
+	for i := 0; i < overrideValue.NumField(); i++ {
+		fieldName := overrideType.Field(i).Name
+		overrideField := overrideValue.Field(i)
+		baseField := baseValue.FieldByName(fieldName)
+		switch overrideField.Kind() {
+		case reflect.String:
+			if overrideField.String() != "" {
+				baseField.SetString(overrideField.String())
+			}
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			if overrideField.Int() != 0 {
+				baseField.SetInt(overrideField.Int())
+			}
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			if overrideField.Uint() != 0 {
+				baseField.SetUint(overrideField.Uint())
+			}
+		case reflect.Float32, reflect.Float64:
+			if overrideField.Float() != 0 {
+				baseField.SetFloat(overrideField.Float())
+			}
+		case reflect.Bool:
+			if overrideField.Bool() {
+				baseField.SetBool(overrideField.Bool())
+			}
+		}
+	}
 }
 
 // mergeChatModelConfig 合并 ChatModelConfig 结构体的配置
@@ -153,6 +197,7 @@ func InitConfig() *Config {
 			var overrideConfig Config
 			if err := yaml.Unmarshal(overrideData, &overrideConfig); err == nil {
 				mergeServerConfig(&config.Server, &overrideConfig.Server)
+				mergeRedisConfig(&config.Redis, &overrideConfig.Redis)
 				mergeAIConfig(&config.AI, &overrideConfig.AI)
 			}
 		}

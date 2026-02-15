@@ -8,6 +8,7 @@ import (
 	"github.com/google/wire"
 	"github.com/hertz-contrib/cors"
 	"github.com/hertz-contrib/swagger"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"strconv"
 	"time"
@@ -15,7 +16,9 @@ import (
 	"workspace-yikou-ai-go/biz/ai/core"
 	"workspace-yikou-ai-go/biz/ai/core/parser"
 	"workspace-yikou-ai-go/biz/ai/core/saver"
+	"workspace-yikou-ai-go/biz/ai/llm"
 	"workspace-yikou-ai-go/biz/ai/skill"
+	"workspace-yikou-ai-go/biz/ai/store"
 	"workspace-yikou-ai-go/biz/dal"
 	appHandler "workspace-yikou-ai-go/biz/handler/app"
 	chatHistoryHandler "workspace-yikou-ai-go/biz/handler/chathistory"
@@ -37,6 +40,7 @@ var configSet = wire.NewSet(
 // 数据库依赖
 var dbSet = wire.NewSet(
 	dal.InitDB,
+	dal.InitRedis,
 )
 
 // Service依赖
@@ -66,6 +70,7 @@ func InitServer(
 	chatHistoryHandler *chatHistoryHandler.ChatHistoryHandler,
 	staticResourceHandler *static.StaticResourceHandler,
 	db *gorm.DB,
+	redisClient *redis.Client,
 ) *server.Hertz {
 	basePath := serverConfig.Server.ContextPath
 	// 动态补充swagger前缀
@@ -99,10 +104,13 @@ func InitializeApp() (*server.Hertz, error) {
 		serviceSet,
 		handlerSet,
 		InitServer,
-		agent.NewChatAgent,
+		llm.NewBaseAiChatModel,
+		llm.NewChatModel,
 		skill.NewYiKouAiCodegenService,
 		wire.Bind(new(skill.IYiKouAiCodegenService), new(*skill.YiKouAiCodegenService)),
 		parser.NewCodeParserExecutor,
 		saver.NewCodeFileSaverExecutor,
+		agent.NewCodeGenAgent,
+		store.NewRedisStore,
 	))
 }
