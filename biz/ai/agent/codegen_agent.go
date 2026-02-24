@@ -26,7 +26,7 @@ func NewCodeGenAgent(model *llm.BaseAiChatModel, store *store.RedisStore) *CodeG
 }
 
 func (a *CodeGenAgent) GenerateHtmlCode(ctx context.Context, userMessage string) (*schema.Message, error) {
-	agent := NewHtmlFileCodeGenAgent(a.model)
+	agent := newHtmlFileCodeGenAgent(a.model)
 	runner := adk.NewRunner(ctx, adk.RunnerConfig{
 		Agent:           agent,
 		EnableStreaming: false,
@@ -44,7 +44,7 @@ func (a *CodeGenAgent) GenerateHtmlCode(ctx context.Context, userMessage string)
 }
 
 func (a *CodeGenAgent) GenerateMultiFileCode(ctx context.Context, userMessage string) (*schema.Message, error) {
-	agent := NewMultiFileCodeGenAgent(a.model)
+	agent := newMultiFileCodeGenAgent(a.model)
 	runner := adk.NewRunner(ctx, adk.RunnerConfig{
 		Agent:           agent,
 		EnableStreaming: false,
@@ -63,7 +63,7 @@ func (a *CodeGenAgent) GenerateMultiFileCode(ctx context.Context, userMessage st
 }
 
 func (a *CodeGenAgent) GenerateHtmlCodeStream(ctx context.Context, userMessage string) (*schema.StreamReader[*schema.Message], error) {
-	agent := NewHtmlFileCodeGenAgent(a.model)
+	agent := newHtmlFileCodeGenAgent(a.model)
 	runner := adk.NewRunner(ctx, adk.RunnerConfig{
 		Agent:           agent,
 		EnableStreaming: true,
@@ -79,7 +79,7 @@ func (a *CodeGenAgent) GenerateHtmlCodeStream(ctx context.Context, userMessage s
 }
 
 func (a *CodeGenAgent) GenerateMultiFileCodeStream(ctx context.Context, userMessage string) (*schema.StreamReader[*schema.Message], error) {
-	agent := NewMultiFileCodeGenAgent(a.model)
+	agent := newMultiFileCodeGenAgent(a.model)
 	runner := adk.NewRunner(ctx, adk.RunnerConfig{
 		Agent:           agent,
 		EnableStreaming: true,
@@ -93,7 +93,7 @@ func (a *CodeGenAgent) GenerateMultiFileCodeStream(ctx context.Context, userMess
 	return stream, nil
 }
 
-func NewMultiFileCodeGenAgent(model *llm.BaseAiChatModel) *adk.ChatModelAgent {
+func newMultiFileCodeGenAgent(model *llm.BaseAiChatModel) *adk.ChatModelAgent {
 	ctx := context.Background()
 	projectRoot, err := path.GetProjectRoot()
 	promptPath := filepath.Join(projectRoot, "prompt/codegen-multi-file-system-prompt.txt")
@@ -109,7 +109,7 @@ func NewMultiFileCodeGenAgent(model *llm.BaseAiChatModel) *adk.ChatModelAgent {
 	return agent
 }
 
-func NewHtmlFileCodeGenAgent(model *llm.BaseAiChatModel) *adk.ChatModelAgent {
+func newHtmlFileCodeGenAgent(model *llm.BaseAiChatModel) *adk.ChatModelAgent {
 	ctx := context.Background()
 	projectRoot, err := path.GetProjectRoot()
 	promptPath := filepath.Join(projectRoot, "prompt/codegen-html-system-prompt.txt")

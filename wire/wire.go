@@ -110,7 +110,7 @@ func InitializeApp() (*server.Hertz, error) {
 		wire.Bind(new(skill.IYiKouAiCodegenService), new(*skill.YiKouAiCodegenService)),
 		parser.NewCodeParserExecutor,
 		saver.NewCodeFileSaverExecutor,
-		agent.NewCodeGenAgent,
+		agent.NewCodeGenAgentFactory,
 		store.NewRedisStore,
 	))
 }

@@ -19,15 +19,15 @@ type YiKouAiCodegenFacade struct {
 	codegenService        skill.IYiKouAiCodegenService
 	codeParserExecutor    *parser.CodeParserExecutor
 	codeFileSaverExecutor *saver.CodeFileSaverExecutor
-	codeGenAgent          *agent.CodeGenAgent
+	codeGenAgentFactory   *agent.CodeGenAgentFactory
 }
 
 func NewYiKouAiCodegenFacade(codegenService skill.IYiKouAiCodegenService,
 	codeParserExecutor *parser.CodeParserExecutor,
-	codeFileSaverExecutor *saver.CodeFileSaverExecutor, codeGenAgent *agent.CodeGenAgent) *YiKouAiCodegenFacade {
+	codeFileSaverExecutor *saver.CodeFileSaverExecutor, codeGenAgentFactory *agent.CodeGenAgentFactory) *YiKouAiCodegenFacade {
 	return &YiKouAiCodegenFacade{
 		codegenService:        codegenService,
-		codeGenAgent:          codeGenAgent,
+		codeGenAgentFactory:   codeGenAgentFactory,
 		codeParserExecutor:    codeParserExecutor,
 		codeFileSaverExecutor: codeFileSaverExecutor,
 	}
@@ -72,9 +72,13 @@ func (y *YiKouAiCodegenFacade) genMultiFileCodeAndSave(ctx context.Context, user
 }
 
 func (y *YiKouAiCodegenFacade) GenCodeAndSave(ctx context.Context, userMessage string, typeStr enum.CodeGenTypeEnum, appId int64) error {
+	codeGenAgent, err := y.codeGenAgentFactory.GetCodeGenAgent(typeStr)
+	if err != nil {
+		return err
+	}
 	switch typeStr {
 	case enum.MultiFileGen:
-		resp, err := y.codeGenAgent.GenerateMultiFileCode(ctx, userMessage)
+		resp, err := codeGenAgent.GenerateMultiFileCode(ctx, userMessage)
 		if err != nil {
 			return err
 		}
@@ -89,7 +93,7 @@ func (y *YiKouAiCodegenFacade) GenCodeAndSave(ctx context.Context, userMessage s
 		logger.Info("多文件代码已保存到目录: %s", dirPath)
 		return nil
 	case enum.HtmlCodeGen:
-		resp, err := y.codeGenAgent.GenerateHtmlCode(ctx, userMessage)
+		resp, err := codeGenAgent.GenerateHtmlCode(ctx, userMessage)
 		if err != nil {
 			return err
 		}
@@ -173,15 +177,19 @@ func (y *YiKouAiCodegenFacade) genMultiFileCodeStreamAndSave(ctx context.Context
 }
 
 func (y *YiKouAiCodegenFacade) GenCodeStreamAndSave(ctx context.Context, userMessage string, typeStr enum.CodeGenTypeEnum, appId int64) (*schema.StreamReader[*schema.Message], error) {
+	codeGenAgent, err := y.codeGenAgentFactory.GetCodeGenAgent(typeStr)
+	if err != nil {
+		return nil, err
+	}
 	switch typeStr {
 	case enum.HtmlCodeGen:
-		streamResp, err := y.codeGenAgent.GenerateHtmlCodeStream(ctx, userMessage)
+		streamResp, err := codeGenAgent.GenerateHtmlCodeStream(ctx, userMessage)
 		if err != nil {
 			return nil, err
 		}
 		return y.processCodeStream(streamResp, typeStr, appId)
 	case enum.MultiFileGen:
-		streamResp, err := y.codeGenAgent.GenerateMultiFileCodeStream(ctx, userMessage)
+		streamResp, err := codeGenAgent.GenerateMultiFileCodeStream(ctx, userMessage)
 		if err != nil {
 			return nil, err
 		}
