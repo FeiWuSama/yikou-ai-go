@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/redis/go-redis/v9"
+	"time"
 )
 
 type RedisStore struct {
@@ -28,5 +29,5 @@ func (r RedisStore) Get(ctx context.Context, checkPointID string) ([]byte, bool,
 }
 
 func (r RedisStore) Set(ctx context.Context, checkPointID string, checkPoint []byte) error {
-	return r.redisClient.Set(ctx, checkPointID, checkPoint, 0).Err()
+	return r.redisClient.Set(ctx, checkPointID, checkPoint, 1*time.Hour).Err()
 }

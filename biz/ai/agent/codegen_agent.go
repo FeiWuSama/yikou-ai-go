@@ -48,6 +48,7 @@ func (a *CodeGenAgent) GenerateMultiFileCode(ctx context.Context, userMessage st
 	runner := adk.NewRunner(ctx, adk.RunnerConfig{
 		Agent:           agent,
 		EnableStreaming: false,
+		CheckPointStore: a.store,
 	})
 	iter := runner.Query(ctx, userMessage)
 	event, ok := iter.Next()
@@ -66,6 +67,7 @@ func (a *CodeGenAgent) GenerateHtmlCodeStream(ctx context.Context, userMessage s
 	runner := adk.NewRunner(ctx, adk.RunnerConfig{
 		Agent:           agent,
 		EnableStreaming: true,
+		CheckPointStore: a.store,
 	})
 	iter := runner.Query(ctx, userMessage)
 	event, ok := iter.Next()
