@@ -71,6 +71,6 @@ func CustomizedRegister(r *server.Hertz, db *gorm.DB, appHandler *app.AppHandler
 		// 需要管理员权限的接口
 		chatHistoryRoute.POST("/admin/list/page/vo", middleware.AuthMiddleware(enum.AdminRole, db), chatHistoryHandler.ListAllChatHistoryByPageForAdmin)
 
-		appRoute.GET("/:appId", middleware.AuthMiddleware(enum.UserRole, db), chatHistoryHandler.ListAppChatHistory)
+		chatHistoryRoute.GET("/app/:appId", middleware.AuthMiddleware(enum.UserRole, db), chatHistoryHandler.ListAppChatHistory)
 	}
 }
