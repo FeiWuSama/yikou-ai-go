@@ -10,7 +10,7 @@ type YiKouAppAddRequest struct {
 	InitPrompt string `json:"initPrompt"`
 }
 
-type YiKouAppAddResponse common.BaseResponse[int64]
+type YiKouAppAddResponse common.BaseResponse[string]
 
 type YiKouAppUpdateRequest struct {
 	common.DeleteRequest

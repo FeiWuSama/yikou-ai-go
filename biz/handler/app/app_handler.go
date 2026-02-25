@@ -174,7 +174,7 @@ func (a *AppHandler) AddApp(ctx context.Context, c *app.RequestContext) {
 		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
 		return
 	}
-	c.JSON(consts.StatusOK, common.NewSuccessResponse[int64](appId))
+	c.JSON(consts.StatusOK, common.NewSuccessResponse[string](strconv.Itoa(int(appId))))
 }
 
 // UpdateApp 更新应用
