@@ -6,6 +6,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"workspace-yikou-ai-go/biz/dal/query"
 	"workspace-yikou-ai-go/config"
 )
 
@@ -23,6 +24,7 @@ func InitDB(config *config.Config) *gorm.DB {
 	if err != nil {
 		panic(fmt.Errorf("数据库连接失败: %w", err))
 	}
+	query.SetDefault(db)
 
 	return db
 }
