@@ -50,7 +50,7 @@ func CustomizedRegister(r *server.Hertz, db *gorm.DB, appHandler *app.AppHandler
 		appRoute.POST("/add", middleware.AuthMiddleware(enum.UserRole, db), appHandler.AddApp)
 		appRoute.POST("/update", middleware.AuthMiddleware(enum.UserRole, db), appHandler.UpdateApp)
 		appRoute.POST("/delete", middleware.AuthMiddleware(enum.UserRole, db), appHandler.DeleteApp)
-		appRoute.POST("/chat/gen/code", middleware.AuthMiddleware(enum.UserRole, db), appHandler.ChatToGenCode)
+		appRoute.GET("/chat/gen/code", middleware.AuthMiddleware(enum.UserRole, db), appHandler.ChatToGenCode)
 		appRoute.POST("/deploy", middleware.AuthMiddleware(enum.UserRole, db), appHandler.DeployApp)
 
 		// 需要管理员权限的接口
