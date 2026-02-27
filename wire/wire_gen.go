@@ -7,8 +7,12 @@
 package wire
 
 import (
+	"context"
 	"fmt"
+	"github.com/cloudwego/hertz/pkg/app"
+	"github.com/cloudwego/hertz/pkg/app/middlewares/server/recovery"
 	"github.com/cloudwego/hertz/pkg/app/server"
+	"github.com/cloudwego/hertz/pkg/protocol/consts"
 	"github.com/google/wire"
 	"github.com/hertz-contrib/cors"
 	"github.com/hertz-contrib/swagger"
@@ -28,12 +32,14 @@ import (
 	chathistory2 "workspace-yikou-ai-go/biz/handler/chathistory"
 	"workspace-yikou-ai-go/biz/handler/static"
 	handler2 "workspace-yikou-ai-go/biz/handler/user"
+	"workspace-yikou-ai-go/biz/model/api/common"
 	"workspace-yikou-ai-go/biz/router"
 	service2 "workspace-yikou-ai-go/biz/service/app"
 	"workspace-yikou-ai-go/biz/service/chathistory"
 	"workspace-yikou-ai-go/biz/service/user"
 	"workspace-yikou-ai-go/config"
 	"workspace-yikou-ai-go/docs"
+	"workspace-yikou-ai-go/pkg/errors"
 )
 
 // Injectors from wire.go:
@@ -76,6 +82,11 @@ var serviceSet = wire.NewSet(core.NewYiKouAiCodegenFacade, service2.NewAppServic
 // Handler依赖
 var handlerSet = wire.NewSet(handler.NewAppHandler, handler2.NewUserHandler, chathistory2.NewChatHistoryHandler, static.NewStaticResourceHandler)
 
+func CustomRecoveryHandler(ctx context.Context, c *app.RequestContext, err interface{}, stack []byte) {
+	c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.SystemError.WithMessage(fmt.Sprintf("%v", err))))
+	c.Abort()
+}
+
 // Server依赖
 func InitServer(
 	serverConfig *config.Config,
@@ -92,7 +103,9 @@ func InitServer(
 
 	swaggerPath := fmt.Sprintf("http://localhost:%d%s/swagger/doc.json", serverConfig.Server.Port, basePath)
 	url := swagger.URL(swaggerPath)
-	h := server.Default(server.WithHostPorts(":"+strconv.Itoa(serverConfig.Server.Port)), server.WithBasePath(serverConfig.Server.ContextPath))
+	h := server.New(server.WithHostPorts(":"+strconv.Itoa(serverConfig.Server.Port)), server.WithBasePath(serverConfig.Server.ContextPath))
+
+	h.Use(recovery.Recovery(recovery.WithRecoveryHandler(CustomRecoveryHandler)))
 
 	h.Use(cors.New(cors.Config{
 		AllowAllOrigins:  true,
