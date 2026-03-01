@@ -63,7 +63,7 @@ func InitializeApp() (*server.Hertz, error) {
 	appHandler := handler.NewAppHandler(appService, userService, chatHistoryService)
 	userHandler := handler2.NewUserHandler(userService)
 	chatHistoryHandler := chathistory2.NewChatHistoryHandler(chatHistoryService, userService)
-	staticResourceHandler := static.NewStaticResourceHandler()
+	staticResourceHandler := static.NewStaticResourceHandler(configConfig)
 	hertz := InitServer(configConfig, appHandler, userHandler, chatHistoryHandler, staticResourceHandler, db, client)
 	return hertz, nil
 }

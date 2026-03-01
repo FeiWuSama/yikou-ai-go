@@ -12,7 +12,7 @@ import (
 	chatHistory "workspace-yikou-ai-go/biz/handler/chathistory"
 	"workspace-yikou-ai-go/biz/handler/static"
 	user "workspace-yikou-ai-go/biz/handler/user"
-	middleware "workspace-yikou-ai-go/biz/middleware"
+	"workspace-yikou-ai-go/biz/middleware"
 	"workspace-yikou-ai-go/biz/model/enum"
 	_ "workspace-yikou-ai-go/docs"
 )

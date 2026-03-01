@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"workspace-yikou-ai-go/biz/model/api/common"
+	"workspace-yikou-ai-go/config"
 	pkg "workspace-yikou-ai-go/pkg/errors"
 	file "workspace-yikou-ai-go/pkg/file"
 
@@ -12,10 +13,14 @@ import (
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 )
 
-type StaticResourceHandler struct{}
+type StaticResourceHandler struct {
+	config *config.Config
+}
 
-func NewStaticResourceHandler() *StaticResourceHandler {
-	return &StaticResourceHandler{}
+func NewStaticResourceHandler(config *config.Config) *StaticResourceHandler {
+	return &StaticResourceHandler{
+		config: config,
+	}
 }
 
 // ServeStaticResource 提供静态资源访问，支持目录重定向
@@ -36,8 +41,8 @@ func (s *StaticResourceHandler) ServeStaticResource(ctx context.Context, c *app.
 	}
 
 	// 获取资源路径
-	fullPath := c.Request.URI().PathOriginal()
-	prefix := "/static/" + deployKey
+	fullPath := c.Request.URI().Path()
+	prefix := s.config.Server.ContextPath + "/static/" + deployKey
 	resourcePath := fullPath[len(prefix):]
 
 	// 如果是目录访问（不带斜杠），重定向到带斜杠的URL
@@ -53,7 +58,7 @@ func (s *StaticResourceHandler) ServeStaticResource(ctx context.Context, c *app.
 	}
 
 	// 构建文件路径
-	projectRootDir, err := file.GetProjectRoot()
+	projectRootDir, err := file.GetCodeOutputRoot()
 	if err != nil {
 		c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.SystemError))
 		return
