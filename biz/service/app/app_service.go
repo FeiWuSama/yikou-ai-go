@@ -173,9 +173,13 @@ func (s *AppService) AddApp(ctx context.Context, req *appApi.YiKouAppAddRequest,
 		AppName:    appName,
 		InitPrompt: req.InitPrompt,
 		UserID:     userId,
-		Priority:   0,
+		//todo 新建app暂时默认为单文件代码生成类型
+		CodeGenType: string(enum.HtmlCodeGen),
+		Priority:    0,
 	}
-	err := query.Use(s.db).App.Select(query.App.AppName, query.App.InitPrompt, query.App.UserID, query.App.Priority).Create(newApp)
+	err := query.Use(s.db).App.
+		Select(query.App.AppName, query.App.InitPrompt, query.App.UserID, query.App.Priority, query.App.CodeGenType).
+		Create(newApp)
 	if err != nil {
 		return 0, err
 	}
