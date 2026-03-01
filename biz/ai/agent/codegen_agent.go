@@ -100,6 +100,7 @@ func newMultiFileCodeGenAgent(model *llm.BaseAiChatModel) *adk.ChatModelAgent {
 	systemPrompt, err := os.ReadFile(promptPath)
 	agent, err := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 		Name:        "AI 代码生成助手",
+		Description: "具有强大的代码生成能力",
 		Instruction: string(systemPrompt),
 		Model:       (*openai.ChatModel)(model),
 	})
@@ -116,6 +117,7 @@ func newHtmlFileCodeGenAgent(model *llm.BaseAiChatModel) *adk.ChatModelAgent {
 	systemPrompt, err := os.ReadFile(promptPath)
 	agent, err := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 		Name:        "AI 代码生成助手",
+		Description: "具有强大的代码生成能力",
 		Instruction: string(systemPrompt),
 		Model:       (*openai.ChatModel)(model),
 	})
