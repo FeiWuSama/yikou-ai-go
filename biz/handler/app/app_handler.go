@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 	"github.com/cloudwego/hertz/pkg/protocol/sse"
@@ -70,21 +71,34 @@ func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
 		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
 		return
 	}
+
+	// 获取流数据
 	streamResp, err := a.appService.ChatToGenCode(ctx, appId, message, &userVo)
 	if err != nil {
+		c.Header("Content-Type", "application/json")
 		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
 		return
 	}
 	defer streamResp.Close()
 
+	// 设置 SSE 响应头
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Header("X-Accel-Buffering", "no")
+
 	var aiResponseBuilder strings.Builder
 	lastEventID := sse.GetLastEventID(&c.Request)
 	w := sse.NewWriter(c)
 	connClosed := ctx.Done()
+	defer func(w *sse.Writer, id, eventType string, data []byte) {
+		_ = w.WriteEvent(id, eventType, data)
+	}(w, lastEventID, "done", []byte(""))
+
 	for {
 		select {
 		case <-connClosed:
-			fmt.Println("Client disconnected, stopping event transmission")
+			logger.Info("连接中断")
 			return
 		default:
 		}
@@ -94,8 +108,7 @@ func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
 			break
 		}
 		if err != nil {
-			_ = a.chatHistoryService.AddChatMessage(ctx, appId, fmt.Sprintf("AI 回复失败：%v", err), enum.AIMessageType, userVo.ID)
-			c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
+			_ = w.WriteEvent(lastEventID, "error", []byte(fmt.Sprintf("%v", err)))
 			return
 		}
 		aiResponseBuilder.WriteString(chunk.Content)
@@ -104,22 +117,24 @@ func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
 			"d": chunk.Content,
 		}
 		data, err := json.Marshal(wrapper)
+		if err != nil {
+			logger.Errorf("序列化数据失败: %v\n", err)
+			continue
+		}
+
 		err = w.WriteEvent(lastEventID, "message", data)
 		if err != nil {
-			c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
+			_ = w.WriteEvent(lastEventID, "error", []byte(fmt.Sprintf("%v", err)))
 			return
 		}
 	}
 	if aiResponseBuilder.String() != "" {
 		err = a.chatHistoryService.AddChatMessage(ctx, appId, aiResponseBuilder.String(), enum.AIMessageType, userVo.ID)
 		if err != nil {
-			c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
+			_ = w.WriteEvent(lastEventID, "error", []byte(fmt.Sprintf("%v", err)))
 			return
 		}
 	}
-
-	w.WriteEvent(lastEventID, "done", nil)
-	w.Close()
 }
 
 // DeployApp

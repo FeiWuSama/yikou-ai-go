@@ -200,26 +200,37 @@ func (y *YiKouAiCodegenFacade) GenCodeStreamAndSave(ctx context.Context, userMes
 }
 
 func (y *YiKouAiCodegenFacade) processCodeStream(respStream *schema.StreamReader[*schema.Message], typeStr enum.CodeGenTypeEnum, appId int64) (*schema.StreamReader[*schema.Message], error) {
-	var builder strings.Builder
-	for {
-		chunk, err := respStream.Recv()
-		if err == io.EOF {
-			break
+	// 先复制流，一个用于处理，一个返回给上游
+	streams := respStream.Copy(2)
+	processingStream := streams[0]
+	returnStream := streams[1]
+
+	// 在 goroutine 中处理流数据，不阻塞返回
+	go func() {
+		var builder strings.Builder
+		defer processingStream.Close()
+
+		for {
+			chunk, err := processingStream.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return
+			}
+			builder.WriteString(chunk.Content)
 		}
+
+		parsedResp, err := y.codeParserExecutor.ExecuteParser(builder.String(), typeStr)
 		if err != nil {
-			return nil, err
+			return
 		}
-		builder.WriteString(chunk.Content)
-	}
-	defer respStream.Close()
-	parsedResp, err := y.codeParserExecutor.ExecuteParser(builder.String(), typeStr)
-	if err != nil {
-		return nil, err
-	}
-	dirPath, err := y.codeFileSaverExecutor.ExecuteSaver(parsedResp, typeStr, appId)
-	if err != nil {
-		return nil, err
-	}
-	logger.Info("代码已保存到目录: %s", dirPath)
-	return respStream, nil
+		dirPath, err := y.codeFileSaverExecutor.ExecuteSaver(parsedResp, typeStr, appId)
+		if err != nil {
+			return
+		}
+		logger.Info("代码已保存到目录: %s", dirPath)
+	}()
+
+	return returnStream, nil
 }
