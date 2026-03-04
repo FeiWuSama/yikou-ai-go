@@ -8,12 +8,14 @@ import (
 )
 
 type RedisStore struct {
+	Id          string
 	redisClient *redis.Client
 }
 
-func NewRedisStore(redisClient *redis.Client) *RedisStore {
+func NewRedisStore(redisClient *redis.Client, id string) *RedisStore {
 	return &RedisStore{
 		redisClient: redisClient,
+		Id:          id,
 	}
 }
 

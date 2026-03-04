@@ -22,7 +22,6 @@ import (
 	"workspace-yikou-ai-go/biz/ai/core/saver"
 	"workspace-yikou-ai-go/biz/ai/llm"
 	"workspace-yikou-ai-go/biz/ai/skill"
-	"workspace-yikou-ai-go/biz/ai/store"
 	"workspace-yikou-ai-go/biz/dal"
 	appHandler "workspace-yikou-ai-go/biz/handler/app"
 	chatHistoryHandler "workspace-yikou-ai-go/biz/handler/chathistory"
@@ -124,6 +123,5 @@ func InitializeApp() (*server.Hertz, error) {
 		parser.NewCodeParserExecutor,
 		saver.NewCodeFileSaverExecutor,
 		agent.NewCodeGenAgentFactory,
-		store.NewRedisStore,
 	))
 }

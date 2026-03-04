@@ -26,7 +26,6 @@ import (
 	"workspace-yikou-ai-go/biz/ai/core/saver"
 	"workspace-yikou-ai-go/biz/ai/llm"
 	"workspace-yikou-ai-go/biz/ai/skill"
-	"workspace-yikou-ai-go/biz/ai/store"
 	"workspace-yikou-ai-go/biz/dal"
 	"workspace-yikou-ai-go/biz/handler/app"
 	chathistory2 "workspace-yikou-ai-go/biz/handler/chathistory"
@@ -53,8 +52,7 @@ func InitializeApp() (*server.Hertz, error) {
 	codeFileSaverExecutor := saver.NewCodeFileSaverExecutor()
 	baseAiChatModel := llm.NewBaseAiChatModel(configConfig)
 	client := dal.InitRedis(configConfig)
-	redisStore := store.NewRedisStore(client)
-	codeGenAgentFactory := agent.NewCodeGenAgentFactory(baseAiChatModel, redisStore)
+	codeGenAgentFactory := agent.NewCodeGenAgentFactory(baseAiChatModel, client)
 	yiKouAiCodegenFacade := core.NewYiKouAiCodegenFacade(yiKouAiCodegenService, codeParserExecutor, codeFileSaverExecutor, codeGenAgentFactory)
 	db := dal.InitDB(configConfig)
 	userService := service.NewUserService(db)

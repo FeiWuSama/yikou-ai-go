@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/adk"
-	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/schema"
 	"os"
 	"path/filepath"
@@ -15,7 +14,7 @@ import (
 
 type CodeGenAgent struct {
 	model *llm.BaseAiChatModel
-	store compose.CheckPointStore
+	store *store.RedisStore
 }
 
 func NewCodeGenAgent(model *llm.BaseAiChatModel, store *store.RedisStore) *CodeGenAgent {
@@ -31,7 +30,7 @@ func (a *CodeGenAgent) GenerateHtmlCode(ctx context.Context, userMessage string)
 		Agent:           agent,
 		EnableStreaming: false,
 	})
-	iter := runner.Query(ctx, userMessage)
+	iter := runner.Query(ctx, userMessage, adk.WithCheckPointID(a.store.Id))
 	event, ok := iter.Next()
 	if !ok {
 		return nil, event.Err
@@ -50,7 +49,7 @@ func (a *CodeGenAgent) GenerateMultiFileCode(ctx context.Context, userMessage st
 		EnableStreaming: false,
 		CheckPointStore: a.store,
 	})
-	iter := runner.Query(ctx, userMessage)
+	iter := runner.Query(ctx, userMessage, adk.WithCheckPointID(a.store.Id))
 	event, ok := iter.Next()
 	if !ok {
 		return nil, event.Err
@@ -69,7 +68,7 @@ func (a *CodeGenAgent) GenerateHtmlCodeStream(ctx context.Context, userMessage s
 		EnableStreaming: true,
 		CheckPointStore: a.store,
 	})
-	iter := runner.Query(ctx, userMessage)
+	iter := runner.Query(ctx, userMessage, adk.WithCheckPointID(a.store.Id))
 	event, ok := iter.Next()
 	if !ok {
 		return nil, event.Err
@@ -84,7 +83,7 @@ func (a *CodeGenAgent) GenerateMultiFileCodeStream(ctx context.Context, userMess
 		Agent:           agent,
 		EnableStreaming: true,
 	})
-	iter := runner.Query(ctx, userMessage)
+	iter := runner.Query(ctx, userMessage, adk.WithCheckPointID(a.store.Id))
 	event, ok := iter.Next()
 	if !ok {
 		return nil, event.Err
