@@ -72,7 +72,7 @@ func (y *YiKouAiCodegenFacade) genMultiFileCodeAndSave(ctx context.Context, user
 }
 
 func (y *YiKouAiCodegenFacade) GenCodeAndSave(ctx context.Context, userMessage string, typeStr enum.CodeGenTypeEnum, appId int64) error {
-	codeGenAgent, err := y.codeGenAgentFactory.GetCodeGenAgent(typeStr)
+	codeGenAgent, err := y.codeGenAgentFactory.GetCodeGenAgent(appId, typeStr)
 	if err != nil {
 		return err
 	}
@@ -177,7 +177,7 @@ func (y *YiKouAiCodegenFacade) genMultiFileCodeStreamAndSave(ctx context.Context
 }
 
 func (y *YiKouAiCodegenFacade) GenCodeStreamAndSave(ctx context.Context, userMessage string, typeStr enum.CodeGenTypeEnum, appId int64) (*schema.StreamReader[*schema.Message], error) {
-	codeGenAgent, err := y.codeGenAgentFactory.GetCodeGenAgent(typeStr)
+	codeGenAgent, err := y.codeGenAgentFactory.GetCodeGenAgent(appId, typeStr)
 	if err != nil {
 		return nil, err
 	}
