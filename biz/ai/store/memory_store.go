@@ -1,9 +1,8 @@
 package store
 
 import (
-	"bytes"
 	"context"
-	"encoding/gob"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -33,7 +32,7 @@ func NewRedisMemoryStore(redisClient *redis.Client, sessionID string) *RedisMemo
 
 func (r *RedisMemoryStore) Write(ctx context.Context, sessionID string, msgs []*schema.Message) error {
 	key := fmt.Sprintf("memory:%s", sessionID)
-	data, err := EncodeMessages(msgs)
+	data, err := EncodeMessagesToJSON(msgs)
 	if err != nil {
 		return err
 	}
@@ -49,23 +48,19 @@ func (r *RedisMemoryStore) Read(ctx context.Context, sessionID string) ([]*schem
 		}
 		return nil, err
 	}
-	return DecodeMessages(data)
+	return DecodeMessagesFromJSON(data)
 }
 
-func EncodeMessages(msgs []*schema.Message) ([]byte, error) {
-	buffer := new(bytes.Buffer)
-	enc := gob.NewEncoder(buffer)
-	err := enc.Encode(msgs)
-	return buffer.Bytes(), err
+func EncodeMessagesToJSON(msgs []*schema.Message) ([]byte, error) {
+	return json.Marshal(msgs)
 }
 
-func DecodeMessages(data []byte) ([]*schema.Message, error) {
+func DecodeMessagesFromJSON(data []byte) ([]*schema.Message, error) {
 	if len(data) == 0 {
 		return nil, nil
 	}
 	var msgs []*schema.Message
-	dec := gob.NewDecoder(bytes.NewReader(data))
-	err := dec.Decode(&msgs)
+	err := json.Unmarshal(data, &msgs)
 	return msgs, err
 }
 
