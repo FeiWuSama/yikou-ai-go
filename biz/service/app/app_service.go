@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-	"workspace-yikou-ai-go/biz/ai/core"
+	"workspace-yikou-ai-go/biz/core"
 	"workspace-yikou-ai-go/biz/dal/model"
 	"workspace-yikou-ai-go/biz/dal/query"
 	appApi "workspace-yikou-ai-go/biz/model/api/app"
