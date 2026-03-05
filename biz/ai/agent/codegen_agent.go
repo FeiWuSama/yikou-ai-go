@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"workspace-yikou-ai-go/biz/ai/myprompt"
 
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/adk"
@@ -35,6 +36,18 @@ func (a *CodeGenAgent) GenerateHtmlCode(ctx context.Context, userMessage string)
 		return nil, err
 	}
 
+	chatTemplate, err := myprompt.NewHtmlChatTemplate()
+	if err != nil {
+		return nil, err
+	}
+	format, err := chatTemplate.Format(ctx, map[string]any{
+		"content": userMessage,
+		"history": history,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	agent := newHtmlFileCodeGenAgent(a.model)
 	runner := adk.NewRunner(ctx, adk.RunnerConfig{
 		Agent:           agent,
@@ -42,8 +55,7 @@ func (a *CodeGenAgent) GenerateHtmlCode(ctx context.Context, userMessage string)
 		CheckPointStore: a.checkpoint,
 	})
 
-	inputMsgs := append(history, schema.UserMessage(userMessage))
-	iter := runner.Run(ctx, inputMsgs, adk.WithCheckPointID(a.checkpoint.Id))
+	iter := runner.Run(ctx, format, adk.WithCheckPointID(a.checkpoint.Id))
 
 	var resultMsg *schema.Message
 	for {
@@ -81,6 +93,18 @@ func (a *CodeGenAgent) GenerateMultiFileCode(ctx context.Context, userMessage st
 		return nil, err
 	}
 
+	chatTemplate, err := myprompt.NewHtmlChatTemplate()
+	if err != nil {
+		return nil, err
+	}
+	format, err := chatTemplate.Format(ctx, map[string]any{
+		"content": userMessage,
+		"history": history,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	agent := newMultiFileCodeGenAgent(a.model)
 	runner := adk.NewRunner(ctx, adk.RunnerConfig{
 		Agent:           agent,
@@ -88,8 +112,7 @@ func (a *CodeGenAgent) GenerateMultiFileCode(ctx context.Context, userMessage st
 		CheckPointStore: a.checkpoint,
 	})
 
-	inputMsgs := append(history, schema.UserMessage(userMessage))
-	iter := runner.Run(ctx, inputMsgs, adk.WithCheckPointID(a.checkpoint.Id))
+	iter := runner.Run(ctx, format, adk.WithCheckPointID(a.checkpoint.Id))
 
 	var resultMsg *schema.Message
 	for {
@@ -127,15 +150,25 @@ func (a *CodeGenAgent) GenerateHtmlCodeStream(ctx context.Context, userMessage s
 		return nil, err
 	}
 
+	chatTemplate, err := myprompt.NewHtmlChatTemplate()
+	if err != nil {
+		return nil, err
+	}
+	format, err := chatTemplate.Format(ctx, map[string]any{
+		"content": userMessage,
+		"history": history,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	agent := newHtmlFileCodeGenAgent(a.model)
 	runner := adk.NewRunner(ctx, adk.RunnerConfig{
 		Agent:           agent,
 		EnableStreaming: true,
-		CheckPointStore: a.checkpoint,
 	})
 
-	inputMsgs := append(history, schema.UserMessage(userMessage))
-	iter := runner.Run(ctx, inputMsgs, adk.WithCheckPointID(a.checkpoint.Id))
+	iter := runner.Run(ctx, format, adk.WithCheckPointID(a.checkpoint.Id))
 
 	event, ok := iter.Next()
 	if !ok {
@@ -171,15 +204,25 @@ func (a *CodeGenAgent) GenerateMultiFileCodeStream(ctx context.Context, userMess
 		return nil, err
 	}
 
+	chatTemplate, err := myprompt.NewHtmlChatTemplate()
+	if err != nil {
+		return nil, err
+	}
+	format, err := chatTemplate.Format(ctx, map[string]any{
+		"content": userMessage,
+		"history": history,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	agent := newMultiFileCodeGenAgent(a.model)
 	runner := adk.NewRunner(ctx, adk.RunnerConfig{
 		Agent:           agent,
 		EnableStreaming: true,
-		CheckPointStore: a.checkpoint,
 	})
 
-	inputMsgs := append(history, schema.UserMessage(userMessage))
-	iter := runner.Run(ctx, inputMsgs, adk.WithCheckPointID(a.checkpoint.Id))
+	iter := runner.Run(ctx, format, adk.WithCheckPointID(a.checkpoint.Id))
 
 	event, ok := iter.Next()
 	if !ok {
