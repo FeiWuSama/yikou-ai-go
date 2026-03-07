@@ -90,15 +90,12 @@ func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
 	var aiResponseBuilder strings.Builder
 	lastEventID := sse.GetLastEventID(&c.Request)
 	w := sse.NewWriter(c)
-	connClosed := ctx.Done()
-	defer func(w *sse.Writer, id, eventType string, data []byte) {
-		_ = w.WriteEvent(id, eventType, data)
-	}(w, lastEventID, "done", []byte(""))
 
 	for {
 		select {
-		case <-connClosed:
+		case <-ctx.Done():
 			logger.Info("连接中断")
+			_ = w.WriteEvent(lastEventID, "done", []byte{1})
 			return
 		default:
 		}
@@ -109,6 +106,7 @@ func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
 		}
 		if err != nil {
 			_ = w.WriteEvent(lastEventID, "error", []byte(fmt.Sprintf("%v", err)))
+			_ = w.WriteEvent(lastEventID, "done", []byte{1})
 			return
 		}
 		aiResponseBuilder.WriteString(chunk.Content)
@@ -125,14 +123,17 @@ func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
 		err = w.WriteEvent(lastEventID, "message", data)
 		if err != nil {
 			_ = w.WriteEvent(lastEventID, "error", []byte(fmt.Sprintf("%v", err)))
+			_ = w.WriteEvent(lastEventID, "done", []byte{1})
 			return
 		}
 	}
+
+	_ = w.WriteEvent(lastEventID, "done", []byte{1})
+
 	if aiResponseBuilder.String() != "" {
 		err = a.chatHistoryService.AddChatMessage(ctx, appId, aiResponseBuilder.String(), enum.AIMessageType, userVo.ID)
 		if err != nil {
-			_ = w.WriteEvent(lastEventID, "error", []byte(fmt.Sprintf("%v", err)))
-			return
+			logger.Errorf("保存聊天消息失败: %v", err)
 		}
 	}
 }

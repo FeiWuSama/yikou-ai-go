@@ -543,12 +543,11 @@ const sendSSEMessage = async (content: string, aiMsgIndex: number) => {
     })
 
     eventSource.onerror = (error) => {
-      if(eventSource.readyState!==0){
-        eventSource?.close()
-        sending.value = false
-        streamLoading.value = false
-        message.error('消息发送失败')
-      }
+      console.error('SSE error:', error.target)
+            eventSource.close()
+            sending.value = false
+            streamLoading.value = false
+            message.error('消息发送失败')
     }
   } catch (error) {
     sending.value = false
