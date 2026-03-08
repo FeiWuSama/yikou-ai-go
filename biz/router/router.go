@@ -5,8 +5,10 @@ package router
 import (
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/hertz-contrib/swagger"
+	"github.com/redis/go-redis/v9"
 	swaggerFiles "github.com/swaggo/files"
 	"gorm.io/gorm"
+
 	"workspace-yikou-ai-go/biz/handler"
 	app "workspace-yikou-ai-go/biz/handler/app"
 	chatHistory "workspace-yikou-ai-go/biz/handler/chathistory"
@@ -18,7 +20,7 @@ import (
 )
 
 // CustomizedRegister registers customize routers.
-func CustomizedRegister(r *server.Hertz, db *gorm.DB, appHandler *app.AppHandler, userHandler *user.UserHandler, chatHistoryHandler *chatHistory.ChatHistoryHandler, staticHandler *static.StaticResourceHandler, url func(config *swagger.Config)) {
+func CustomizedRegister(r *server.Hertz, db *gorm.DB, redisClient *redis.Client, appHandler *app.AppHandler, userHandler *user.UserHandler, chatHistoryHandler *chatHistory.ChatHistoryHandler, staticHandler *static.StaticResourceHandler, url func(config *swagger.Config)) {
 	r.GET("/ping", handler.Ping)
 	r.GET("/swagger/*any", swagger.WrapHandler(swaggerFiles.Handler, url))
 
@@ -29,35 +31,35 @@ func CustomizedRegister(r *server.Hertz, db *gorm.DB, appHandler *app.AppHandler
 		userRoute.GET("/get/vo", userHandler.GetUserVo)
 
 		// 需要登录的接口
-		userRoute.GET("/get/login", middleware.AuthMiddleware(enum.UserRole, db), userHandler.GetLoginUser)
-		userRoute.POST("/logout", middleware.AuthMiddleware(enum.UserRole, db), userHandler.Logout)
+		userRoute.GET("/get/login", middleware.AuthMiddleware(enum.UserRole, db, redisClient), userHandler.GetLoginUser)
+		userRoute.POST("/logout", middleware.AuthMiddleware(enum.UserRole, db, redisClient), userHandler.Logout)
 
 		// 需要管理员权限的接口
-		userRoute.POST("/add", middleware.AuthMiddleware(enum.AdminRole, db), userHandler.AddUser)
-		userRoute.GET("/get", middleware.AuthMiddleware(enum.AdminRole, db), userHandler.GetUser)
-		userRoute.POST("/delete", middleware.AuthMiddleware(enum.AdminRole, db), userHandler.DeleteUser)
-		userRoute.POST("/update", middleware.AuthMiddleware(enum.AdminRole, db), userHandler.UpdateUser)
-		userRoute.POST("/list/page/vo", middleware.AuthMiddleware(enum.AdminRole, db), userHandler.ListUserVoByPage)
+		userRoute.POST("/add", middleware.AuthMiddleware(enum.AdminRole, db, redisClient), userHandler.AddUser)
+		userRoute.GET("/get", middleware.AuthMiddleware(enum.AdminRole, db, redisClient), userHandler.GetUser)
+		userRoute.POST("/delete", middleware.AuthMiddleware(enum.AdminRole, db, redisClient), userHandler.DeleteUser)
+		userRoute.POST("/update", middleware.AuthMiddleware(enum.AdminRole, db, redisClient), userHandler.UpdateUser)
+		userRoute.POST("/list/page/vo", middleware.AuthMiddleware(enum.AdminRole, db, redisClient), userHandler.ListUserVoByPage)
 	}
 
 	appRoute := r.Group("/app")
 	{
 		appRoute.POST("/good/list/page/vo", appHandler.ListGoodApp)
-		appRoute.GET("/get/vo", middleware.AuthMiddleware(enum.UserRole, db), appHandler.GetAppVo)
+		appRoute.GET("/get/vo", middleware.AuthMiddleware(enum.UserRole, db, redisClient), appHandler.GetAppVo)
 
 		// 需要登录的接口
-		appRoute.POST("/my/list/page/vo", middleware.AuthMiddleware(enum.UserRole, db), appHandler.ListMyApp)
-		appRoute.POST("/add", middleware.AuthMiddleware(enum.UserRole, db), appHandler.AddApp)
-		appRoute.POST("/update", middleware.AuthMiddleware(enum.UserRole, db), appHandler.UpdateApp)
-		appRoute.POST("/delete", middleware.AuthMiddleware(enum.UserRole, db), appHandler.DeleteApp)
-		appRoute.GET("/chat/gen/code", middleware.AuthMiddleware(enum.UserRole, db), appHandler.ChatToGenCode)
-		appRoute.POST("/deploy", middleware.AuthMiddleware(enum.UserRole, db), appHandler.DeployApp)
+		appRoute.POST("/my/list/page/vo", middleware.AuthMiddleware(enum.UserRole, db, redisClient), appHandler.ListMyApp)
+		appRoute.POST("/add", middleware.AuthMiddleware(enum.UserRole, db, redisClient), appHandler.AddApp)
+		appRoute.POST("/update", middleware.AuthMiddleware(enum.UserRole, db, redisClient), appHandler.UpdateApp)
+		appRoute.POST("/delete", middleware.AuthMiddleware(enum.UserRole, db, redisClient), appHandler.DeleteApp)
+		appRoute.GET("/chat/gen/code", middleware.AuthMiddleware(enum.UserRole, db, redisClient), appHandler.ChatToGenCode)
+		appRoute.POST("/deploy", middleware.AuthMiddleware(enum.UserRole, db, redisClient), appHandler.DeployApp)
 
 		// 需要管理员权限的接口
-		appRoute.POST("/admin/update", middleware.AuthMiddleware(enum.AdminRole, db), appHandler.AdminUpdateApp)
-		appRoute.POST("/admin/delete", middleware.AuthMiddleware(enum.AdminRole, db), appHandler.AdminDeleteApp)
-		appRoute.GET("/admin/get/vo", middleware.AuthMiddleware(enum.AdminRole, db), appHandler.AdminGetAppVo)
-		appRoute.POST("/admin/list/page/vo", middleware.AuthMiddleware(enum.AdminRole, db), appHandler.AdminListApp)
+		appRoute.POST("/admin/update", middleware.AuthMiddleware(enum.AdminRole, db, redisClient), appHandler.AdminUpdateApp)
+		appRoute.POST("/admin/delete", middleware.AuthMiddleware(enum.AdminRole, db, redisClient), appHandler.AdminDeleteApp)
+		appRoute.GET("/admin/get/vo", middleware.AuthMiddleware(enum.AdminRole, db, redisClient), appHandler.AdminGetAppVo)
+		appRoute.POST("/admin/list/page/vo", middleware.AuthMiddleware(enum.AdminRole, db, redisClient), appHandler.AdminListApp)
 	}
 
 	staticRoute := r.Group("/static")
@@ -69,8 +71,8 @@ func CustomizedRegister(r *server.Hertz, db *gorm.DB, appHandler *app.AppHandler
 	chatHistoryRoute := r.Group("/chatHistory")
 	{
 		// 需要管理员权限的接口
-		chatHistoryRoute.POST("/admin/list/page/vo", middleware.AuthMiddleware(enum.AdminRole, db), chatHistoryHandler.ListAllChatHistoryByPageForAdmin)
+		chatHistoryRoute.POST("/admin/list/page/vo", middleware.AuthMiddleware(enum.AdminRole, db, redisClient), chatHistoryHandler.ListAllChatHistoryByPageForAdmin)
 
-		chatHistoryRoute.GET("/app/:appId", middleware.AuthMiddleware(enum.UserRole, db), chatHistoryHandler.ListAppChatHistory)
+		chatHistoryRoute.GET("/app/:appId", middleware.AuthMiddleware(enum.UserRole, db, redisClient), chatHistoryHandler.ListAppChatHistory)
 	}
 }

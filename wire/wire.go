@@ -104,7 +104,7 @@ func InitServer(
 		MaxAge:           12 * time.Hour,
 	}))
 	// 注册路由
-	router.CustomizedRegister(h, db, appHandler, userHandler, chatHistoryHandler, staticResourceHandler, url)
+	router.CustomizedRegister(h, db, redisClient, appHandler, userHandler, chatHistoryHandler, staticResourceHandler, url)
 	return h
 }
 

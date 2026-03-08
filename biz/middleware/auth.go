@@ -3,49 +3,59 @@ package middleware
 import (
 	"context"
 	"encoding/json"
-	"gorm.io/gorm"
 	"net/url"
+
+	"github.com/cloudwego/hertz/pkg/app"
+	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
+
 	"workspace-yikou-ai-go/biz/dal/model"
 	"workspace-yikou-ai-go/biz/dal/query"
 	"workspace-yikou-ai-go/biz/model/enum"
 	"workspace-yikou-ai-go/pkg/constants"
 	pkg "workspace-yikou-ai-go/pkg/errors"
-
-	"github.com/cloudwego/hertz/pkg/app"
 )
 
 // AuthMiddleware 鉴权中间件
-func AuthMiddleware(roleEnum enum.UserRoleEnum, db *gorm.DB) app.HandlerFunc {
+func AuthMiddleware(roleEnum enum.UserRoleEnum, db *gorm.DB, redisClient *redis.Client) app.HandlerFunc {
 	return func(ctx context.Context, c *app.RequestContext) {
 		// 1. 校验权限
 		var userJson []byte
 		if roleEnum == enum.UserRole {
-			// 2. 校验Cookie是否存在
-			userJson = c.Request.Header.Cookie(constants.UserLoginState)
-			if userJson == nil {
+			// 2. 获取sessionId
+			sessionId := c.Request.Header.Cookie(constants.UserLoginState)
+			if sessionId == nil {
 				c.JSON(200, pkg.NotLoginError)
 				c.Abort()
 				return
 			}
+			// 3. URL解码sessionId
+			decodedSessionId, err := url.QueryUnescape(string(sessionId))
+			if err != nil {
+				c.JSON(200, pkg.NotAuthError)
+				c.Abort()
+				return
+			}
+			// 4. 从Redis获取用户信息
+			userJsonStr, err := redisClient.Get(ctx, decodedSessionId).Result()
+			if err != nil {
+				c.JSON(200, pkg.NotLoginError.WithMessage("登录已过期，请重新登录"))
+				c.Abort()
+				return
+			}
+			userJson = []byte(userJsonStr)
 		}
 
-		// 3. 解析Cookie中的用户信息
-		decodedUserJson, err := url.QueryUnescape(string(userJson))
-		if err != nil {
-			c.JSON(200, pkg.NotAuthError)
-			c.Abort()
-			return
-		}
-
+		// 4. 解析用户信息
 		var user model.User
-		err = json.Unmarshal([]byte(decodedUserJson), &user)
+		err := json.Unmarshal(userJson, &user)
 		if err != nil {
-			c.JSON(200, pkg.NotAuthError)
+			c.JSON(200, pkg.SystemError.WithMessage(err.Error()))
 			c.Abort()
 			return
 		}
 
-		// 4. 校验用户权限等级是否符合要求
+		// 5. 校验用户权限等级是否符合要求
 		dbUser, err := query.Use(db).User.Where(query.User.ID.Eq(user.ID), query.User.IsDelete.Eq(0)).First()
 		if err != nil {
 			c.JSON(200, pkg.NotAuthError)

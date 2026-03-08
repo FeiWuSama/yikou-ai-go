@@ -56,7 +56,7 @@ func InitializeApp() (*server.Hertz, error) {
 	chatHistoryService := chathistory.NewChatHistoryService(db)
 	codeGenAgentFactory := agent.NewCodeGenAgentFactory(baseAiChatModel, client, chatHistoryService)
 	yiKouAiCodegenFacade := core.NewYiKouAiCodegenFacade(yiKouAiCodegenService, codeParserExecutor, codeFileSaverExecutor, codeGenAgentFactory)
-	userService := service.NewUserService(db)
+	userService := service.NewUserService(db, client)
 	appService := service2.NewAppService(yiKouAiCodegenFacade, userService, chatHistoryService, db)
 	appHandler := handler.NewAppHandler(appService, userService, chatHistoryService)
 	userHandler := handler2.NewUserHandler(userService)
@@ -113,6 +113,6 @@ func InitServer(
 		AllowCredentials: false,
 		MaxAge:           12 * time.Hour,
 	}))
-	router.CustomizedRegister(h, db, appHandler, userHandler, chatHistoryHandler, staticResourceHandler, url)
+	router.CustomizedRegister(h, db, redisClient, appHandler, userHandler, chatHistoryHandler, staticResourceHandler, url)
 	return h
 }
