@@ -2,8 +2,12 @@ package chathistory
 
 import (
 	"context"
-	"gorm.io/gorm"
+	"strconv"
 	"time"
+
+	"gorm.io/gorm"
+
+	"workspace-yikou-ai-go/biz/ai/store"
 	"workspace-yikou-ai-go/biz/dal/model"
 	"workspace-yikou-ai-go/biz/dal/query"
 	"workspace-yikou-ai-go/biz/model/api/chathistory"
@@ -18,6 +22,7 @@ type IChatHistoryService interface {
 	DeleteByAppId(ctx context.Context, appId int64) error
 	ListAppChatHistoryByPage(ctx context.Context, appId int64, pageSize int32, lastCreateTime time.Time, loginUser *vo.UserVo) (*common.PageResponse[*model.ChatHistory], error)
 	ListAllChatHistoryByPageForAdmin(ctx context.Context, pageNum int32, pageSize int32, queryRequest *chathistory.YiKouChatHistoryQueryRequest) (*common.PageResponse[*model.ChatHistory], error)
+	LoadChatHistoryToMemory(ctx context.Context, appId int64, chatMemoryHelper *store.MemoryStoreHelper, maxCount int) (int, error)
 }
 
 func NewChatHistoryService(db *gorm.DB) *ChatHistoryService {
@@ -28,6 +33,49 @@ func NewChatHistoryService(db *gorm.DB) *ChatHistoryService {
 
 type ChatHistoryService struct {
 	db *gorm.DB
+}
+
+func (s *ChatHistoryService) LoadChatHistoryToMemory(ctx context.Context, appId int64, chatMemoryHelper *store.MemoryStoreHelper, maxCount int) (int, error) {
+	historyList, err := query.Use(s.db).ChatHistory.
+		Where(query.ChatHistory.AppID.Eq(appId)).
+		Order(query.ChatHistory.CreateTime.Desc()).
+		Limit(maxCount).
+		Find()
+	if err != nil {
+		return 0, err
+	}
+	historyList = historyList[1:]
+
+	if len(historyList) == 0 {
+		return 0, nil
+	}
+
+	sessionID := strconv.FormatInt(appId, 10)
+
+	err = chatMemoryHelper.ClearHistory(ctx, sessionID)
+	if err != nil {
+		return 0, err
+	}
+
+	loadedCount := 0
+	for i := len(historyList) - 1; i >= 0; i-- {
+		history := historyList[i]
+		if history.MessageType == string(enum.UserMessageType) {
+			err = chatMemoryHelper.AddUserMessage(ctx, sessionID, history.Message)
+			if err != nil {
+				return loadedCount, err
+			}
+			loadedCount++
+		} else if history.MessageType == string(enum.AIMessageType) {
+			err = chatMemoryHelper.AddAssistantMessage(ctx, sessionID, history.Message)
+			if err != nil {
+				return loadedCount, err
+			}
+			loadedCount++
+		}
+	}
+
+	return loadedCount, nil
 }
 
 func (s *ChatHistoryService) ListAppChatHistoryByPage(ctx context.Context,

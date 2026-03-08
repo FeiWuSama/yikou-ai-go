@@ -14,6 +14,7 @@ import (
 type MemoryStore interface {
 	Write(ctx context.Context, sessionID string, msgs []*schema.Message) error
 	Read(ctx context.Context, sessionID string) ([]*schema.Message, error)
+	Delete(ctx context.Context, sessionID string) error
 }
 
 type RedisMemoryStore struct {
@@ -49,6 +50,11 @@ func (r *RedisMemoryStore) Read(ctx context.Context, sessionID string) ([]*schem
 		return nil, err
 	}
 	return DecodeMessagesFromJSON(data)
+}
+
+func (r *RedisMemoryStore) Delete(ctx context.Context, sessionID string) error {
+	key := fmt.Sprintf("memory:%s", sessionID)
+	return r.redisClient.Del(ctx, key).Err()
 }
 
 func EncodeMessagesToJSON(msgs []*schema.Message) ([]byte, error) {
@@ -87,6 +93,10 @@ func (s *LimitedMemoryStore) Read(ctx context.Context, sessionID string) ([]*sch
 	return s.store.Read(ctx, sessionID)
 }
 
+func (s *LimitedMemoryStore) Delete(ctx context.Context, sessionID string) error {
+	return s.store.Delete(ctx, sessionID)
+}
+
 type MemoryStoreHelper struct {
 	store MemoryStore
 }
@@ -115,4 +125,41 @@ func (h *MemoryStoreHelper) SaveHistory(ctx context.Context, sessionID string, u
 	history = append(history, schema.UserMessage(userMsg), schema.AssistantMessage(aiMsg, nil))
 
 	return h.store.Write(ctx, sessionID, history)
+}
+
+func (h *MemoryStoreHelper) AddUserMessage(ctx context.Context, sessionID string, userMsg string) error {
+	if h.store == nil {
+		return nil
+	}
+
+	history, err := h.store.Read(ctx, sessionID)
+	if err != nil {
+		return err
+	}
+
+	history = append(history, schema.UserMessage(userMsg))
+
+	return h.store.Write(ctx, sessionID, history)
+}
+
+func (h *MemoryStoreHelper) AddAssistantMessage(ctx context.Context, sessionID string, aiMsg string) error {
+	if h.store == nil {
+		return nil
+	}
+
+	history, err := h.store.Read(ctx, sessionID)
+	if err != nil {
+		return err
+	}
+
+	history = append(history, schema.AssistantMessage(aiMsg, nil))
+
+	return h.store.Write(ctx, sessionID, history)
+}
+
+func (h *MemoryStoreHelper) ClearHistory(ctx context.Context, sessionID string) error {
+	if h.store == nil {
+		return nil
+	}
+	return h.store.Delete(ctx, sessionID)
 }

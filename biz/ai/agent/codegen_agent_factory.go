@@ -1,10 +1,12 @@
 package agent
 
 import (
+	"context"
 	"github.com/bytedance/gopkg/util/logger"
 	"strconv"
 	"sync"
 	"time"
+	chatHistory "workspace-yikou-ai-go/biz/service/chathistory"
 
 	"github.com/patrickmn/go-cache"
 	"github.com/redis/go-redis/v9"
@@ -23,17 +25,19 @@ var (
 )
 
 type CodeGenAgentFactory struct {
-	chatModel   *llm.BaseAiChatModel
-	redisClient *redis.Client
+	chatModel          *llm.BaseAiChatModel
+	redisClient        *redis.Client
+	chatHistoryService chatHistory.IChatHistoryService
 }
 
-func NewCodeGenAgentFactory(chatModel *llm.BaseAiChatModel, redisClient *redis.Client) *CodeGenAgentFactory {
+func NewCodeGenAgentFactory(chatModel *llm.BaseAiChatModel, redisClient *redis.Client, chatHistoryService chatHistory.IChatHistoryService) *CodeGenAgentFactory {
 	serviceCache.OnEvicted(func(k string, v interface{}) {
 		logger.Debugf("AI服务实例被移除，appId: %v", k)
 	})
 	return &CodeGenAgentFactory{
-		chatModel:   chatModel,
-		redisClient: redisClient,
+		chatModel:          chatModel,
+		redisClient:        redisClient,
+		chatHistoryService: chatHistoryService,
 	}
 }
 
@@ -75,6 +79,10 @@ func (c CodeGenAgentFactory) GetCodeGenAgent(appId int64, codeGenType enum.CodeG
 	redisStore := store.NewRedisStore(c.redisClient, key)
 	memoryStore := store.NewRedisMemoryStore(c.redisClient, key)
 	limitedMemoryStore := store.NewLimitedMemoryStore(memoryStore, 20)
+	_, err := c.chatHistoryService.LoadChatHistoryToMemory(context.Background(), appId, store.NewMemoryStoreHelper(memoryStore), 20)
+	if err != nil {
+		return nil, err
+	}
 
 	var agent *CodeGenAgent
 	switch codeGenType {
