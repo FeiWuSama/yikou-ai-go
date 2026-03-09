@@ -51,46 +51,48 @@ func NewAppHandler(
 // @Success 200 {object} schema.StreamReader[*schema.Message] "流式消息"
 // @Router /app/chat/gen/code [get]
 func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
+	// 设置 SSE 响应头
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Header("X-Accel-Buffering", "no")
 	appIdStr := c.Query("appId")
+	w := sse.NewWriter(c)
+	lastEventID := sse.GetLastEventID(&c.Request)
+
 	if appIdStr == "" {
 		c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.ParamsError.WithMessage("应用ID不能为空")))
 		return
 	}
 	message := c.Query("message")
 	if message == "" {
-		c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.ParamsError.WithMessage("消息不能为空")))
+		_ = w.WriteEvent(lastEventID, "error", []byte("消息不能为空"))
+		_ = w.WriteEvent(lastEventID, "done", []byte{1})
 		return
 	}
 	userVo, err := a.userService.GetLoginUserVo(ctx, c)
 	if err != nil {
-		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
+		_ = w.WriteEvent(lastEventID, "error", []byte(fmt.Sprintf("%v", err)))
+		_ = w.WriteEvent(lastEventID, "done", []byte{1})
 		return
 	}
 	appId, err := strconv.ParseInt(appIdStr, 10, 64)
 	if err != nil {
-		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
+		_ = w.WriteEvent(lastEventID, "error", []byte(fmt.Sprintf("%v", err)))
+		_ = w.WriteEvent(lastEventID, "done", []byte{1})
 		return
 	}
 
 	// 获取流数据
 	streamResp, err := a.appService.ChatToGenCode(ctx, appId, message, &userVo)
 	if err != nil {
-		c.Header("Content-Type", "application/json")
-		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
+		_ = w.WriteEvent(lastEventID, "error", []byte(fmt.Sprintf("%v", err)))
+		_ = w.WriteEvent(lastEventID, "done", []byte{1})
 		return
 	}
 	defer streamResp.Close()
 
-	// 设置 SSE 响应头
-	c.Header("Content-Type", "text/event-stream")
-	c.Header("Cache-Control", "no-cache")
-	c.Header("Connection", "keep-alive")
-	c.Header("X-Accel-Buffering", "no")
-
 	var aiResponseBuilder strings.Builder
-	lastEventID := sse.GetLastEventID(&c.Request)
-	w := sse.NewWriter(c)
-
 	for {
 		select {
 		case <-ctx.Done():

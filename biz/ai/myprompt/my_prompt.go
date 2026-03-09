@@ -43,7 +43,7 @@ func LoadPrompts() error {
 			return
 		}
 
-		vuePrompt, err = loadPromptFile("codegen-vue-system-prompt.txt")
+		vuePrompt, err = loadPromptFile("codegen-vue-project-system-prompt.txt")
 		if err != nil {
 			vuePrompt = htmlPrompt
 			err = nil
@@ -72,11 +72,15 @@ func NewHtmlChatTemplate() (prompt.ChatTemplate, error) {
 	return newChatTemplate(GetHtmlPrompt()), nil
 }
 
+func NewVueProjectPrompt() (prompt.ChatTemplate, error) {
+	return newChatTemplate(GetVuePrompt()), nil
+}
+
 func newChatTemplate(systemPrompt string) prompt.ChatTemplate {
-	ctp := prompt.FromMessages(schema.FString, []schema.MessagesTemplate{
+	ctp := prompt.FromMessages(schema.GoTemplate, []schema.MessagesTemplate{
 		schema.SystemMessage(systemPrompt),
 		schema.MessagesPlaceholder("history", false),
-		schema.UserMessage("{content}"),
+		schema.UserMessage("{{.content}}"),
 	}...)
 	return ctp
 }

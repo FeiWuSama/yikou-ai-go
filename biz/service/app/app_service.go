@@ -174,7 +174,7 @@ func (s *AppService) AddApp(ctx context.Context, req *appApi.YiKouAppAddRequest,
 		InitPrompt: req.InitPrompt,
 		UserID:     userId,
 		//todo 新建app暂时默认为单文件代码生成类型
-		CodeGenType: string(enum.HtmlCodeGen),
+		CodeGenType: string(enum.VueCodeGen),
 		Priority:    0,
 	}
 	err := query.Use(s.db).App.

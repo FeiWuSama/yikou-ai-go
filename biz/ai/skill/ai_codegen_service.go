@@ -16,6 +16,7 @@ type IYiKouAiCodegenService interface {
 	GenerateMultiFileCode(ctx context.Context, userMessage string) (*schema.Message, error)
 	GenerateHtmlCodeStream(ctx context.Context, userMessage string) (*schema.StreamReader[*schema.Message], error)
 	GenerateMultiFileCodeStream(ctx context.Context, userMessage string) (*schema.StreamReader[*schema.Message], error)
+	GenerateVueProjectCodeStream(ctx context.Context, userMessage string) (*schema.StreamReader[*schema.Message], error)
 }
 
 func NewYiKouAiCodegenService(model *openai.ChatModel) *YiKouAiCodegenService {
@@ -24,6 +25,11 @@ func NewYiKouAiCodegenService(model *openai.ChatModel) *YiKouAiCodegenService {
 
 type YiKouAiCodegenService struct {
 	model *openai.ChatModel
+}
+
+func (s *YiKouAiCodegenService) GenerateVueProjectCodeStream(ctx context.Context, userMessage string) (*schema.StreamReader[*schema.Message], error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (s *YiKouAiCodegenService) GenerateMultiFileCodeStream(ctx context.Context, userMessage string) (*schema.StreamReader[*schema.Message], error) {

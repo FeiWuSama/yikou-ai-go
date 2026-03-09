@@ -44,7 +44,7 @@ func (s *ChatHistoryService) LoadChatHistoryToMemory(ctx context.Context, appId 
 	if err != nil {
 		return 0, err
 	}
-	historyList = historyList[1:]
+	//historyList = historyList[1:]
 
 	if len(historyList) == 0 {
 		return 0, nil

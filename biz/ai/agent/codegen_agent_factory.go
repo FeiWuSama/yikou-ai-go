@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"github.com/bytedance/gopkg/util/logger"
+	"github.com/cloudwego/eino-ext/components/model/openai"
 	"strconv"
 	"sync"
 	"time"
@@ -25,19 +26,22 @@ var (
 )
 
 type CodeGenAgentFactory struct {
-	chatModel          *llm.BaseAiChatModel
-	redisClient        *redis.Client
-	chatHistoryService chatHistory.IChatHistoryService
+	chatModel                   *llm.BaseAiChatModel
+	reasoningStreamingChatModel *llm.ReasoningChatModel
+	redisClient                 *redis.Client
+	chatHistoryService          chatHistory.IChatHistoryService
 }
 
-func NewCodeGenAgentFactory(chatModel *llm.BaseAiChatModel, redisClient *redis.Client, chatHistoryService chatHistory.IChatHistoryService) *CodeGenAgentFactory {
+func NewCodeGenAgentFactory(chatModel *llm.BaseAiChatModel, reasoningStreamingChatModel *llm.ReasoningChatModel,
+	redisClient *redis.Client, chatHistoryService chatHistory.IChatHistoryService) *CodeGenAgentFactory {
 	serviceCache.OnEvicted(func(k string, v interface{}) {
-		logger.Debugf("AI服务实例被移除，appId: %v", k)
+		logger.Debugf("AI服务实例被移除，缓冲键: %v", k)
 	})
 	return &CodeGenAgentFactory{
-		chatModel:          chatModel,
-		redisClient:        redisClient,
-		chatHistoryService: chatHistoryService,
+		chatModel:                   chatModel,
+		reasoningStreamingChatModel: reasoningStreamingChatModel,
+		redisClient:                 redisClient,
+		chatHistoryService:          chatHistoryService,
 	}
 }
 
@@ -64,7 +68,7 @@ func (c CodeGenAgentFactory) evictOldest() {
 }
 
 func (c CodeGenAgentFactory) GetCodeGenAgent(appId int64, codeGenType enum.CodeGenTypeEnum) (*CodeGenAgent, error) {
-	key := strconv.Itoa(int(appId))
+	key := buildCacheKey(appId, codeGenType)
 
 	if agent, found := serviceCache.Get(key); found {
 		return agent.(*CodeGenAgent), nil
@@ -76,8 +80,8 @@ func (c CodeGenAgentFactory) GetCodeGenAgent(appId int64, codeGenType enum.CodeG
 	}
 	instanceCountMu.Unlock()
 
-	redisStore := store.NewRedisStore(c.redisClient, key)
-	memoryStore := store.NewRedisMemoryStore(c.redisClient, key)
+	redisStore := store.NewRedisStore(c.redisClient, strconv.Itoa(int(appId)))
+	memoryStore := store.NewRedisMemoryStore(c.redisClient, strconv.Itoa(int(appId)))
 	limitedMemoryStore := store.NewLimitedMemoryStore(memoryStore, 20)
 	_, err := c.chatHistoryService.LoadChatHistoryToMemory(context.Background(), appId, store.NewMemoryStoreHelper(memoryStore), 20)
 	if err != nil {
@@ -86,10 +90,10 @@ func (c CodeGenAgentFactory) GetCodeGenAgent(appId int64, codeGenType enum.CodeG
 
 	var agent *CodeGenAgent
 	switch codeGenType {
-	case enum.HtmlCodeGen:
-		agent = NewCodeGenAgent(c.chatModel, redisStore, limitedMemoryStore)
-	case enum.MultiFileGen:
-		agent = NewCodeGenAgent(c.chatModel, redisStore, limitedMemoryStore)
+	case enum.HtmlCodeGen, enum.MultiFileGen:
+		agent = NewCodeGenAgent((*openai.ChatModel)(c.chatModel), redisStore, limitedMemoryStore, codeGenType)
+	case enum.VueCodeGen:
+		agent = NewCodeGenAgent((*openai.ChatModel)(c.reasoningStreamingChatModel), redisStore, limitedMemoryStore, codeGenType)
 	default:
 		return nil, pkg.SystemError.WithMessage("不支持的代码生成类型: " + enum.CodeGenTypeTextMap[codeGenType])
 	}
@@ -99,4 +103,8 @@ func (c CodeGenAgentFactory) GetCodeGenAgent(appId int64, codeGenType enum.CodeG
 	instanceCount++
 	instanceCountMu.Unlock()
 	return agent, nil
+}
+
+func buildCacheKey(appId int64, codeGenType enum.CodeGenTypeEnum) string {
+	return strconv.Itoa(int(appId)) + "_" + string(codeGenType)
 }

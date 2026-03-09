@@ -67,6 +67,9 @@ var handlerSet = wire.NewSet(
 	static.NewStaticResourceHandler,
 )
 
+var llmSet = wire.NewSet(
+	llm.NewBaseAiChatModel, llm.NewReasoningChatModel, llm.NewChatModel)
+
 func CustomRecoveryHandler(ctx context.Context, c *app.RequestContext, err interface{}, stack []byte) {
 	c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.SystemError.WithMessage(fmt.Sprintf("%v", err))))
 	c.Abort()
@@ -116,8 +119,7 @@ func InitializeApp() (*server.Hertz, error) {
 		serviceSet,
 		handlerSet,
 		InitServer,
-		llm.NewBaseAiChatModel,
-		llm.NewChatModel,
+		llmSet,
 		skill.NewYiKouAiCodegenService,
 		wire.Bind(new(skill.IYiKouAiCodegenService), new(*skill.YiKouAiCodegenService)),
 		parser.NewCodeParserExecutor,

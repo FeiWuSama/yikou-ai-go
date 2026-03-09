@@ -2,32 +2,106 @@ package agent
 
 import (
 	"context"
-	"io"
-	"os"
-	"path/filepath"
-	"workspace-yikou-ai-go/biz/ai/myprompt"
-
+	"fmt"
+	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/adk"
+	"github.com/cloudwego/eino/components/tool"
+	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/schema"
-	"workspace-yikou-ai-go/biz/ai/llm"
+	"io"
+	"workspace-yikou-ai-go/biz/ai/aitools"
+	"workspace-yikou-ai-go/biz/ai/myprompt"
 	"workspace-yikou-ai-go/biz/ai/store"
-	path "workspace-yikou-ai-go/pkg/file"
+	"workspace-yikou-ai-go/biz/model/enum"
 )
 
-type CodeGenAgent struct {
-	model        *llm.BaseAiChatModel
-	checkpoint   *store.RedisStore
-	memoryHelper *store.MemoryStoreHelper
-}
-
-func NewCodeGenAgent(model *llm.BaseAiChatModel, checkpoint *store.RedisStore, memoryStore store.MemoryStore) *CodeGenAgent {
+func NewCodeGenAgent(model *openai.ChatModel, checkpoint *store.RedisStore, memoryStore store.MemoryStore, codeGenType enum.CodeGenTypeEnum) *CodeGenAgent {
 	memoryHelper := store.NewMemoryStoreHelper(memoryStore)
 	return &CodeGenAgent{
 		model:        model,
 		checkpoint:   checkpoint,
 		memoryHelper: memoryHelper,
+		adkAgentType: codeGenType,
 	}
+}
+
+func (a *CodeGenAgent) getAdkAgent() *adk.ChatModelAgent {
+	switch a.adkAgentType {
+	case enum.HtmlCodeGen:
+		return newHtmlFileCodeGenAgent(a.model)
+	case enum.MultiFileGen:
+		return newMultiFileCodeGenAgent(a.model)
+	case enum.VueCodeGen:
+		return newVueCodeGenAgent(a.model)
+	default:
+		return nil
+	}
+}
+
+type CodeGenAgent struct {
+	model        *openai.ChatModel
+	checkpoint   *store.RedisStore
+	memoryHelper *store.MemoryStoreHelper
+	adkAgentType enum.CodeGenTypeEnum
+}
+
+func (a *CodeGenAgent) GenerateVueProjectCodeStream(ctx context.Context, userMessage string) (*schema.StreamReader[*schema.Message], error) {
+	if err := myprompt.LoadPrompts(); err != nil {
+		return nil, err
+	}
+
+	history, err := a.memoryHelper.GetHistory(ctx, a.checkpoint.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	chatTemplate, err := myprompt.NewVueProjectPrompt()
+	if err != nil {
+		return nil, err
+	}
+	format, err := chatTemplate.Format(ctx, map[string]any{
+		"content": userMessage,
+		"history": history,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	agent := a.getAdkAgent()
+	runner := adk.NewRunner(ctx, adk.RunnerConfig{
+		Agent:           agent,
+		EnableStreaming: true,
+	})
+
+	iter := runner.Run(ctx, format, adk.WithCheckPointID(a.checkpoint.Id))
+
+	event, ok := iter.Next()
+	if !ok {
+		return nil, event.Err
+	}
+	stream := event.Output.MessageOutput.MessageStream
+
+	streams := stream.Copy(2)
+	streamForUser := streams[0]
+	streamForSave := streams[1]
+
+	go func() {
+		var fullContent string
+		for {
+			msg, err := streamForSave.Recv()
+			if err == io.EOF {
+				_ = a.memoryHelper.SaveHistory(ctx, a.checkpoint.Id, userMessage, fullContent)
+				break
+			}
+			if err != nil {
+				break
+			}
+			fullContent += msg.Content
+		}
+	}()
+
+	return streamForUser, nil
 }
 
 func (a *CodeGenAgent) GenerateHtmlCode(ctx context.Context, userMessage string) (*schema.Message, error) {
@@ -48,7 +122,7 @@ func (a *CodeGenAgent) GenerateHtmlCode(ctx context.Context, userMessage string)
 		return nil, err
 	}
 
-	agent := newHtmlFileCodeGenAgent(a.model)
+	agent := a.getAdkAgent()
 	runner := adk.NewRunner(ctx, adk.RunnerConfig{
 		Agent:           agent,
 		EnableStreaming: false,
@@ -93,7 +167,7 @@ func (a *CodeGenAgent) GenerateMultiFileCode(ctx context.Context, userMessage st
 		return nil, err
 	}
 
-	chatTemplate, err := myprompt.NewHtmlChatTemplate()
+	chatTemplate, err := myprompt.NewMultiFileChatTemplate()
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +179,7 @@ func (a *CodeGenAgent) GenerateMultiFileCode(ctx context.Context, userMessage st
 		return nil, err
 	}
 
-	agent := newMultiFileCodeGenAgent(a.model)
+	agent := a.getAdkAgent()
 	runner := adk.NewRunner(ctx, adk.RunnerConfig{
 		Agent:           agent,
 		EnableStreaming: false,
@@ -162,7 +236,7 @@ func (a *CodeGenAgent) GenerateHtmlCodeStream(ctx context.Context, userMessage s
 		return nil, err
 	}
 
-	agent := newHtmlFileCodeGenAgent(a.model)
+	agent := a.getAdkAgent()
 	runner := adk.NewRunner(ctx, adk.RunnerConfig{
 		Agent:           agent,
 		EnableStreaming: true,
@@ -204,7 +278,7 @@ func (a *CodeGenAgent) GenerateMultiFileCodeStream(ctx context.Context, userMess
 		return nil, err
 	}
 
-	chatTemplate, err := myprompt.NewHtmlChatTemplate()
+	chatTemplate, err := myprompt.NewMultiFileChatTemplate()
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +290,7 @@ func (a *CodeGenAgent) GenerateMultiFileCodeStream(ctx context.Context, userMess
 		return nil, err
 	}
 
-	agent := newMultiFileCodeGenAgent(a.model)
+	agent := a.getAdkAgent()
 	runner := adk.NewRunner(ctx, adk.RunnerConfig{
 		Agent:           agent,
 		EnableStreaming: true,
@@ -252,36 +326,51 @@ func (a *CodeGenAgent) GenerateMultiFileCodeStream(ctx context.Context, userMess
 	return streamForUser, nil
 }
 
-func newMultiFileCodeGenAgent(model *llm.BaseAiChatModel) *adk.ChatModelAgent {
+func newCodeGenAgent(prompt string, model *openai.ChatModel, tools []tool.BaseTool) *adk.ChatModelAgent {
 	ctx := context.Background()
-	projectRoot, err := path.GetProjectRoot()
-	promptPath := filepath.Join(projectRoot, "prompt/codegen-multi-file-system-prompt.txt")
-	systemPrompt, err := os.ReadFile(promptPath)
 	agent, err := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 		Name:        "AI 代码生成助手",
 		Description: "具有强大的代码生成能力",
-		Instruction: string(systemPrompt),
-		Model:       (*openai.ChatModel)(model),
+		Instruction: prompt,
+		Model:       model,
+		ToolsConfig: adk.ToolsConfig{
+			ToolsNodeConfig: compose.ToolsNodeConfig{
+				Tools: tools,
+				UnknownToolsHandler: func(ctx context.Context, name, input string) (string, error) {
+					// 当 LLM 幻觉出一个不存在的工具名时，会调用这个 handler
+					return fmt.Sprintf("错误: 没有这个名称的工具 %s", name), nil
+				},
+			},
+		},
 	})
 	if err != nil {
+		logger.Errorf("创建Agent失败: %v", err)
 		return nil
 	}
 	return agent
 }
 
-func newHtmlFileCodeGenAgent(model *llm.BaseAiChatModel) *adk.ChatModelAgent {
-	ctx := context.Background()
-	projectRoot, err := path.GetProjectRoot()
-	promptPath := filepath.Join(projectRoot, "prompt/codegen-html-system-prompt.txt")
-	systemPrompt, err := os.ReadFile(promptPath)
-	agent, err := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
-		Name:        "AI 代码生成助手",
-		Description: "具有强大的代码生成能力",
-		Instruction: string(systemPrompt),
-		Model:       (*openai.ChatModel)(model),
-	})
-	if err != nil {
+func newMultiFileCodeGenAgent(model *openai.ChatModel) *adk.ChatModelAgent {
+	if err := myprompt.LoadPrompts(); err != nil {
+		logger.Errorf("加载prompts失败: %v", err)
 		return nil
 	}
-	return agent
+	return newCodeGenAgent(myprompt.GetMultiFilePrompt(), model, nil)
+}
+
+func newVueCodeGenAgent(model *openai.ChatModel) *adk.ChatModelAgent {
+	if err := myprompt.LoadPrompts(); err != nil {
+		logger.Errorf("加载prompts失败: %v", err)
+		return nil
+	}
+	tools := []tool.BaseTool{aitools.FileWriteTool}
+	return newCodeGenAgent(myprompt.GetVuePrompt(), model, tools)
+}
+
+func newHtmlFileCodeGenAgent(model *openai.ChatModel) *adk.ChatModelAgent {
+	if err := myprompt.LoadPrompts(); err != nil {
+		logger.Errorf("加载prompts失败: %v", err)
+		return nil
+	}
+	return newCodeGenAgent(myprompt.GetHtmlPrompt(), model, nil)
 }

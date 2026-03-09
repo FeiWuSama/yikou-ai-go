@@ -51,10 +51,11 @@ func InitializeApp() (*server.Hertz, error) {
 	codeParserExecutor := parser.NewCodeParserExecutor()
 	codeFileSaverExecutor := saver.NewCodeFileSaverExecutor()
 	baseAiChatModel := llm.NewBaseAiChatModel(configConfig)
+	reasoningChatModel := llm.NewReasoningChatModel(configConfig)
 	client := dal.InitRedis(configConfig)
 	db := dal.InitDB(configConfig)
 	chatHistoryService := chathistory.NewChatHistoryService(db)
-	codeGenAgentFactory := agent.NewCodeGenAgentFactory(baseAiChatModel, client, chatHistoryService)
+	codeGenAgentFactory := agent.NewCodeGenAgentFactory(baseAiChatModel, reasoningChatModel, client, chatHistoryService)
 	yiKouAiCodegenFacade := core.NewYiKouAiCodegenFacade(yiKouAiCodegenService, codeParserExecutor, codeFileSaverExecutor, codeGenAgentFactory)
 	userService := service.NewUserService(db, client)
 	appService := service2.NewAppService(yiKouAiCodegenFacade, userService, chatHistoryService, db)
@@ -79,6 +80,8 @@ var serviceSet = wire.NewSet(core.NewYiKouAiCodegenFacade, service2.NewAppServic
 
 // Handler依赖
 var handlerSet = wire.NewSet(handler.NewAppHandler, handler2.NewUserHandler, chathistory2.NewChatHistoryHandler, static.NewStaticResourceHandler)
+
+var llmSet = wire.NewSet(llm.NewBaseAiChatModel, llm.NewReasoningChatModel, llm.NewChatModel)
 
 func CustomRecoveryHandler(ctx context.Context, c *app.RequestContext, err interface{}, stack []byte) {
 	c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.SystemError.WithMessage(fmt.Sprintf("%v", err))))

@@ -194,6 +194,12 @@ func (y *YiKouAiCodegenFacade) GenCodeStreamAndSave(ctx context.Context, userMes
 			return nil, err
 		}
 		return y.processCodeStream(streamResp, typeStr, appId)
+	case enum.VueCodeGen:
+		streamResp, err := codeGenAgent.GenerateVueProjectCodeStream(ctx, userMessage)
+		if err != nil {
+			return nil, err
+		}
+		return y.processCodeStream(streamResp, enum.MultiFileGen, appId)
 	default:
 		return nil, fmt.Errorf("不支持的代码生成类型: %s", typeStr)
 	}

@@ -41,7 +41,8 @@ type RedisConfig struct {
 }
 
 type AIConfig struct {
-	ChatModel ChatModelConfig `yaml:"chat-model"`
+	ChatModel          ChatModelConfig `yaml:"chat-model"`
+	ReasoningChatModel ChatModelConfig `yaml:"reasoning-chat-model"`
 }
 
 type ChatModelConfig struct {
@@ -102,6 +103,7 @@ func mergeServerConfig(base, override *ServerConfig) {
 // mergeAIConfig 合并 AIConfig 结构体的配置
 func mergeAIConfig(base, override *AIConfig) {
 	mergeChatModelConfig(&base.ChatModel, &override.ChatModel)
+	mergeChatModelConfig(&base.ReasoningChatModel, &override.ReasoningChatModel)
 }
 
 // mergeRedisConfig 合并 RedisConfig 结构体的配置
