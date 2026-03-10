@@ -23,6 +23,7 @@ import (
 	pkg "workspace-yikou-ai-go/pkg/errors"
 	file "workspace-yikou-ai-go/pkg/file"
 	"workspace-yikou-ai-go/pkg/random"
+	"workspace-yikou-ai-go/pkg/snowflake"
 )
 
 type IAppService interface {
@@ -169,7 +170,12 @@ func (s *AppService) AddApp(ctx context.Context, req *appApi.YiKouAppAddRequest,
 		count++
 	}
 
+	appId, err := snowflake.GenerateSnowFlakeId()
+	if err != nil {
+		return 0, err
+	}
 	newApp := &model.App{
+		ID:         appId,
 		AppName:    appName,
 		InitPrompt: req.InitPrompt,
 		UserID:     userId,
@@ -177,7 +183,7 @@ func (s *AppService) AddApp(ctx context.Context, req *appApi.YiKouAppAddRequest,
 		CodeGenType: string(enum.VueCodeGen),
 		Priority:    0,
 	}
-	err := query.Use(s.db).App.
+	err = query.Use(s.db).App.
 		Select(query.App.AppName, query.App.InitPrompt, query.App.UserID, query.App.Priority, query.App.CodeGenType).
 		Create(newApp)
 	if err != nil {

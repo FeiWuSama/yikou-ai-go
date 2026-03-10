@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 	"time"
+	"workspace-yikou-ai-go/pkg/snowflake"
 
 	"gorm.io/gorm"
 
@@ -151,7 +152,12 @@ func (s *ChatHistoryService) AddChatMessage(ctx context.Context, appId int64,
 	if appId <= 0 || messageType == "" || userId <= 0 || message == "" {
 		return pkg.ParamsError
 	}
-	err := query.Use(s.db).ChatHistory.Create(&model.ChatHistory{
+	chatMessageId, err := snowflake.GenerateSnowFlakeId()
+	if err != nil {
+		return err
+	}
+	err = query.Use(s.db).ChatHistory.Create(&model.ChatHistory{
+		ID:          chatMessageId,
 		AppID:       appId,
 		Message:     message,
 		MessageType: string(messageType),

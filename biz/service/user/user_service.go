@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/url"
 	"time"
+	"workspace-yikou-ai-go/pkg/snowflake"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol"
@@ -95,14 +96,19 @@ func (s *UserService) UserRegister(ctx context.Context, req *api.YiKouUserRegist
 	}
 	// 3. 密码加密
 	encryptPassword := s.GetEncryptPassword(ctx, req.UserPassword)
+	userId, err := snowflake.GenerateSnowFlakeId()
+	if err != nil {
+		return 0, err
+	}
 	// 4. 创建用户
 	newUser := &model.User{
+		ID:           userId,
 		UserAccount:  req.UserAccount,
 		UserPassword: encryptPassword,
 		UserName:     "无名",
 		UserRole:     string(enum.UserRole),
 	}
-	err := query.Use(s.db).User.Create(newUser)
+	err = query.Use(s.db).User.Create(newUser)
 	if err != nil {
 		return 0, err
 	}
