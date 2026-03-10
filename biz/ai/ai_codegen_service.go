@@ -1,4 +1,4 @@
-package skill
+package ai
 
 import (
 	"context"

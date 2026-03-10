@@ -21,9 +21,9 @@ import (
 	"gorm.io/gorm"
 	"strconv"
 	"time"
+	"workspace-yikou-ai-go/biz/ai"
 	"workspace-yikou-ai-go/biz/ai/agent"
 	"workspace-yikou-ai-go/biz/ai/llm"
-	"workspace-yikou-ai-go/biz/ai/skill"
 	"workspace-yikou-ai-go/biz/core"
 	"workspace-yikou-ai-go/biz/core/parser"
 	"workspace-yikou-ai-go/biz/core/saver"
@@ -48,7 +48,7 @@ import (
 func InitializeApp() (*server.Hertz, error) {
 	configConfig := config.InitConfig()
 	chatModel := llm.NewChatModel(configConfig)
-	yiKouAiCodegenService := skill.NewYiKouAiCodegenService(chatModel)
+	yiKouAiCodegenService := ai.NewYiKouAiCodegenService(chatModel)
 	codeParserExecutor := parser.NewCodeParserExecutor()
 	codeFileSaverExecutor := saver.NewCodeFileSaverExecutor()
 	baseAiChatModel := llm.NewBaseAiChatModel(configConfig)

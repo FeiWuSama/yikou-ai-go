@@ -7,22 +7,22 @@ import (
 	"github.com/cloudwego/eino/schema"
 	"io"
 	"strings"
+	ai2 "workspace-yikou-ai-go/biz/ai"
 	"workspace-yikou-ai-go/biz/ai/agent"
 	ai "workspace-yikou-ai-go/biz/ai/model"
-	"workspace-yikou-ai-go/biz/ai/skill"
 	"workspace-yikou-ai-go/biz/core/parser"
 	"workspace-yikou-ai-go/biz/core/saver"
 	"workspace-yikou-ai-go/biz/model/enum"
 )
 
 type YiKouAiCodegenFacade struct {
-	codegenService        skill.IYiKouAiCodegenService
+	codegenService        ai2.IYiKouAiCodegenService
 	codeParserExecutor    *parser.CodeParserExecutor
 	codeFileSaverExecutor *saver.CodeFileSaverExecutor
 	codeGenAgentFactory   *agent.CodeGenAgentFactory
 }
 
-func NewYiKouAiCodegenFacade(codegenService skill.IYiKouAiCodegenService,
+func NewYiKouAiCodegenFacade(codegenService ai2.IYiKouAiCodegenService,
 	codeParserExecutor *parser.CodeParserExecutor,
 	codeFileSaverExecutor *saver.CodeFileSaverExecutor, codeGenAgentFactory *agent.CodeGenAgentFactory) *YiKouAiCodegenFacade {
 	return &YiKouAiCodegenFacade{
