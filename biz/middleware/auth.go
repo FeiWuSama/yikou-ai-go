@@ -21,7 +21,7 @@ func AuthMiddleware(roleEnum enum.UserRoleEnum, db *gorm.DB, redisClient *redis.
 	return func(ctx context.Context, c *app.RequestContext) {
 		// 1. 校验权限
 		var userJson []byte
-		if roleEnum == enum.UserRole {
+		if roleEnum != "" {
 			// 2. 获取sessionId
 			sessionId := c.Request.Header.Cookie(constants.UserLoginState)
 			if sessionId == nil {
