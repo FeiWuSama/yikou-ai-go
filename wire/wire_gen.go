@@ -9,6 +9,7 @@ package wire
 import (
 	"context"
 	"fmt"
+	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/middlewares/server/recovery"
 	"github.com/cloudwego/hertz/pkg/app/server"
@@ -84,6 +85,7 @@ var handlerSet = wire.NewSet(handler.NewAppHandler, handler2.NewUserHandler, cha
 var llmSet = wire.NewSet(llm.NewBaseAiChatModel, llm.NewReasoningChatModel, llm.NewChatModel)
 
 func CustomRecoveryHandler(ctx context.Context, c *app.RequestContext, err interface{}, stack []byte) {
+	logger.Errorf("err: %v", err)
 	c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.SystemError.WithMessage(fmt.Sprintf("%v", err))))
 	c.Abort()
 }
