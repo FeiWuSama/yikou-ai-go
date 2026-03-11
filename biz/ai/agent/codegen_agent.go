@@ -2,8 +2,10 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+	"workspace-yikou-ai-go/biz/ai/aimodel/aimessage"
 
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/eino-ext/components/model/openai"
@@ -58,7 +60,25 @@ func (a *CodeGenAgent) GenerateVueProjectCodeStream(ctx context.Context, userMes
 		return nil, err
 	}
 
-	return a.generateStream(ctx, userMessage, chatTemplate)
+	generateStream, err := a.generateStream(ctx, userMessage, chatTemplate)
+	if err != nil {
+		return nil, err
+	}
+
+	convertedStream := schema.StreamReaderWithConvert(
+		generateStream,
+		func(msg *schema.Message) (*schema.Message, error) {
+			aiResponseMessage := aimessage.NewAIResponseMessage(msg.Content)
+			aiResponseMessageJson, err := json.Marshal(aiResponseMessage)
+			if err != nil {
+				return nil, err
+			}
+			msg.Content = string(aiResponseMessageJson)
+			return msg, nil
+		},
+	)
+
+	return convertedStream, nil
 }
 
 func (a *CodeGenAgent) GenerateHtmlCode(ctx context.Context, userMessage string) (*schema.Message, error) {

@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	ai "workspace-yikou-ai-go/biz/ai/model"
+	ai "workspace-yikou-ai-go/biz/ai/aimodel"
 	"workspace-yikou-ai-go/biz/model/enum"
 	pkg "workspace-yikou-ai-go/pkg/file"
 )

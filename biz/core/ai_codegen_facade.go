@@ -7,22 +7,22 @@ import (
 	"github.com/cloudwego/eino/schema"
 	"io"
 	"strings"
-	ai2 "workspace-yikou-ai-go/biz/ai"
+	ai "workspace-yikou-ai-go/biz/ai"
 	"workspace-yikou-ai-go/biz/ai/agent"
-	ai "workspace-yikou-ai-go/biz/ai/model"
+	aimodel "workspace-yikou-ai-go/biz/ai/aimodel"
 	"workspace-yikou-ai-go/biz/core/parser"
 	"workspace-yikou-ai-go/biz/core/saver"
 	"workspace-yikou-ai-go/biz/model/enum"
 )
 
 type YiKouAiCodegenFacade struct {
-	codegenService        ai2.IYiKouAiCodegenService
+	codegenService        ai.IYiKouAiCodegenService
 	codeParserExecutor    *parser.CodeParserExecutor
 	codeFileSaverExecutor *saver.CodeFileSaverExecutor
 	codeGenAgentFactory   *agent.CodeGenAgentFactory
 }
 
-func NewYiKouAiCodegenFacade(codegenService ai2.IYiKouAiCodegenService,
+func NewYiKouAiCodegenFacade(codegenService ai.IYiKouAiCodegenService,
 	codeParserExecutor *parser.CodeParserExecutor,
 	codeFileSaverExecutor *saver.CodeFileSaverExecutor, codeGenAgentFactory *agent.CodeGenAgentFactory) *YiKouAiCodegenFacade {
 	return &YiKouAiCodegenFacade{
@@ -40,7 +40,7 @@ func (y *YiKouAiCodegenFacade) genHtmlCodeAndSave(ctx context.Context, userMessa
 	if err != nil {
 		return err
 	}
-	parsedResp, err := ai.ParseHtmlCodeResponse(resp.Content)
+	parsedResp, err := aimodel.ParseHtmlCodeResponse(resp.Content)
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func (y *YiKouAiCodegenFacade) genMultiFileCodeAndSave(ctx context.Context, user
 	if err != nil {
 		return err
 	}
-	parsedResp, err := ai.ParseMultiFileCodeResponse(resp.Content)
+	parsedResp, err := aimodel.ParseMultiFileCodeResponse(resp.Content)
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func (y *YiKouAiCodegenFacade) genHtmlCodeStreamAndSave(ctx context.Context, use
 		}
 		builder.WriteString(chunk.Content)
 	}
-	response, err := ai.ParseHtmlCodeResponse(builder.String())
+	response, err := aimodel.ParseHtmlCodeResponse(builder.String())
 	if err != nil {
 		return err
 	}
@@ -164,7 +164,7 @@ func (y *YiKouAiCodegenFacade) genMultiFileCodeStreamAndSave(ctx context.Context
 		}
 		builder.WriteString(chunk.Content)
 	}
-	response, err := ai.ParseMultiFileCodeResponse(builder.String())
+	response, err := aimodel.ParseMultiFileCodeResponse(builder.String())
 	if err != nil {
 		return err
 	}
