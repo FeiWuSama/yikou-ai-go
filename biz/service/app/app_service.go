@@ -184,7 +184,7 @@ func (s *AppService) AddApp(ctx context.Context, req *appApi.YiKouAppAddRequest,
 		Priority:    0,
 	}
 	err = query.Use(s.db).App.
-		Select(query.App.AppName, query.App.InitPrompt, query.App.UserID, query.App.Priority, query.App.CodeGenType).
+		Select(query.App.ID, query.App.AppName, query.App.InitPrompt, query.App.UserID, query.App.Priority, query.App.CodeGenType).
 		Create(newApp)
 	if err != nil {
 		return 0, err
