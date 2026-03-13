@@ -178,6 +178,7 @@ func (y *YiKouAiCodegenFacade) genMultiFileCodeStreamAndSave(ctx context.Context
 
 func (y *YiKouAiCodegenFacade) GenCodeStreamAndSave(ctx context.Context, userMessage string, typeStr enum.CodeGenTypeEnum, appId int64) (*schema.StreamReader[*schema.Message], error) {
 	codeGenAgent, err := y.codeGenAgentFactory.GetCodeGenAgent(appId, typeStr)
+	ctx = context.WithValue(ctx, "appId", appId)
 	if err != nil {
 		return nil, err
 	}

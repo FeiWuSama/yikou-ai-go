@@ -2,11 +2,7 @@ package agent
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"workspace-yikou-ai-go/biz/ai/aimodel/aimessage"
-
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/adk"
@@ -14,6 +10,7 @@ import (
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/schema"
+	"io"
 	"workspace-yikou-ai-go/biz/ai/aitools"
 	"workspace-yikou-ai-go/biz/ai/myprompt"
 	"workspace-yikou-ai-go/biz/ai/store"
@@ -65,20 +62,7 @@ func (a *CodeGenAgent) GenerateVueProjectCodeStream(ctx context.Context, userMes
 		return nil, err
 	}
 
-	convertedStream := schema.StreamReaderWithConvert(
-		generateStream,
-		func(msg *schema.Message) (*schema.Message, error) {
-			aiResponseMessage := aimessage.NewAIResponseMessage(msg.Content)
-			aiResponseMessageJson, err := json.Marshal(aiResponseMessage)
-			if err != nil {
-				return nil, err
-			}
-			msg.Content = string(aiResponseMessageJson)
-			return msg, nil
-		},
-	)
-
-	return convertedStream, nil
+	return generateStream, nil
 }
 
 func (a *CodeGenAgent) GenerateHtmlCode(ctx context.Context, userMessage string) (*schema.Message, error) {

@@ -13,15 +13,14 @@ import (
 type FileWriteToolParams struct {
 	RelativePath string `json:"relative_path" jsonschema:"description=文件的相对路径"`
 	Content      string `json:"content" jsonschema:"description=文件的写入内容"`
-	AppId        int64  `json:"app_id" jsonschema:"description=对话记忆的隔离id"`
 }
 
-var FileWriteTool, _ = utils.InferEnhancedStreamTool("文件写入工具", "写入文件到指定路径", fileWriteToolFunc)
+var FileWriteTool, _ = utils.InferStreamTool("文件写入工具", "写入文件到指定路径", fileWriteToolFunc)
 
 func fileWriteToolFunc(ctx context.Context, params FileWriteToolParams) (*schema.StreamReader[*schema.ToolResult], error) {
 	relativePath := params.RelativePath
 	content := params.Content
-	appId := params.AppId
+	appId := ctx.Value("appId").(int64)
 
 	path := filepath.Clean(relativePath)
 
