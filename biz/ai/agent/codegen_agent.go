@@ -176,32 +176,53 @@ func (a *CodeGenAgent) generateStream(ctx context.Context, userMessage string, c
 
 	iter := runner.Run(ctx, format, adk.WithCheckPointID(a.checkpoint.Id))
 
-	event, ok := iter.Next()
-	if !ok {
-		return nil, event.Err
-	}
-	stream := event.Output.MessageOutput.MessageStream
-
-	streams := stream.Copy(2)
-	streamForUser := streams[0]
-	streamForSave := streams[1]
+	reader, writer := schema.Pipe[*schema.Message](2)
 
 	go func() {
+		defer writer.Close()
 		var fullContent string
+
 		for {
-			msg, err := streamForSave.Recv()
-			if err == io.EOF {
+			event, ok := iter.Next()
+			if !ok {
 				_ = a.memoryHelper.SaveHistory(ctx, a.checkpoint.Id, userMessage, fullContent)
 				break
 			}
-			if err != nil {
-				break
+
+			if event.Err != nil {
+				writer.Send(nil, event.Err)
+				return
 			}
-			fullContent += msg.Content
+
+			if event.Output != nil && event.Output.MessageOutput != nil {
+				stream := event.Output.MessageOutput.MessageStream
+				if stream != nil {
+					for {
+						msg, err := stream.Recv()
+						if err == io.EOF {
+							break
+						}
+						if err != nil {
+							writer.Send(nil, err)
+							return
+						}
+						if msg != nil {
+							fullContent += msg.Content
+							writer.Send(msg, nil)
+						}
+					}
+				}
+
+				if event.Output.MessageOutput.Message != nil {
+					msg := event.Output.MessageOutput.Message
+					fullContent += msg.Content
+					writer.Send(msg, nil)
+				}
+			}
 		}
 	}()
 
-	return streamForUser, nil
+	return reader, nil
 }
 
 func newCodeGenAgent(prompt string, model *openai.ChatModel, tools []tool.BaseTool) *adk.ChatModelAgent {
