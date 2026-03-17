@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/eino/schema"
@@ -10,6 +11,7 @@ import (
 	ai "workspace-yikou-ai-go/biz/ai"
 	"workspace-yikou-ai-go/biz/ai/agent"
 	aimodel "workspace-yikou-ai-go/biz/ai/aimodel"
+	"workspace-yikou-ai-go/biz/ai/aimodel/aimessage"
 	"workspace-yikou-ai-go/biz/core/parser"
 	"workspace-yikou-ai-go/biz/core/saver"
 	"workspace-yikou-ai-go/biz/model/enum"
@@ -200,7 +202,7 @@ func (y *YiKouAiCodegenFacade) GenCodeStreamAndSave(ctx context.Context, userMes
 		if err != nil {
 			return nil, err
 		}
-		return y.processCodeStream(streamResp, enum.MultiFileGen, appId)
+		return y.processVueCodeStream(streamResp)
 	default:
 		return nil, fmt.Errorf("不支持的代码生成类型: %s", typeStr)
 	}
@@ -240,4 +242,117 @@ func (y *YiKouAiCodegenFacade) processCodeStream(respStream *schema.StreamReader
 	}()
 
 	return returnStream, nil
+}
+
+// toolCallBuffer
+// 工具请求信息缓存
+type toolCallBuffer struct {
+	ID   string
+	Name string
+	Args string
+	Sent bool
+}
+
+// isValidJSON
+// 校验json格式完整性（工具流式输出的json串不完整，用于校验参数）
+func isValidJSON(s string) bool {
+	if s == "" {
+		return false
+	}
+	var js interface{}
+	return json.Unmarshal([]byte(s), &js) == nil
+}
+
+func (y *YiKouAiCodegenFacade) processVueCodeStream(respStream *schema.StreamReader[*schema.Message]) (*schema.StreamReader[*schema.Message], error) {
+	// 创建通道流
+	reader, writer := schema.Pipe[*schema.Message](2)
+
+	// 异步写入通道流
+	go func() {
+		defer writer.Close()
+
+		// 初始化工具响应缓存map
+		toolCallsBuffer := make(map[int]*toolCallBuffer)
+
+		for {
+			// 消费流
+			msg, err := respStream.Recv()
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				writer.Send(nil, err)
+				return
+			}
+
+			if msg == nil {
+				continue
+			}
+
+			var streamMsg interface{}
+
+			if len(msg.ToolCalls) > 0 {
+				// 判断是工具请求类型信息
+				for _, tc := range msg.ToolCalls {
+					idx := 0
+					if tc.Index != nil {
+						idx = *tc.Index
+					}
+
+					// 根据工具请求信息的索引判断缓存map是否已存储工具亲请求信息
+					if _, exists := toolCallsBuffer[idx]; !exists {
+						toolCallsBuffer[idx] = &toolCallBuffer{}
+					}
+					buffer := toolCallsBuffer[idx]
+
+					// 刷新缓存map
+					if tc.ID != "" && buffer.ID != "" && buffer.ID != tc.ID {
+						delete(toolCallsBuffer, idx)
+						toolCallsBuffer[idx] = &toolCallBuffer{
+							ID: tc.ID,
+						}
+						buffer = toolCallsBuffer[idx]
+					}
+
+					// 为工具请求信息缓存赋值
+					if tc.ID != "" {
+						buffer.ID = tc.ID
+					}
+					if tc.Function.Name != "" {
+						buffer.Name = tc.Function.Name
+					}
+					buffer.Args += tc.Function.Arguments
+
+					// 记录工具请求信息已写入通道流
+					if buffer.ID != "" && buffer.Name != "" && isValidJSON(buffer.Args) && !buffer.Sent {
+						streamMsg = aimessage.NewToolRequestMessage(idx, buffer.ID, buffer.Name, buffer.Args)
+						buffer.Sent = true
+					}
+				}
+			} else if msg.Role == schema.Tool {
+				// 判断是工具执行结果类型信息
+				streamMsg = aimessage.NewToolExecutedMessage(0, msg.ToolCallID, msg.ToolName, "", msg.Content)
+			} else if msg.Content != "" {
+				// 判断是ai响应类型信息
+				streamMsg = aimessage.NewAIResponseMessage(msg.Content)
+			}
+
+			// 将自定义流消息写入通道流
+			if streamMsg != nil {
+				msgBytes, err := json.Marshal(streamMsg)
+				if err != nil {
+					logger.Errorf("序列化消息失败: %v", err)
+					continue
+				}
+
+				newMsg := &schema.Message{
+					Content: string(msgBytes),
+				}
+
+				writer.Send(newMsg, nil)
+			}
+		}
+	}()
+
+	return reader, nil
 }
