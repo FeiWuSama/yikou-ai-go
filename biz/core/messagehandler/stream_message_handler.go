@@ -1,13 +1,11 @@
 package messagehandler
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
 
 	"workspace-yikou-ai-go/biz/ai/aimodel/aimessage"
-	"workspace-yikou-ai-go/biz/model/enum"
 	"workspace-yikou-ai-go/biz/service/chathistory"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
@@ -15,8 +13,6 @@ import (
 
 type StreamHandler interface {
 	Handle(chunk string) string
-	Complete() error
-	HandleError(err error) error
 }
 
 type SimpleTextStreamHandler struct {
@@ -38,19 +34,6 @@ func NewSimpleTextStreamHandler(chatHistoryService chathistory.IChatHistoryServi
 func (h *SimpleTextStreamHandler) Handle(chunk string) string {
 	h.responseBuilder.WriteString(chunk)
 	return chunk
-}
-
-func (h *SimpleTextStreamHandler) Complete() error {
-	aiResponse := h.responseBuilder.String()
-	if aiResponse == "" {
-		return nil
-	}
-	return h.chatHistoryService.AddChatMessage(context.Background(), h.appId, aiResponse, enum.AIMessageType, h.userId)
-}
-
-func (h *SimpleTextStreamHandler) HandleError(err error) error {
-	errorMessage := "AI回复失败: " + err.Error()
-	return h.chatHistoryService.AddChatMessage(context.Background(), h.appId, errorMessage, enum.AIMessageType, h.userId)
 }
 
 type JsonMessageStreamHandler struct {
@@ -153,17 +136,4 @@ func (h *JsonMessageStreamHandler) extractFileNameFromResult(result string) stri
 		}
 	}
 	return ""
-}
-
-func (h *JsonMessageStreamHandler) Complete() error {
-	aiResponse := h.chatHistoryBuilder.String()
-	if aiResponse == "" {
-		return nil
-	}
-	return h.chatHistoryService.AddChatMessage(context.Background(), h.appId, aiResponse, enum.AIMessageType, h.userId)
-}
-
-func (h *JsonMessageStreamHandler) HandleError(err error) error {
-	errorMessage := "AI回复失败: " + err.Error()
-	return h.chatHistoryService.AddChatMessage(context.Background(), h.appId, errorMessage, enum.AIMessageType, h.userId)
 }

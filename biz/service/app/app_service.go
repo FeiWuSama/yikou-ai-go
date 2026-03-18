@@ -171,13 +171,7 @@ func (s *AppService) processStreamMessage(appId int64, codeGenType enum.CodeGenT
 			msg, err := stream.Recv()
 			if err != nil {
 				if err == io.EOF {
-					if completeErr := handler.Complete(); completeErr != nil {
-						logger.Errorf("完成流处理失败: %v", completeErr)
-					}
 					break
-				}
-				if handleErr := handler.HandleError(err); handleErr != nil {
-					logger.Errorf("处理流错误失败: %v", handleErr)
 				}
 				writer.Send("", err)
 				return
