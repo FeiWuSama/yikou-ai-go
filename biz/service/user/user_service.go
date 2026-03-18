@@ -374,9 +374,15 @@ func (s *UserService) UserLogin(ctx context.Context, req *api.YiKouUserLoginRequ
 	c.SetCookie(constants.UserLoginState, sessionId,
 		86400, "/", "", protocol.CookieSameSiteLaxMode, false, true)
 	// 7. 构建userVo对象
-	loginUserVo, err := s.GetLoginUserVo(ctx, c)
-	if err != nil {
-		return vo.UserVo{}, err
+	loginUserVo := vo.UserVo{
+		ID:          user.ID,
+		UserAccount: user.UserAccount,
+		UserName:    user.UserName,
+		UserAvatar:  user.UserAvatar,
+		UserProfile: user.UserProfile,
+		UserRole:    user.UserRole,
+		CreateTime:  user.CreateTime,
+		UpdateTime:  user.UpdateTime,
 	}
 	return loginUserVo, nil
 }
