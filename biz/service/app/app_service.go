@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"time"
 	"workspace-yikou-ai-go/biz/core"
+	"workspace-yikou-ai-go/biz/core/messagehandler"
 	"workspace-yikou-ai-go/biz/dal/model"
 	"workspace-yikou-ai-go/biz/dal/query"
 	appApi "workspace-yikou-ai-go/biz/model/api/app"
@@ -28,7 +29,7 @@ import (
 
 type IAppService interface {
 	DeployApp(ctx context.Context, appId int64, loginUser *vo.UserVo) (string, error)
-	ChatToGenCode(ctx context.Context, appId int64, message string, loginUser *vo.UserVo) (*schema.StreamReader[*schema.Message], error)
+	ChatToGenCode(ctx context.Context, appId int64, message string, loginUser *vo.UserVo) (*schema.StreamReader[string], error)
 	AddApp(ctx context.Context, req *appApi.YiKouAppAddRequest, userId int64) (int64, error)
 	UpdateApp(ctx context.Context, req *appApi.YiKouAppUpdateRequest, userId int64) (bool, error)
 	DeleteApp(ctx context.Context, id int64, userId int64) (bool, error)
@@ -47,21 +48,24 @@ func NewAppService(
 	aiCodeGenFacade *core.YiKouAiCodegenFacade,
 	userService user.IUserService,
 	chatHistoryService chathistory.IChatHistoryService,
+	streamHandlerExecutor *messagehandler.StreamHandlerExecutor,
 	db *gorm.DB,
 ) *AppService {
 	return &AppService{
-		aiCodeGenFacade:    aiCodeGenFacade,
-		userService:        userService,
-		chatHistoryService: chatHistoryService,
-		db:                 db,
+		aiCodeGenFacade:       aiCodeGenFacade,
+		userService:           userService,
+		chatHistoryService:    chatHistoryService,
+		streamHandlerExecutor: streamHandlerExecutor,
+		db:                    db,
 	}
 }
 
 type AppService struct {
-	aiCodeGenFacade    *core.YiKouAiCodegenFacade
-	userService        user.IUserService
-	chatHistoryService chathistory.IChatHistoryService
-	db                 *gorm.DB
+	aiCodeGenFacade       *core.YiKouAiCodegenFacade
+	userService           user.IUserService
+	chatHistoryService    chathistory.IChatHistoryService
+	streamHandlerExecutor *messagehandler.StreamHandlerExecutor
+	db                    *gorm.DB
 }
 
 func (s *AppService) DeployApp(ctx context.Context, appId int64, loginUser *vo.UserVo) (string, error) {
@@ -124,7 +128,7 @@ func (s *AppService) DeployApp(ctx context.Context, appId int64, loginUser *vo.U
 	return fmt.Sprintf("%s/%s/", constants.CodeDeployHost, deployKey), nil
 }
 
-func (s *AppService) ChatToGenCode(ctx context.Context, appId int64, message string, loginUser *vo.UserVo) (*schema.StreamReader[*schema.Message], error) {
+func (s *AppService) ChatToGenCode(ctx context.Context, appId int64, message string, loginUser *vo.UserVo) (*schema.StreamReader[string], error) {
 	// 1. 校验参数
 	if message == "" {
 		return nil, pkg.ParamsError.WithMessage("消息不能为空")
@@ -152,7 +156,45 @@ func (s *AppService) ChatToGenCode(ctx context.Context, appId int64, message str
 	if err != nil {
 		return nil, err
 	}
-	return streamResp, nil
+	return s.processStreamMessage(appId, enum.CodeGenTypeEnum(app.CodeGenType), loginUser.ID, streamResp), nil
+}
+
+func (s *AppService) processStreamMessage(appId int64, codeGenType enum.CodeGenTypeEnum, userId int64, stream *schema.StreamReader[*schema.Message]) *schema.StreamReader[string] {
+	reader, writer := schema.Pipe[string](2)
+
+	handler := s.streamHandlerExecutor.CreateHandler(appId, userId, codeGenType)
+
+	go func() {
+		defer writer.Close()
+
+		for {
+			msg, err := stream.Recv()
+			if err != nil {
+				if err == io.EOF {
+					if completeErr := handler.Complete(); completeErr != nil {
+						logger.Errorf("完成流处理失败: %v", completeErr)
+					}
+					break
+				}
+				if handleErr := handler.HandleError(err); handleErr != nil {
+					logger.Errorf("处理流错误失败: %v", handleErr)
+				}
+				writer.Send("", err)
+				return
+			}
+
+			if msg == nil {
+				continue
+			}
+
+			processedChunk := handler.Handle(msg.Content)
+			if processedChunk != "" {
+				writer.Send(processedChunk, nil)
+			}
+		}
+	}()
+
+	return reader
 }
 
 func (s *AppService) AddApp(ctx context.Context, req *appApi.YiKouAppAddRequest, userId int64) (int64, error) {

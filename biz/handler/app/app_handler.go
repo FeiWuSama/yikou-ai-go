@@ -111,10 +111,10 @@ func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
 			_ = w.WriteEvent(lastEventID, "done", []byte{1})
 			return
 		}
-		aiResponseBuilder.WriteString(chunk.Content)
+		aiResponseBuilder.WriteString(chunk)
 
 		wrapper := &map[string]string{
-			"d": chunk.Content,
+			"d": chunk,
 		}
 		data, err := json.Marshal(wrapper)
 		if err != nil {

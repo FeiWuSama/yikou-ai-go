@@ -21,6 +21,7 @@ import (
 	"workspace-yikou-ai-go/biz/ai/agent"
 	"workspace-yikou-ai-go/biz/ai/llm"
 	"workspace-yikou-ai-go/biz/core"
+	"workspace-yikou-ai-go/biz/core/messagehandler"
 	"workspace-yikou-ai-go/biz/core/parser"
 	"workspace-yikou-ai-go/biz/core/saver"
 	"workspace-yikou-ai-go/biz/dal"
@@ -127,5 +128,6 @@ func InitializeApp() (*server.Hertz, error) {
 		parser.NewCodeParserExecutor,
 		saver.NewCodeFileSaverExecutor,
 		agent.NewCodeGenAgentFactory,
+		messagehandler.NewStreamHandlerExecutor,
 	))
 }

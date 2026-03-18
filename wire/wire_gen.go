@@ -25,6 +25,7 @@ import (
 	"workspace-yikou-ai-go/biz/ai/agent"
 	"workspace-yikou-ai-go/biz/ai/llm"
 	"workspace-yikou-ai-go/biz/core"
+	"workspace-yikou-ai-go/biz/core/messagehandler"
 	"workspace-yikou-ai-go/biz/core/parser"
 	"workspace-yikou-ai-go/biz/core/saver"
 	"workspace-yikou-ai-go/biz/dal"
@@ -59,7 +60,8 @@ func InitializeApp() (*server.Hertz, error) {
 	codeGenAgentFactory := agent.NewCodeGenAgentFactory(baseAiChatModel, reasoningChatModel, client, chatHistoryService)
 	yiKouAiCodegenFacade := core.NewYiKouAiCodegenFacade(yiKouAiCodegenService, codeParserExecutor, codeFileSaverExecutor, codeGenAgentFactory)
 	userService := service.NewUserService(db, client)
-	appService := service2.NewAppService(yiKouAiCodegenFacade, userService, chatHistoryService, db)
+	streamHandlerExecutor := messagehandler.NewStreamHandlerExecutor(chatHistoryService)
+	appService := service2.NewAppService(yiKouAiCodegenFacade, userService, chatHistoryService, streamHandlerExecutor, db)
 	appHandler := handler.NewAppHandler(appService, userService, chatHistoryService)
 	userHandler := handler2.NewUserHandler(userService)
 	chatHistoryHandler := chathistory2.NewChatHistoryHandler(chatHistoryService, userService)
