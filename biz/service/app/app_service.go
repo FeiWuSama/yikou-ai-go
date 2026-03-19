@@ -89,33 +89,46 @@ func (s *AppService) DeployApp(ctx context.Context, appId int64, loginUser *vo.U
 	if deployKey == "" {
 		deployKey = random.RandString(6)
 	}
-	// 5. 构建部署目录
-	sourceDirName := fmt.Sprintf("%s_%v", app.CodeGenType, appId)
-	codeDeployRoot, err := file.GetCodeDeployRoot()
+	// 5. 构建源目录路径
+	sourceDirName := fmt.Sprintf("%s_%d", app.CodeGenType, appId)
+	codeOutputRoot, err := myfile.GetCodeOutputRoot()
 	if err != nil {
 		return "", err
 	}
-	sourceDirPath := filepath.Join(codeDeployRoot, sourceDirName)
-	srcDir, err := os.Open(sourceDirPath)
-	if err != nil {
-		return "", pkg.ParamsError.WithMessage("应用不存在")
+	sourceDirPath := filepath.Join(codeOutputRoot, sourceDirName)
+
+	// 6. 检查源目录是否存在
+	sourceDirInfo, err := os.Stat(sourceDirPath)
+	if err != nil || !sourceDirInfo.IsDir() {
+		return "", pkg.SystemError.WithMessage("应用代码不存在，请先生成代码")
 	}
-	defer srcDir.Close()
-	// 6. 复制文件到部署目录
-	codeDeployRoot, err = file.GetCodeDeployRoot()
+
+	// 7. Vue 项目特殊处理：执行构建
+	codeGenType := enum.CodeGenTypeEnum(app.CodeGenType)
+	deploySourcePath := sourceDirPath
+	if codeGenType == enum.VueCodeGen {
+		if !builder.BuildProject(sourceDirPath) {
+			return "", pkg.SystemError.WithMessage("Vue 项目构建失败，请检查代码和依赖")
+		}
+		distDirPath := filepath.Join(sourceDirPath, "dist")
+		if _, err := os.Stat(distDirPath); os.IsNotExist(err) {
+			return "", pkg.SystemError.WithMessage("Vue 项目构建完成但未生成 dist 目录")
+		}
+		deploySourcePath = distDirPath
+		logger.Infof("Vue 项目构建成功，将部署 dist 目录: %s", distDirPath)
+	}
+
+	// 8. 复制文件到部署目录
+	codeDeployRoot, err := myfile.GetCodeDeployRoot()
 	if err != nil {
 		return "", err
 	}
-	disDir, err := os.Open(codeDeployRoot)
-	if err != nil {
-		return "", err
-	}
-	defer disDir.Close()
-	_, err = io.Copy(disDir, srcDir)
-	if err != nil {
+	deployDirPath := filepath.Join(codeDeployRoot, deployKey)
+	if err := file.CopyDir(deploySourcePath, deployDirPath); err != nil {
 		return "", pkg.SystemError.WithMessage("部署应用失败:" + err.Error())
 	}
-	// 7. 更新应用的deployKey
+
+	// 9. 更新应用的deployKey
 	appUpdate := &model.App{
 		DeployKey:    deployKey,
 		DeployedTime: time.Now(),
@@ -126,7 +139,7 @@ func (s *AppService) DeployApp(ctx context.Context, appId int64, loginUser *vo.U
 	if err != nil {
 		return "", pkg.SystemError.WithMessage("部署应用失败:" + err.Error())
 	}
-	// 8. 返回部署URL
+	// 10. 返回部署URL
 	return fmt.Sprintf("%s/%s/", constants.CodeDeployHost, deployKey), nil
 }
 
