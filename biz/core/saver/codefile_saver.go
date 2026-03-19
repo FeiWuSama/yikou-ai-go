@@ -8,7 +8,7 @@ import (
 	"strconv"
 	ai "workspace-yikou-ai-go/biz/ai/aimodel"
 	"workspace-yikou-ai-go/biz/model/enum"
-	pkg "workspace-yikou-ai-go/pkg/file"
+	pkg "workspace-yikou-ai-go/pkg/myfile"
 )
 
 var (

@@ -7,7 +7,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 	"os"
 	"path/filepath"
-	file "workspace-yikou-ai-go/pkg/file"
+	file "workspace-yikou-ai-go/pkg/myfile"
 )
 
 type FileWriteToolParams struct {

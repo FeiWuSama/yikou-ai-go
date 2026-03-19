@@ -7,7 +7,7 @@ import (
 
 	"github.com/cloudwego/eino/components/prompt"
 	"github.com/cloudwego/eino/schema"
-	path "workspace-yikou-ai-go/pkg/file"
+	path "workspace-yikou-ai-go/pkg/myfile"
 )
 
 var (

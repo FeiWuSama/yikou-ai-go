@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"time"
 	"workspace-yikou-ai-go/biz/core"
+	"workspace-yikou-ai-go/biz/core/builder"
 	"workspace-yikou-ai-go/biz/core/messagehandler"
 	"workspace-yikou-ai-go/biz/dal/model"
 	"workspace-yikou-ai-go/biz/dal/query"
@@ -22,7 +23,8 @@ import (
 	user "workspace-yikou-ai-go/biz/service/user"
 	"workspace-yikou-ai-go/pkg/constants"
 	pkg "workspace-yikou-ai-go/pkg/errors"
-	file "workspace-yikou-ai-go/pkg/file"
+	"workspace-yikou-ai-go/pkg/myfile"
+	file "workspace-yikou-ai-go/pkg/myfile"
 	"workspace-yikou-ai-go/pkg/random"
 	"workspace-yikou-ai-go/pkg/snowflake"
 )
@@ -191,6 +193,7 @@ func (s *AppService) processStreamMessage(appId int64, codeGenType enum.CodeGenT
 
 			case err := <-errChan:
 				if err == io.EOF {
+					go s.executeNpmInstall(appId, codeGenType)
 					return
 				}
 				writer.Send("", err)
@@ -209,6 +212,19 @@ func (s *AppService) processStreamMessage(appId int64, codeGenType enum.CodeGenT
 	}()
 
 	return reader
+}
+
+func (s *AppService) executeNpmInstall(appId int64, codeGenType enum.CodeGenTypeEnum) {
+	if codeGenType != enum.VueCodeGen {
+		return
+	}
+
+	codeOutputRoot, _ := myfile.GetCodeOutputRoot()
+	projectPath := filepath.Join(codeOutputRoot, fmt.Sprintf("vue_project_%d", appId))
+
+	if !builder.ExecuteNpmInstall(projectPath) {
+		logger.Errorf("异步构建 Vue 项目时发生异常")
+	}
 }
 
 func (s *AppService) AddApp(ctx context.Context, req *appApi.YiKouAppAddRequest, userId int64) (int64, error) {

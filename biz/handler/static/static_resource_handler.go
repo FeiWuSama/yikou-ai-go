@@ -7,7 +7,7 @@ import (
 	"workspace-yikou-ai-go/biz/model/api/common"
 	"workspace-yikou-ai-go/config"
 	pkg "workspace-yikou-ai-go/pkg/errors"
-	file "workspace-yikou-ai-go/pkg/file"
+	file "workspace-yikou-ai-go/pkg/myfile"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"

@@ -6,7 +6,7 @@ import (
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"os"
 	"path/filepath"
-	pkg "workspace-yikou-ai-go/pkg/file"
+	pkg "workspace-yikou-ai-go/pkg/myfile"
 
 	"github.com/cloudwego/eino/schema"
 )

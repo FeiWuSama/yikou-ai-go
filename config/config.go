@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	pkg "workspace-yikou-ai-go/pkg/file"
+	pkg "workspace-yikou-ai-go/pkg/myfile"
 
 	"gopkg.in/yaml.v3"
 )
