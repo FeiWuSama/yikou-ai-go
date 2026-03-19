@@ -167,23 +167,43 @@ func (s *AppService) processStreamMessage(appId int64, codeGenType enum.CodeGenT
 	go func() {
 		defer writer.Close()
 
+		msgChan := make(chan *schema.Message)
+		errChan := make(chan error)
+
+		go func() {
+			for {
+				msg, err := stream.Recv()
+				if err != nil {
+					errChan <- err
+					return
+				}
+				msgChan <- msg
+			}
+		}()
+
+		heartbeat := time.NewTicker(10 * time.Second)
+		defer heartbeat.Stop()
+
 		for {
-			msg, err := stream.Recv()
-			if err != nil {
+			select {
+			case <-heartbeat.C:
+				writer.Send("heartBeat", nil)
+
+			case err := <-errChan:
 				if err == io.EOF {
-					break
+					return
 				}
 				writer.Send("", err)
 				return
-			}
 
-			if msg == nil {
-				continue
-			}
-
-			processedChunk := handler.Handle(msg.Content)
-			if processedChunk != "" {
-				writer.Send(processedChunk, nil)
+			case msg := <-msgChan:
+				if msg == nil {
+					continue
+				}
+				processedChunk := handler.Handle(msg.Content)
+				if processedChunk != "" {
+					writer.Send(processedChunk, nil)
+				}
 			}
 		}
 	}()

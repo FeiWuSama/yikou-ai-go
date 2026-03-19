@@ -489,6 +489,8 @@ const sendSSEMessage = async (content: string, aiMsgIndex: number) => {
     // 处理数据
     let fullData = ''
     eventSource.onmessage = (event) => {
+      console.log('SSE收到原始数据:', event.data)
+
       let processedData = ''
       try {
         // 解析JSON数据
@@ -499,6 +501,11 @@ const sendSSEMessage = async (content: string, aiMsgIndex: number) => {
         // 如果JSON解析失败，直接使用原始数据
         console.warn('JSON解析失败，使用原始数据:', error)
         processedData = event.data
+      }
+
+      // 过滤心跳包内容
+      if (processedData === 'heartBeat') {
+        return
       }
 
       fullData += processedData
