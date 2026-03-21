@@ -4,13 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"workspace-yikou-ai-go/biz/service/download"
+
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 	"github.com/cloudwego/hertz/pkg/protocol/sse"
-	"io"
-	"strconv"
-	"strings"
 	"workspace-yikou-ai-go/biz/dal/model"
 	appApi "workspace-yikou-ai-go/biz/model/api/app"
 	"workspace-yikou-ai-go/biz/model/api/common"
@@ -20,23 +24,27 @@ import (
 	chatHistory "workspace-yikou-ai-go/biz/service/chathistory"
 	user "workspace-yikou-ai-go/biz/service/user"
 	pkg "workspace-yikou-ai-go/pkg/errors"
+	"workspace-yikou-ai-go/pkg/myfile"
 )
 
 type AppHandler struct {
-	appService         application.IAppService
-	userService        user.IUserService
-	chatHistoryService chatHistory.IChatHistoryService
+	appService             application.IAppService
+	userService            user.IUserService
+	chatHistoryService     chatHistory.IChatHistoryService
+	projectDownloadService download.IProjectDownloadService
 }
 
 func NewAppHandler(
 	appService application.IAppService,
 	userService user.IUserService,
 	chatHistoryService chatHistory.IChatHistoryService,
+	projectDownloadService download.IProjectDownloadService,
 ) *AppHandler {
 	return &AppHandler{
-		appService:         appService,
-		userService:        userService,
-		chatHistoryService: chatHistoryService,
+		appService:             appService,
+		userService:            userService,
+		chatHistoryService:     chatHistoryService,
+		projectDownloadService: projectDownloadService,
 	}
 }
 
@@ -429,4 +437,70 @@ func (a *AppHandler) AdminListApp(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 	c.JSON(consts.StatusOK, common.NewSuccessResponse[*common.PageResponse[*model.App]](pageResponse))
+}
+
+// DownloadAppCode 下载应用代码
+// @Summary 下载应用代码
+// @Description 下载应用代码
+// @Tags 应用模块
+// @Accept json
+// @Produce octet-stream
+// @Param appId path int true "应用ID"
+// @Success 200 {file} binary "ZIP文件"
+// @Router /app/download/{appId} [get]
+func (a *AppHandler) DownloadAppCode(ctx context.Context, c *app.RequestContext) {
+	appIdStr := c.Param("appId")
+	if appIdStr == "" {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.ParamsError.WithMessage("应用ID无效")))
+		return
+	}
+
+	appId, err := strconv.ParseInt(appIdStr, 10, 64)
+	if err != nil || appId <= 0 {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.ParamsError.WithMessage("应用ID无效")))
+		return
+	}
+
+	loginUserVo, err := a.userService.GetLoginUserVo(ctx, c)
+	if err != nil {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.NotLoginError))
+		return
+	}
+	app, err := a.appService.GetApp(ctx, appId, loginUserVo.ID)
+	if err != nil {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.ParamsError.WithMessage("应用不存在")))
+		return
+	}
+
+	userVo, err := a.userService.GetLoginUserVo(ctx, c)
+	if err != nil {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
+		return
+	}
+
+	if app.UserID != userVo.ID {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.NotAuthError.WithMessage("无权限下载该应用代码")))
+		return
+	}
+
+	sourceDirName := fmt.Sprintf("%s_%d", app.CodeGenType, appId)
+	codeOutputRoot, err := myfile.GetCodeOutputRoot()
+	if err != nil {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
+		return
+	}
+	sourceDirPath := filepath.Join(codeOutputRoot, sourceDirName)
+
+	if _, err := os.Stat(sourceDirPath); os.IsNotExist(err) {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.ParamsError.WithMessage("应用代码不存在，请先生成代码")))
+		return
+	}
+
+	downloadFileName := appIdStr
+
+	err = a.projectDownloadService.DownloadProjectAsZip(sourceDirPath, downloadFileName, c)
+	if err != nil {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.SystemError.WithMessage(err.Error())))
+		return
+	}
 }

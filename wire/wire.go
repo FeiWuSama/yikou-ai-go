@@ -5,6 +5,9 @@ package wire
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/middlewares/server/recovery"
@@ -15,8 +18,6 @@ import (
 	"github.com/hertz-contrib/swagger"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
-	"strconv"
-	"time"
 	"workspace-yikou-ai-go/biz/ai"
 	"workspace-yikou-ai-go/biz/ai/agent"
 	"workspace-yikou-ai-go/biz/ai/llm"
@@ -34,6 +35,7 @@ import (
 	"workspace-yikou-ai-go/biz/router"
 	application "workspace-yikou-ai-go/biz/service/app"
 	"workspace-yikou-ai-go/biz/service/chathistory"
+	"workspace-yikou-ai-go/biz/service/download"
 	"workspace-yikou-ai-go/biz/service/screenshot"
 	user "workspace-yikou-ai-go/biz/service/user"
 	"workspace-yikou-ai-go/config"
@@ -64,6 +66,8 @@ var serviceSet = wire.NewSet(
 	wire.Bind(new(chathistory.IChatHistoryService), new(*chathistory.ChatHistoryService)),
 	screenshot.NewScreenshotService,
 	wire.Bind(new(screenshot.IScreenshotService), new(*screenshot.ScreenshotService)),
+	download.NewProjectDownloadService,
+	wire.Bind(new(download.IProjectDownloadService), new(*download.ProjectDownloadService)),
 )
 
 // Handler依赖

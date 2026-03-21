@@ -38,6 +38,7 @@ import (
 	"workspace-yikou-ai-go/biz/router"
 	service2 "workspace-yikou-ai-go/biz/service/app"
 	"workspace-yikou-ai-go/biz/service/chathistory"
+	"workspace-yikou-ai-go/biz/service/download"
 	"workspace-yikou-ai-go/biz/service/screenshot"
 	"workspace-yikou-ai-go/biz/service/user"
 	"workspace-yikou-ai-go/config"
@@ -67,7 +68,8 @@ func InitializeApp() (*server.Hertz, error) {
 	cosManager := manager.NewCosManager(cosClient, configConfig)
 	screenshotService := screenshot.NewScreenshotService(cosManager)
 	appService := service2.NewAppService(yiKouAiCodegenFacade, userService, chatHistoryService, streamHandlerExecutor, screenshotService, db)
-	appHandler := handler.NewAppHandler(appService, userService, chatHistoryService)
+	projectDownloadService := download.NewProjectDownloadService()
+	appHandler := handler.NewAppHandler(appService, userService, chatHistoryService, projectDownloadService)
 	userHandler := handler2.NewUserHandler(userService)
 	chatHistoryHandler := chathistory2.NewChatHistoryHandler(chatHistoryService, userService)
 	staticResourceHandler := static.NewStaticResourceHandler(configConfig)
@@ -84,7 +86,7 @@ var configSet = wire.NewSet(config.InitConfig)
 var dbSet = wire.NewSet(dal.InitDB, dal.InitRedis, dal.InitCOSClient)
 
 // Service依赖
-var serviceSet = wire.NewSet(core.NewYiKouAiCodegenFacade, service2.NewAppService, wire.Bind(new(service2.IAppService), new(*service2.AppService)), service.NewUserService, wire.Bind(new(service.IUserService), new(*service.UserService)), chathistory.NewChatHistoryService, wire.Bind(new(chathistory.IChatHistoryService), new(*chathistory.ChatHistoryService)), screenshot.NewScreenshotService, wire.Bind(new(screenshot.IScreenshotService), new(*screenshot.ScreenshotService)))
+var serviceSet = wire.NewSet(core.NewYiKouAiCodegenFacade, service2.NewAppService, wire.Bind(new(service2.IAppService), new(*service2.AppService)), service.NewUserService, wire.Bind(new(service.IUserService), new(*service.UserService)), chathistory.NewChatHistoryService, wire.Bind(new(chathistory.IChatHistoryService), new(*chathistory.ChatHistoryService)), screenshot.NewScreenshotService, wire.Bind(new(screenshot.IScreenshotService), new(*screenshot.ScreenshotService)), download.NewProjectDownloadService, wire.Bind(new(download.IProjectDownloadService), new(*download.ProjectDownloadService)))
 
 // Handler依赖
 var handlerSet = wire.NewSet(handler.NewAppHandler, handler2.NewUserHandler, chathistory2.NewChatHistoryHandler, static.NewStaticResourceHandler)

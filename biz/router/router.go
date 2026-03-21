@@ -54,6 +54,7 @@ func CustomizedRegister(r *server.Hertz, db *gorm.DB, redisClient *redis.Client,
 		appRoute.POST("/delete", middleware.AuthMiddleware(enum.UserRole, db, redisClient), appHandler.DeleteApp)
 		appRoute.GET("/chat/gen/code", middleware.AuthMiddleware(enum.UserRole, db, redisClient), appHandler.ChatToGenCode)
 		appRoute.POST("/deploy", middleware.AuthMiddleware(enum.UserRole, db, redisClient), appHandler.DeployApp)
+		appRoute.GET("/download/:appId", middleware.AuthMiddleware(enum.UserRole, db, redisClient), appHandler.DownloadAppCode)
 
 		// 需要管理员权限的接口
 		appRoute.POST("/admin/update", middleware.AuthMiddleware(enum.AdminRole, db, redisClient), appHandler.AdminUpdateApp)
