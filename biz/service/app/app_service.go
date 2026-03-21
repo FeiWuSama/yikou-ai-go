@@ -3,13 +3,14 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/bytedance/gopkg/util/logger"
-	"github.com/cloudwego/eino/schema"
-	"gorm.io/gorm"
 	"io"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/bytedance/gopkg/util/logger"
+	"github.com/cloudwego/eino/schema"
+	"gorm.io/gorm"
 	"workspace-yikou-ai-go/biz/core"
 	"workspace-yikou-ai-go/biz/core/builder"
 	"workspace-yikou-ai-go/biz/core/messagehandler"
@@ -20,6 +21,7 @@ import (
 	"workspace-yikou-ai-go/biz/model/enum"
 	"workspace-yikou-ai-go/biz/model/vo"
 	"workspace-yikou-ai-go/biz/service/chathistory"
+	screenshotService "workspace-yikou-ai-go/biz/service/screenshot"
 	user "workspace-yikou-ai-go/biz/service/user"
 	"workspace-yikou-ai-go/pkg/constants"
 	pkg "workspace-yikou-ai-go/pkg/errors"
@@ -51,6 +53,7 @@ func NewAppService(
 	userService user.IUserService,
 	chatHistoryService chathistory.IChatHistoryService,
 	streamHandlerExecutor *messagehandler.StreamHandlerExecutor,
+	screenshotService screenshotService.IScreenshotService,
 	db *gorm.DB,
 ) *AppService {
 	return &AppService{
@@ -58,6 +61,7 @@ func NewAppService(
 		userService:           userService,
 		chatHistoryService:    chatHistoryService,
 		streamHandlerExecutor: streamHandlerExecutor,
+		screenshotService:     screenshotService,
 		db:                    db,
 	}
 }
@@ -67,6 +71,7 @@ type AppService struct {
 	userService           user.IUserService
 	chatHistoryService    chathistory.IChatHistoryService
 	streamHandlerExecutor *messagehandler.StreamHandlerExecutor
+	screenshotService     screenshotService.IScreenshotService
 	db                    *gorm.DB
 }
 
@@ -139,8 +144,14 @@ func (s *AppService) DeployApp(ctx context.Context, appId int64, loginUser *vo.U
 	if err != nil {
 		return "", pkg.SystemError.WithMessage("部署应用失败:" + err.Error())
 	}
-	// 10. 返回部署URL
-	return fmt.Sprintf("%s/%s/", constants.CodeDeployHost, deployKey), nil
+
+	// 10. 构建应用访问 URL
+	appDeployUrl := fmt.Sprintf("%s/%s/", constants.CodeDeployHost, deployKey)
+
+	// 11. 异步生成截图并更新应用封面
+	go s.generateAppScreenshotAsync(appId, appDeployUrl)
+
+	return appDeployUrl, nil
 }
 
 func (s *AppService) ChatToGenCode(ctx context.Context, appId int64, message string, loginUser *vo.UserVo) (*schema.StreamReader[string], error) {
@@ -238,6 +249,24 @@ func (s *AppService) executeNpmInstall(appId int64, codeGenType enum.CodeGenType
 	if !builder.ExecuteNpmInstall(projectPath) {
 		logger.Errorf("异步构建 Vue 项目时发生异常")
 	}
+}
+
+func (s *AppService) generateAppScreenshotAsync(appId int64, appDeployUrl string) {
+	coverUrl, err := s.screenshotService.GenerateAndUploadScreenshot(appDeployUrl)
+	if err != nil {
+		logger.Errorf("生成应用截图失败: %v", err)
+		return
+	}
+
+	_, err = query.Use(s.db).App.
+		Where(query.App.ID.Eq(appId), query.App.IsDelete.Eq(0)).
+		Update(query.App.Cover, coverUrl)
+	if err != nil {
+		logger.Errorf("更新应用封面失败: %v", err)
+		return
+	}
+
+	logger.Infof("应用截图生成并更新成功: appId=%d, coverUrl=%s", appId, coverUrl)
 }
 
 func (s *AppService) AddApp(ctx context.Context, req *appApi.YiKouAppAddRequest, userId int64) (int64, error) {

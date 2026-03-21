@@ -121,3 +121,7 @@ func CopyFile(src string, dst string) error {
 
 	return nil
 }
+
+func DeleteDir(dir string) error {
+	return os.RemoveAll(dir)
+}
