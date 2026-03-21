@@ -30,5 +30,18 @@ redis:
   password: ""
   db: 0
 
+# 腾讯云COS对象存储配置
+cos:
+  # 自定义域名（可选）
+  host: ""
+  # 腾讯云SecretId
+  secret-id: ""
+  # 腾讯云SecretKey
+  secret-key: ""
+  # 地域简称
+  region: ""
+  # 存储桶名称
+  bucket: ""
+
 
 

@@ -15,6 +15,7 @@ type Config struct {
 	Database DatabaseConfig `yaml:"database"`
 	Redis    RedisConfig    `yaml:"redis"`
 	AI       AIConfig       `yaml:"ai"`
+	COS      COSConfig      `yaml:"cos"`
 }
 
 //var GlobalConfig *Config
@@ -38,6 +39,14 @@ type RedisConfig struct {
 	Port     int    `yaml:"port"`
 	Password string `yaml:"password"`
 	DB       int    `yaml:"db"`
+}
+
+type COSConfig struct {
+	Host      string `yaml:"host"`
+	SecretID  string `yaml:"secret-id"`
+	SecretKey string `yaml:"secret-key"`
+	Region    string `yaml:"region"`
+	Bucket    string `yaml:"bucket"`
 }
 
 type AIConfig struct {
@@ -104,6 +113,40 @@ func mergeServerConfig(base, override *ServerConfig) {
 func mergeAIConfig(base, override *AIConfig) {
 	mergeChatModelConfig(&base.ChatModel, &override.ChatModel)
 	mergeChatModelConfig(&base.ReasoningChatModel, &override.ReasoningChatModel)
+}
+
+// mergeCOSConfig 合并 COSConfig 结构体的配置
+func mergeCOSConfig(base, override *COSConfig) {
+	baseValue := reflect.ValueOf(base).Elem()
+	overrideValue := reflect.ValueOf(override).Elem()
+	overrideType := overrideValue.Type()
+	for i := 0; i < overrideValue.NumField(); i++ {
+		fieldName := overrideType.Field(i).Name
+		overrideField := overrideValue.Field(i)
+		baseField := baseValue.FieldByName(fieldName)
+		switch overrideField.Kind() {
+		case reflect.String:
+			if overrideField.String() != "" {
+				baseField.SetString(overrideField.String())
+			}
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			if overrideField.Int() != 0 {
+				baseField.SetInt(overrideField.Int())
+			}
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			if overrideField.Uint() != 0 {
+				baseField.SetUint(overrideField.Uint())
+			}
+		case reflect.Float32, reflect.Float64:
+			if overrideField.Float() != 0 {
+				baseField.SetFloat(overrideField.Float())
+			}
+		case reflect.Bool:
+			if overrideField.Bool() {
+				baseField.SetBool(overrideField.Bool())
+			}
+		}
+	}
 }
 
 // mergeRedisConfig 合并 RedisConfig 结构体的配置
@@ -201,6 +244,7 @@ func InitConfig() *Config {
 				mergeServerConfig(&config.Server, &overrideConfig.Server)
 				mergeRedisConfig(&config.Redis, &overrideConfig.Redis)
 				mergeAIConfig(&config.AI, &overrideConfig.AI)
+				mergeCOSConfig(&config.COS, &overrideConfig.COS)
 			}
 		}
 	}

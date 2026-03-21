@@ -29,10 +29,12 @@ import (
 	chatHistoryHandler "workspace-yikou-ai-go/biz/handler/chathistory"
 	static "workspace-yikou-ai-go/biz/handler/static"
 	userHandler "workspace-yikou-ai-go/biz/handler/user"
+	"workspace-yikou-ai-go/biz/manager"
 	"workspace-yikou-ai-go/biz/model/api/common"
 	"workspace-yikou-ai-go/biz/router"
 	application "workspace-yikou-ai-go/biz/service/app"
 	"workspace-yikou-ai-go/biz/service/chathistory"
+	"workspace-yikou-ai-go/biz/service/screenshot"
 	user "workspace-yikou-ai-go/biz/service/user"
 	"workspace-yikou-ai-go/config"
 	"workspace-yikou-ai-go/docs"
@@ -48,6 +50,7 @@ var configSet = wire.NewSet(
 var dbSet = wire.NewSet(
 	dal.InitDB,
 	dal.InitRedis,
+	dal.InitCOSClient,
 )
 
 // Service依赖
@@ -59,6 +62,8 @@ var serviceSet = wire.NewSet(
 	wire.Bind(new(user.IUserService), new(*user.UserService)),
 	chathistory.NewChatHistoryService,
 	wire.Bind(new(chathistory.IChatHistoryService), new(*chathistory.ChatHistoryService)),
+	screenshot.NewScreenshotService,
+	wire.Bind(new(screenshot.IScreenshotService), new(*screenshot.ScreenshotService)),
 )
 
 // Handler依赖
@@ -129,5 +134,6 @@ func InitializeApp() (*server.Hertz, error) {
 		saver.NewCodeFileSaverExecutor,
 		agent.NewCodeGenAgentFactory,
 		messagehandler.NewStreamHandlerExecutor,
+		manager.NewCosManager,
 	))
 }
