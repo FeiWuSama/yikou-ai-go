@@ -8,6 +8,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 	"workspace-yikou-ai-go/pkg/myfile"
 	"workspace-yikou-ai-go/pkg/random"
@@ -23,12 +24,33 @@ const (
 	DefaultUA     = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 )
 
-type WebScreenshotUtils struct {
-}
-
 var (
-	browser = initBrowser(DefaultWidth, DefaultHeight)
+	browser     *rod.Browser
+	browserOnce sync.Once
+	browserMu   sync.RWMutex
 )
+
+func getBrowser() *rod.Browser {
+	browserMu.RLock()
+	if browser != nil {
+		browserMu.RUnlock()
+		return browser
+	}
+	browserMu.RUnlock()
+
+	browserMu.Lock()
+	defer browserMu.Unlock()
+
+	if browser != nil {
+		return browser
+	}
+
+	browserOnce.Do(func() {
+		browser = initBrowser(DefaultWidth, DefaultHeight)
+	})
+
+	return browser
+}
 
 func initBrowser(width, height int) *rod.Browser {
 	l := launcher.New().
@@ -46,14 +68,18 @@ func initBrowser(width, height int) *rod.Browser {
 		panic(fmt.Sprintf("启动浏览器失败: %v", err))
 	}
 
-	browser := rod.New().ControlURL(url).MustConnect()
+	b := rod.New().ControlURL(url).MustConnect()
 
-	return browser
+	return b
 }
 
-func (w *WebScreenshotUtils) Close() {
+func CloseBrowser() {
+	browserMu.Lock()
+	defer browserMu.Unlock()
+
 	if browser != nil {
 		browser.MustClose()
+		browser = nil
 	}
 }
 
@@ -140,7 +166,9 @@ func SaveWebPageScreenshot(webUrl string) (string, error) {
 
 	imageSavePath := filepath.Join(screenshotsDir, random.RandString(5)+".png")
 
-	page, err := browser.Page(proto.TargetCreateTarget{URL: webUrl})
+	b := getBrowser()
+
+	page, err := b.Page(proto.TargetCreateTarget{URL: webUrl})
 	if err != nil {
 		return "", fmt.Errorf("创建页面失败: %w", err)
 	}
