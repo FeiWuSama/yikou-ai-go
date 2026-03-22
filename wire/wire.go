@@ -82,7 +82,7 @@ var llmSet = wire.NewSet(
 	llm.NewBaseAiChatModel, llm.NewReasoningChatModel, llm.NewChatModel)
 
 func CustomRecoveryHandler(ctx context.Context, c *app.RequestContext, err interface{}, stack []byte) {
-	logger.Errorf("err: %v", err)
+	logger.Errorf("panic recovered: %v\n%s", err, stack)
 	c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.SystemError.WithMessage(fmt.Sprintf("%v", err))))
 	c.Abort()
 }
@@ -137,6 +137,7 @@ func InitializeApp() (*server.Hertz, error) {
 		parser.NewCodeParserExecutor,
 		saver.NewCodeFileSaverExecutor,
 		agent.NewCodeGenAgentFactory,
+		agent.NewCodeGenTypeRoutingAgentFactory,
 		messagehandler.NewStreamHandlerExecutor,
 		manager.NewCosManager,
 	))

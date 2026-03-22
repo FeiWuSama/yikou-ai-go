@@ -67,7 +67,8 @@ func InitializeApp() (*server.Hertz, error) {
 	cosClient := dal.InitCOSClient(configConfig)
 	cosManager := manager.NewCosManager(cosClient, configConfig)
 	screenshotService := screenshot.NewScreenshotService(cosManager)
-	appService := service2.NewAppService(yiKouAiCodegenFacade, userService, chatHistoryService, streamHandlerExecutor, screenshotService, db)
+	codeGenTypeRoutingAgentFactory := agent.NewCodeGenTypeRoutingAgentFactory(baseAiChatModel)
+	appService := service2.NewAppService(yiKouAiCodegenFacade, userService, chatHistoryService, streamHandlerExecutor, screenshotService, codeGenTypeRoutingAgentFactory, db)
 	projectDownloadService := download.NewProjectDownloadService()
 	appHandler := handler.NewAppHandler(appService, userService, chatHistoryService, projectDownloadService)
 	userHandler := handler2.NewUserHandler(userService)
@@ -94,7 +95,7 @@ var handlerSet = wire.NewSet(handler.NewAppHandler, handler2.NewUserHandler, cha
 var llmSet = wire.NewSet(llm.NewBaseAiChatModel, llm.NewReasoningChatModel, llm.NewChatModel)
 
 func CustomRecoveryHandler(ctx context.Context, c *app.RequestContext, err interface{}, stack []byte) {
-	logger.Errorf("err: %v", err)
+	logger.Errorf("panic recovered: %v\n%s", err, stack)
 	c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.SystemError.WithMessage(fmt.Sprintf("%v", err))))
 	c.Abort()
 }

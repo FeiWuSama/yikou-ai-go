@@ -11,6 +11,7 @@ import (
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/eino/schema"
 	"gorm.io/gorm"
+	"workspace-yikou-ai-go/biz/ai/agent"
 	"workspace-yikou-ai-go/biz/core"
 	"workspace-yikou-ai-go/biz/core/builder"
 	"workspace-yikou-ai-go/biz/core/messagehandler"
@@ -54,6 +55,7 @@ func NewAppService(
 	chatHistoryService chathistory.IChatHistoryService,
 	streamHandlerExecutor *messagehandler.StreamHandlerExecutor,
 	screenshotService screenshotService.IScreenshotService,
+	routingAgentFactory *agent.CodeGenTypeRoutingAgentFactory,
 	db *gorm.DB,
 ) *AppService {
 	return &AppService{
@@ -62,6 +64,7 @@ func NewAppService(
 		chatHistoryService:    chatHistoryService,
 		streamHandlerExecutor: streamHandlerExecutor,
 		screenshotService:     screenshotService,
+		routingAgentFactory:   routingAgentFactory,
 		db:                    db,
 	}
 }
@@ -72,6 +75,7 @@ type AppService struct {
 	chatHistoryService    chathistory.IChatHistoryService
 	streamHandlerExecutor *messagehandler.StreamHandlerExecutor
 	screenshotService     screenshotService.IScreenshotService
+	routingAgentFactory   *agent.CodeGenTypeRoutingAgentFactory
 	db                    *gorm.DB
 }
 
@@ -288,13 +292,20 @@ func (s *AppService) AddApp(ctx context.Context, req *appApi.YiKouAppAddRequest,
 	if err != nil {
 		return 0, err
 	}
+
+	routingAgent := s.routingAgentFactory.GetRoutingAgent()
+	codeGenType, err := routingAgent.RouteCodeGenType(ctx, req.InitPrompt)
+	if err != nil {
+		logger.Errorf("路由代码生成类型失败: %v, 使用默认类型", err)
+		codeGenType = enum.HtmlCodeGen
+	}
+
 	newApp := &model.App{
-		ID:         appId,
-		AppName:    appName,
-		InitPrompt: req.InitPrompt,
-		UserID:     userId,
-		//todo 新建app暂时默认为单文件代码生成类型
-		CodeGenType: string(enum.VueCodeGen),
+		ID:          appId,
+		AppName:     appName,
+		InitPrompt:  req.InitPrompt,
+		UserID:      userId,
+		CodeGenType: string(codeGenType),
 		Priority:    0,
 	}
 	err = query.Use(s.db).App.
@@ -303,6 +314,8 @@ func (s *AppService) AddApp(ctx context.Context, req *appApi.YiKouAppAddRequest,
 	if err != nil {
 		return 0, err
 	}
+
+	logger.Infof("应用创建成功，ID: %d, 类型: %s", appId, codeGenType)
 	return newApp.ID, nil
 }
 

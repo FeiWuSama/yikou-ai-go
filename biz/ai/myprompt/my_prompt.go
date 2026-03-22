@@ -14,6 +14,7 @@ var (
 	htmlPrompt      string
 	multiFilePrompt string
 	vuePrompt       string
+	routingPrompt   string
 	promptOnce      sync.Once
 )
 
@@ -48,6 +49,12 @@ func LoadPrompts() error {
 			vuePrompt = htmlPrompt
 			err = nil
 		}
+
+		routingPrompt, err = loadPromptFile("codegen-routing-system-prompt.txt")
+		if err != nil {
+			routingPrompt = htmlPrompt
+			err = nil
+		}
 	})
 	return err
 }
@@ -64,6 +71,10 @@ func GetVuePrompt() string {
 	return vuePrompt
 }
 
+func GetRoutingPrompt() string {
+	return routingPrompt
+}
+
 func NewMultiFileChatTemplate() (prompt.ChatTemplate, error) {
 	return newChatTemplate(GetMultiFilePrompt()), nil
 }
@@ -74,6 +85,10 @@ func NewHtmlChatTemplate() (prompt.ChatTemplate, error) {
 
 func NewVueProjectPrompt() (prompt.ChatTemplate, error) {
 	return newChatTemplate(GetVuePrompt()), nil
+}
+
+func NewRoutingChatTemplate() (prompt.ChatTemplate, error) {
+	return newChatTemplate(GetRoutingPrompt()), nil
 }
 
 func newChatTemplate(systemPrompt string) prompt.ChatTemplate {

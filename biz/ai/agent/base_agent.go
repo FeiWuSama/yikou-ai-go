@@ -66,9 +66,13 @@ func (a *BaseAgent) NewAdkAgent(name, description, instruction string, tools []t
 }
 
 func (a *BaseAgent) Generate(ctx context.Context, userMessage string, chatTemplate prompt.ChatTemplate, adkAgent *adk.ChatModelAgent) (*schema.Message, error) {
-	history, err := a.memoryHelper.GetHistory(ctx, a.checkpoint.Id)
-	if err != nil {
-		return nil, err
+	var history []*schema.Message
+	if a.checkpoint != nil && a.memoryHelper != nil {
+		var err error
+		history, err = a.memoryHelper.GetHistory(ctx, a.checkpoint.Id)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	format, err := chatTemplate.Format(ctx, map[string]any{
@@ -82,10 +86,20 @@ func (a *BaseAgent) Generate(ctx context.Context, userMessage string, chatTempla
 	runner := adk.NewRunner(ctx, adk.RunnerConfig{
 		Agent:           adkAgent,
 		EnableStreaming: false,
-		CheckPointStore: a.checkpoint,
 	})
 
-	iter := runner.Run(ctx, format, adk.WithCheckPointID(a.checkpoint.Id))
+	if a.checkpoint != nil {
+		runner = adk.NewRunner(ctx, adk.RunnerConfig{
+			Agent:           adkAgent,
+			EnableStreaming: false,
+			CheckPointStore: a.checkpoint,
+		})
+	}
+
+	iter := runner.Run(ctx, format)
+	if a.checkpoint != nil {
+		iter = runner.Run(ctx, format, adk.WithCheckPointID(a.checkpoint.Id))
+	}
 
 	var resultMsg *schema.Message
 	for {
@@ -109,18 +123,24 @@ func (a *BaseAgent) Generate(ctx context.Context, userMessage string, chatTempla
 		return nil, nil
 	}
 
-	err = a.memoryHelper.SaveHistory(ctx, a.checkpoint.Id, userMessage, resultMsg.Content)
-	if err != nil {
-		return nil, err
+	if a.checkpoint != nil && a.memoryHelper != nil {
+		err = a.memoryHelper.SaveHistory(ctx, a.checkpoint.Id, userMessage, resultMsg.Content)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return resultMsg, nil
 }
 
 func (a *BaseAgent) GenerateStream(ctx context.Context, userMessage string, chatTemplate prompt.ChatTemplate, adkAgent *adk.ChatModelAgent) (*schema.StreamReader[*schema.Message], error) {
-	history, err := a.memoryHelper.GetHistory(ctx, a.checkpoint.Id)
-	if err != nil {
-		return nil, err
+	var history []*schema.Message
+	if a.checkpoint != nil && a.memoryHelper != nil {
+		var err error
+		history, err = a.memoryHelper.GetHistory(ctx, a.checkpoint.Id)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	format, err := chatTemplate.Format(ctx, map[string]any{
@@ -136,7 +156,10 @@ func (a *BaseAgent) GenerateStream(ctx context.Context, userMessage string, chat
 		EnableStreaming: true,
 	})
 
-	iter := runner.Run(ctx, format, adk.WithCheckPointID(a.checkpoint.Id))
+	iter := runner.Run(ctx, format)
+	if a.checkpoint != nil {
+		iter = runner.Run(ctx, format, adk.WithCheckPointID(a.checkpoint.Id))
+	}
 
 	reader, writer := schema.Pipe[*schema.Message](2)
 
@@ -147,7 +170,9 @@ func (a *BaseAgent) GenerateStream(ctx context.Context, userMessage string, chat
 		for {
 			event, ok := iter.Next()
 			if !ok {
-				_ = a.memoryHelper.SaveHistory(ctx, a.checkpoint.Id, userMessage, fullContent)
+				if a.checkpoint != nil && a.memoryHelper != nil {
+					_ = a.memoryHelper.SaveHistory(ctx, a.checkpoint.Id, userMessage, fullContent)
+				}
 				break
 			}
 
