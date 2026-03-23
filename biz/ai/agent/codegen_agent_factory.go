@@ -11,6 +11,7 @@ import (
 
 	"github.com/patrickmn/go-cache"
 	"github.com/redis/go-redis/v9"
+	"workspace-yikou-ai-go/biz/ai/aitools"
 	"workspace-yikou-ai-go/biz/ai/llm"
 	"workspace-yikou-ai-go/biz/ai/store"
 	"workspace-yikou-ai-go/biz/model/enum"
@@ -30,18 +31,21 @@ type CodeGenAgentFactory struct {
 	reasoningStreamingChatModel *llm.ReasoningChatModel
 	redisClient                 *redis.Client
 	chatHistoryService          chatHistory.IChatHistoryService
+	toolManager                 *aitools.ToolManager
 }
 
 func NewCodeGenAgentFactory(chatModel *llm.BaseAiChatModel, reasoningStreamingChatModel *llm.ReasoningChatModel,
-	redisClient *redis.Client, chatHistoryService chatHistory.IChatHistoryService) *CodeGenAgentFactory {
+	redisClient *redis.Client, chatHistoryService chatHistory.IChatHistoryService, toolManager *aitools.ToolManager) *CodeGenAgentFactory {
 	serviceCache.OnEvicted(func(k string, v interface{}) {
 		logger.Debugf("AI服务实例被移除，缓冲键: %v", k)
 	})
+
 	return &CodeGenAgentFactory{
 		chatModel:                   chatModel,
 		reasoningStreamingChatModel: reasoningStreamingChatModel,
 		redisClient:                 redisClient,
 		chatHistoryService:          chatHistoryService,
+		toolManager:                 toolManager,
 	}
 }
 
@@ -91,9 +95,9 @@ func (c CodeGenAgentFactory) GetCodeGenAgent(appId int64, codeGenType enum.CodeG
 	var agent *CodeGenAgent
 	switch codeGenType {
 	case enum.HtmlCodeGen, enum.MultiFileGen:
-		agent = NewCodeGenAgent((*openai.ChatModel)(c.chatModel), redisStore, limitedMemoryStore, codeGenType)
+		agent = NewCodeGenAgent((*openai.ChatModel)(c.chatModel), redisStore, limitedMemoryStore, codeGenType, c.toolManager)
 	case enum.VueCodeGen:
-		agent = NewCodeGenAgent((*openai.ChatModel)(c.reasoningStreamingChatModel), redisStore, limitedMemoryStore, codeGenType)
+		agent = NewCodeGenAgent((*openai.ChatModel)(c.reasoningStreamingChatModel), redisStore, limitedMemoryStore, codeGenType, c.toolManager)
 	default:
 		return nil, pkg.SystemError.WithMessage("不支持的代码生成类型: " + enum.CodeGenTypeTextMap[codeGenType])
 	}

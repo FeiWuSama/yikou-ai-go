@@ -20,6 +20,7 @@ import (
 	"gorm.io/gorm"
 	"workspace-yikou-ai-go/biz/ai"
 	"workspace-yikou-ai-go/biz/ai/agent"
+	"workspace-yikou-ai-go/biz/ai/aitools"
 	"workspace-yikou-ai-go/biz/ai/llm"
 	"workspace-yikou-ai-go/biz/core"
 	"workspace-yikou-ai-go/biz/core/messagehandler"
@@ -138,6 +139,7 @@ func InitializeApp() (*server.Hertz, error) {
 		saver.NewCodeFileSaverExecutor,
 		agent.NewCodeGenAgentFactory,
 		agent.NewCodeGenTypeRoutingAgentFactory,
+		aitools.NewToolManager,
 		messagehandler.NewStreamHandlerExecutor,
 		manager.NewCosManager,
 	))

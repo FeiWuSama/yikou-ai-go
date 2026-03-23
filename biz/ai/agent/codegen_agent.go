@@ -14,17 +14,19 @@ import (
 	"workspace-yikou-ai-go/biz/model/enum"
 )
 
-func NewCodeGenAgent(model *openai.ChatModel, checkpoint *store.RedisStore, memoryStore store.MemoryStore, codeGenType enum.CodeGenTypeEnum) *CodeGenAgent {
+func NewCodeGenAgent(model *openai.ChatModel, checkpoint *store.RedisStore, memoryStore store.MemoryStore, codeGenType enum.CodeGenTypeEnum, toolManager *aitools.ToolManager) *CodeGenAgent {
 	baseAgent := NewBaseAgent(model, checkpoint, memoryStore)
 	return &CodeGenAgent{
-		BaseAgent: baseAgent,
-		agentType: codeGenType,
+		BaseAgent:   baseAgent,
+		agentType:   codeGenType,
+		toolManager: toolManager,
 	}
 }
 
 type CodeGenAgent struct {
 	*BaseAgent
-	agentType enum.CodeGenTypeEnum
+	agentType   enum.CodeGenTypeEnum
+	toolManager *aitools.ToolManager
 }
 
 func (a *CodeGenAgent) getAdkAgent() *adk.ChatModelAgent {
@@ -112,7 +114,12 @@ func (a *CodeGenAgent) newVueCodeGenAgent() *adk.ChatModelAgent {
 		logger.Errorf("加载prompts失败: %v", err)
 		return nil
 	}
-	tools := []tool.BaseTool{aitools.FileWriteTool}
+
+	var tools []tool.BaseTool
+	if a.toolManager != nil {
+		tools = a.toolManager.GetAllTools()
+	}
+
 	return a.NewAdkAgent(
 		"AI 代码生成助手",
 		"具有强大的代码生成能力",

@@ -2,10 +2,10 @@ package messagehandler
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"workspace-yikou-ai-go/biz/ai/aimodel/aimessage"
+	"workspace-yikou-ai-go/biz/ai/aitools"
 	"workspace-yikou-ai-go/biz/service/chathistory"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
@@ -38,15 +38,17 @@ func (h *SimpleTextStreamHandler) Handle(chunk string) string {
 
 type JsonMessageStreamHandler struct {
 	chatHistoryService chathistory.IChatHistoryService
+	toolManager        *aitools.ToolManager
 	appId              int64
 	userId             int64
 	seenToolIds        map[string]bool
 	chatHistoryBuilder strings.Builder
 }
 
-func NewJsonMessageStreamHandler(chatHistoryService chathistory.IChatHistoryService, appId int64, userId int64) *JsonMessageStreamHandler {
+func NewJsonMessageStreamHandler(chatHistoryService chathistory.IChatHistoryService, toolManager *aitools.ToolManager, appId int64, userId int64) *JsonMessageStreamHandler {
 	return &JsonMessageStreamHandler{
 		chatHistoryService: chatHistoryService,
+		toolManager:        toolManager,
 		appId:              appId,
 		userId:             userId,
 		seenToolIds:        make(map[string]bool),
@@ -93,9 +95,17 @@ func (h *JsonMessageStreamHandler) handleToolRequest(chunk string) string {
 	}
 
 	toolId := msg.Id
+	toolName := msg.Name
+
 	if toolId != "" && !h.seenToolIds[toolId] {
 		h.seenToolIds[toolId] = true
-		return "\n\n[选择工具] 写入文件\n\n"
+
+		if h.toolManager != nil {
+			tool := h.toolManager.GetTool(toolName)
+			if tool != nil {
+				return tool.GenerateToolRequestResponse()
+			}
+		}
 	}
 	return ""
 }
@@ -107,32 +117,16 @@ func (h *JsonMessageStreamHandler) handleToolExecuted(chunk string) string {
 		return ""
 	}
 
-	fileName := h.extractFileNameFromResult(msg.Result)
-	if fileName == "" {
-		return ""
-	}
+	toolName := msg.Name
+	arguments := msg.Arguments
 
-	result := fmt.Sprintf("\n\n[工具调用] 写入文件 %s\n\n", fileName)
-
-	h.chatHistoryBuilder.WriteString(result)
-	return result
-}
-
-func (h *JsonMessageStreamHandler) extractFileNameFromResult(result string) string {
-	var resultObj struct {
-		Parts []struct {
-			Type string `json:"type"`
-			Text string `json:"text"`
-		} `json:"parts"`
-	}
-	if err := json.Unmarshal([]byte(result), &resultObj); err != nil {
-		hlog.Errorf("解析工具结果失败: %v", err)
-		return ""
-	}
-
-	for _, part := range resultObj.Parts {
-		if part.Type == "text" && strings.HasPrefix(part.Text, "文件写入成功: ") {
-			return strings.TrimPrefix(part.Text, "文件写入成功: ")
+	if h.toolManager != nil {
+		tool := h.toolManager.GetTool(toolName)
+		if tool != nil {
+			result := tool.GenerateToolExecutedResult(arguments)
+			output := "\n\n" + result + "\n\n"
+			h.chatHistoryBuilder.WriteString(output)
+			return output
 		}
 	}
 	return ""

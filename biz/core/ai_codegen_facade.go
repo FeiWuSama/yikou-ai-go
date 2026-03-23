@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/bytedance/gopkg/util/logger"
-	"github.com/cloudwego/eino/schema"
 	"io"
 	"strings"
+
+	"github.com/bytedance/gopkg/util/logger"
+	"github.com/cloudwego/eino/schema"
 	ai "workspace-yikou-ai-go/biz/ai"
 	"workspace-yikou-ai-go/biz/ai/agent"
 	aimodel "workspace-yikou-ai-go/biz/ai/aimodel"
@@ -35,9 +36,7 @@ func NewYiKouAiCodegenFacade(codegenService ai.IYiKouAiCodegenService,
 	}
 }
 
-// GenHtmlCodeAndSave 生成HTML代码并保存到文件系统
-// Deprecated: 请使用执行器的方法
-func (y *YiKouAiCodegenFacade) genHtmlCodeAndSave(ctx context.Context, userMessage string) error {
+func (y *YiKouAiCodegenFacade) GenHtmlCodeAndSave(ctx context.Context, userMessage string) error {
 	resp, err := y.codegenService.GenerateHtmlCode(ctx, userMessage)
 	if err != nil {
 		return err
@@ -54,9 +53,7 @@ func (y *YiKouAiCodegenFacade) genHtmlCodeAndSave(ctx context.Context, userMessa
 	return nil
 }
 
-// GenMultiFileCodeAndSave 生成多文件代码并保存到文件系统
-// Deprecated: 请使用执行器的方法
-func (y *YiKouAiCodegenFacade) genMultiFileCodeAndSave(ctx context.Context, userMessage string) error {
+func (y *YiKouAiCodegenFacade) GenMultiFileCodeAndSave(ctx context.Context, userMessage string) error {
 	resp, err := y.codegenService.GenerateMultiFileCode(ctx, userMessage)
 	if err != nil {
 		return err
@@ -114,9 +111,7 @@ func (y *YiKouAiCodegenFacade) GenCodeAndSave(ctx context.Context, userMessage s
 	}
 }
 
-// GenHtmlCodeStreamAndSave 生成HTML代码流并保存到文件系统
-// Deprecated: 请使用执行器的方法
-func (y *YiKouAiCodegenFacade) genHtmlCodeStreamAndSave(ctx context.Context, userMessage string) error {
+func (y *YiKouAiCodegenFacade) GenHtmlCodeStreamAndSave(ctx context.Context, userMessage string) error {
 	streamResp, err := y.codegenService.GenerateHtmlCodeStream(ctx, userMessage)
 	if err != nil {
 		return err
@@ -146,9 +141,7 @@ func (y *YiKouAiCodegenFacade) genHtmlCodeStreamAndSave(ctx context.Context, use
 	return nil
 }
 
-// GenMultiFileCodeStreamAndSave 生成多文件代码流并保存到文件系统
-// Deprecated: 请使用执行器的方法
-func (y *YiKouAiCodegenFacade) genMultiFileCodeStreamAndSave(ctx context.Context, userMessage string) error {
+func (y *YiKouAiCodegenFacade) GenMultiFileCodeStreamAndSave(ctx context.Context, userMessage string) error {
 	streamResp, err := y.codegenService.GenerateMultiFileCodeStream(ctx, userMessage)
 	if err != nil {
 		return err
@@ -245,12 +238,13 @@ func (y *YiKouAiCodegenFacade) processCodeStream(respStream *schema.StreamReader
 }
 
 // toolCallBuffer
-// 工具请求信息缓存
+// 工具信息缓存
 type toolCallBuffer struct {
-	ID   string
-	Name string
-	Args string
-	Sent bool
+	ID           string
+	Name         string
+	Args         string
+	SentRequest  bool
+	SentExecuted bool
 }
 
 // isValidJSON
@@ -273,6 +267,7 @@ func (y *YiKouAiCodegenFacade) processVueCodeStream(respStream *schema.StreamRea
 
 		// 初始化工具响应缓存map
 		toolCallsBuffer := make(map[int]*toolCallBuffer)
+		idToIndex := make(map[string]int)
 
 		for {
 			// 消费流
@@ -305,33 +300,32 @@ func (y *YiKouAiCodegenFacade) processVueCodeStream(respStream *schema.StreamRea
 					}
 					buffer := toolCallsBuffer[idx]
 
-					// 刷新缓存map
-					if tc.ID != "" && buffer.ID != "" && buffer.ID != tc.ID {
-						delete(toolCallsBuffer, idx)
-						toolCallsBuffer[idx] = &toolCallBuffer{
-							ID: tc.ID,
-						}
-						buffer = toolCallsBuffer[idx]
-					}
-
-					// 为工具请求信息缓存赋值
 					if tc.ID != "" {
 						buffer.ID = tc.ID
+						idToIndex[tc.ID] = idx
 					}
 					if tc.Function.Name != "" {
 						buffer.Name = tc.Function.Name
 					}
 					buffer.Args += tc.Function.Arguments
 
-					// 记录工具请求信息已写入通道流
-					if buffer.ID != "" && buffer.Name != "" && isValidJSON(buffer.Args) && !buffer.Sent {
+					if buffer.ID != "" && buffer.Name != "" && isValidJSON(buffer.Args) && !buffer.SentRequest {
 						streamMsg = aimessage.NewToolRequestMessage(idx, buffer.ID, buffer.Name, buffer.Args)
-						buffer.Sent = true
+						buffer.SentRequest = true
 					}
 				}
 			} else if msg.Role == schema.Tool {
-				// 判断是工具执行结果类型信息
-				streamMsg = aimessage.NewToolExecutedMessage(0, msg.ToolCallID, msg.ToolName, "", msg.Content)
+				toolCallID := msg.ToolCallID
+				arguments := ""
+
+				if idx, exists := idToIndex[toolCallID]; exists {
+					if buffer, ok := toolCallsBuffer[idx]; ok {
+						arguments = buffer.Args
+					}
+					delete(toolCallsBuffer, idx)
+					delete(idToIndex, toolCallID)
+				}
+				streamMsg = aimessage.NewToolExecutedMessage(0, msg.ToolCallID, msg.ToolName, arguments, msg.Content)
 			} else if msg.Content != "" {
 				// 判断是ai响应类型信息
 				streamMsg = aimessage.NewAIResponseMessage(msg.Content)

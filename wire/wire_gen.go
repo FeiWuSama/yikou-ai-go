@@ -23,6 +23,7 @@ import (
 	"time"
 	"workspace-yikou-ai-go/biz/ai"
 	"workspace-yikou-ai-go/biz/ai/agent"
+	"workspace-yikou-ai-go/biz/ai/aitools"
 	"workspace-yikou-ai-go/biz/ai/llm"
 	"workspace-yikou-ai-go/biz/core"
 	"workspace-yikou-ai-go/biz/core/messagehandler"
@@ -60,10 +61,14 @@ func InitializeApp() (*server.Hertz, error) {
 	client := dal.InitRedis(configConfig)
 	db := dal.InitDB(configConfig)
 	chatHistoryService := chathistory.NewChatHistoryService(db)
-	codeGenAgentFactory := agent.NewCodeGenAgentFactory(baseAiChatModel, reasoningChatModel, client, chatHistoryService)
+	toolManager, err := aitools.NewToolManager()
+	if err != nil {
+		return nil, err
+	}
+	codeGenAgentFactory := agent.NewCodeGenAgentFactory(baseAiChatModel, reasoningChatModel, client, chatHistoryService, toolManager)
 	yiKouAiCodegenFacade := core.NewYiKouAiCodegenFacade(yiKouAiCodegenService, codeParserExecutor, codeFileSaverExecutor, codeGenAgentFactory)
 	userService := service.NewUserService(db, client)
-	streamHandlerExecutor := messagehandler.NewStreamHandlerExecutor(chatHistoryService)
+	streamHandlerExecutor := messagehandler.NewStreamHandlerExecutor(chatHistoryService, toolManager)
 	cosClient := dal.InitCOSClient(configConfig)
 	cosManager := manager.NewCosManager(cosClient, configConfig)
 	screenshotService := screenshot.NewScreenshotService(cosManager)
