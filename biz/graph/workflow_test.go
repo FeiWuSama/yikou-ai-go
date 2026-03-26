@@ -19,3 +19,10 @@ func TestRunSimpleStateWorkflow(t *testing.T) {
 		logger.Errorf("工作流执行失败: %v", err)
 	}
 }
+
+func TestRunWorkflowApp(t *testing.T) {
+	fmt.Println("=== 网站生成工作流 ===")
+	if err := RunSimpleStateWorkflow(); err != nil {
+		logger.Errorf("工作流执行失败: %v", err)
+	}
+}

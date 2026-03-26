@@ -36,7 +36,15 @@ func GetImageCategoryByValue(value string) ImageCategoryEnum {
 }
 
 type ImageSource struct {
-	category    ImageCategoryEnum
-	description string
-	url         string
+	Category    ImageCategoryEnum
+	Description string
+	Url         string
+}
+
+func NewImageSource(category ImageCategoryEnum, description string, url string) *ImageSource {
+	return &ImageSource{
+		Category:    category,
+		Description: description,
+		Url:         url,
+	}
 }
