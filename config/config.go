@@ -16,6 +16,7 @@ type Config struct {
 	Redis    RedisConfig    `yaml:"redis"`
 	AI       AIConfig       `yaml:"ai"`
 	COS      COSConfig      `yaml:"cos"`
+	Pexels   PexelsConfig   `yaml:"pexels"`
 }
 
 //var GlobalConfig *Config
@@ -47,6 +48,10 @@ type COSConfig struct {
 	SecretKey string `yaml:"secret-key"`
 	Region    string `yaml:"region"`
 	Bucket    string `yaml:"bucket"`
+}
+
+type PexelsConfig struct {
+	APIKey string `yaml:"api-key"`
 }
 
 type AIConfig struct {
@@ -217,6 +222,13 @@ func mergeChatModelConfig(base, override *ChatModelConfig) {
 	}
 }
 
+// mergePexelsConfig 合并 PexelsConfig 结构体的配置
+func mergePexelsConfig(base, override *PexelsConfig) {
+	if override.APIKey != "" {
+		base.APIKey = override.APIKey
+	}
+}
+
 // InitConfig 初始化配置文件
 func InitConfig() *Config {
 	projectRoot, err := pkg.GetProjectRoot()
@@ -245,6 +257,7 @@ func InitConfig() *Config {
 				mergeRedisConfig(&config.Redis, &overrideConfig.Redis)
 				mergeAIConfig(&config.AI, &overrideConfig.AI)
 				mergeCOSConfig(&config.COS, &overrideConfig.COS)
+				mergePexelsConfig(&config.Pexels, &overrideConfig.Pexels)
 			}
 		}
 	}

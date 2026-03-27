@@ -43,5 +43,9 @@ cos:
   # 存储桶名称
   bucket: ""
 
+# Pexels 图片搜索配置
+pexels:
+  api-key: <Your API Key>
+
 
 
