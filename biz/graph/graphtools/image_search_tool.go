@@ -25,8 +25,7 @@ type ImageSearchTool struct {
 	apiKey string
 }
 
-func CreateImageSearchTool() (*ImageSearchTool, error) {
-	cfg := config.InitConfig()
+func CreateImageSearchTool(cfg *config.Config) (*ImageSearchTool, error) {
 	streamTool, err := utils.InferStreamTool("imageSearch", "搜索内容相关的图片，用于网站内容展示", imageSearchToolFunc(cfg.Pexels.APIKey))
 	if err != nil {
 		return nil, err
