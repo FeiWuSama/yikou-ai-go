@@ -3,7 +3,6 @@ package manager
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/tencentyun/cos-go-sdk-v5"
@@ -56,15 +55,6 @@ func (m *CosManager) UploadFile(key string, filePath string) (string, error) {
 	return "", fmt.Errorf("文件上传COS失败，状态码: %d", resp.StatusCode)
 }
 
-func (m *CosManager) PutObjectFromReader(key string, reader io.Reader) (*cos.Response, error) {
-	resp, err := m.client.Object.Put(context.Background(), key, reader, nil)
-	if err != nil {
-		return nil, fmt.Errorf("上传对象失败: %w", err)
-	}
-
-	return resp, nil
-}
-
 func (m *CosManager) DeleteObject(key string) error {
 	_, err := m.client.Object.Delete(context.Background(), key)
 	if err != nil {
@@ -91,11 +81,4 @@ func (m *CosManager) DeleteObjects(keys []string) error {
 	}
 
 	return nil
-}
-
-func (m *CosManager) GetObjectURL(key string) string {
-	if m.config.COS.Host != "" {
-		return fmt.Sprintf("%s/%s", m.config.COS.Host, key)
-	}
-	return fmt.Sprintf("https://%s.cos.%s.myqcloud.com/%s", m.config.COS.Bucket, m.config.COS.Region, key)
 }
