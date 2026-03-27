@@ -18,3 +18,14 @@ func TestCreateImageSearchTool(t *testing.T) {
 	}
 	assert.NotNil(t, images)
 }
+
+func TestCreateUndrawIllustrationTool(t *testing.T) {
+	undrawIllustrations, err := searchUndrawIllustrations("sad")
+	if err != nil {
+		return
+	}
+	for _, undrawIllustration := range undrawIllustrations {
+		fmt.Println(undrawIllustration)
+	}
+	assert.NotNil(t, undrawIllustrations)
+}
