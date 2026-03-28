@@ -22,3 +22,9 @@ func (t *MyBaseTool) GetToolName() string {
 func (t *MyBaseTool) GenerateToolRequestResponse() string {
 	return fmt.Sprintf("\n\n[选择工具] %s\n\n", t.displayName)
 }
+
+type ToolInfo struct {
+	Name        string
+	DisplayName string
+	Description string
+}

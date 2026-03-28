@@ -1,4 +1,4 @@
-package graphtools
+package aitools
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"workspace-yikou-ai-go/biz/ai/aimodel"
 	"workspace-yikou-ai-go/pkg/myfile"
 	"workspace-yikou-ai-go/pkg/random"
 
@@ -17,7 +18,6 @@ import (
 	"github.com/cloudwego/eino/components/tool/utils"
 	"github.com/cloudwego/eino/schema"
 	"workspace-yikou-ai-go/biz/dal"
-	"workspace-yikou-ai-go/biz/graph/graphmodel"
 	"workspace-yikou-ai-go/biz/manager"
 	"workspace-yikou-ai-go/config"
 )
@@ -79,7 +79,7 @@ func mermaidDiagramToolFunc(cosManager *manager.CosManager) func(ctx context.Con
 	}
 }
 
-func generateMermaidDiagram(cosManager *manager.CosManager, mermaidCode string, description string) ([]*graphmodel.ImageSource, error) {
+func generateMermaidDiagram(cosManager *manager.CosManager, mermaidCode string, description string) ([]*ai.ImageSource, error) {
 	projectRoot, err := myfile.GetProjectRoot()
 	if err != nil {
 		return nil, err
@@ -122,12 +122,12 @@ func generateMermaidDiagram(cosManager *manager.CosManager, mermaidCode string, 
 	}
 
 	if cosURL == "" {
-		return []*graphmodel.ImageSource{}, nil
+		return []*ai.ImageSource{}, nil
 	}
 
-	return []*graphmodel.ImageSource{
-		graphmodel.NewImageSource(
-			graphmodel.ImageCategoryArchitecture,
+	return []*ai.ImageSource{
+		ai.NewImageSource(
+			ai.ImageCategoryArchitecture,
 			description,
 			cosURL,
 		),

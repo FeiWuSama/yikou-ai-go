@@ -1,4 +1,4 @@
-package graphtools
+package aitools
 
 import (
 	"fmt"

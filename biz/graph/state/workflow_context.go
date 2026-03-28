@@ -2,7 +2,7 @@ package state
 
 import (
 	"context"
-	"workspace-yikou-ai-go/biz/graph/graphmodel"
+	"workspace-yikou-ai-go/biz/ai/aimodel"
 	"workspace-yikou-ai-go/biz/model/enum"
 )
 
@@ -14,7 +14,7 @@ type WorkFlowContext struct {
 	CurrentStep     string
 	OriginalPrompt  string
 	ImageListStr    string
-	ImageList       []graphmodel.ImageSource
+	ImageList       []ai.ImageSource
 	EnhancedPrompt  string
 	GenerationType  enum.CodeGenTypeEnum
 	GenerateCodeDir string

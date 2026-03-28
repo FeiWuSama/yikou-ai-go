@@ -1,4 +1,4 @@
-package graphmodel
+package ai
 
 type ImageCategoryEnum string
 

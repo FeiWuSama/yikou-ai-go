@@ -11,11 +11,12 @@ import (
 )
 
 var (
-	htmlPrompt      string
-	multiFilePrompt string
-	vuePrompt       string
-	routingPrompt   string
-	promptOnce      sync.Once
+	htmlPrompt            string
+	multiFilePrompt       string
+	vuePrompt             string
+	routingPrompt         string
+	imageCollectionPrompt string
+	promptOnce            sync.Once
 )
 
 func loadPromptFile(fileName string) (string, error) {
@@ -55,6 +56,12 @@ func LoadPrompts() error {
 			routingPrompt = htmlPrompt
 			err = nil
 		}
+
+		imageCollectionPrompt, err = loadPromptFile("image-collection-system-prompt.txt")
+		if err != nil {
+			imageCollectionPrompt = "你是一个图片收集助手，帮助用户收集和搜索各类图片资源。你可以使用以下工具：\n1. imageSearch - 搜索内容相关的图片\n2. undrawIllustration - 搜索插画图片\n3. logoGenerator - 生成Logo图片\n\n请根据用户的需求选择合适的工具来收集图片，并以JSON数组格式返回结果。"
+			err = nil
+		}
 	})
 	return err
 }
@@ -75,6 +82,10 @@ func GetRoutingPrompt() string {
 	return routingPrompt
 }
 
+func GetImageCollectionPrompt() string {
+	return imageCollectionPrompt
+}
+
 func NewMultiFileChatTemplate() (prompt.ChatTemplate, error) {
 	return newChatTemplate(GetMultiFilePrompt()), nil
 }
@@ -89,6 +100,10 @@ func NewVueProjectPrompt() (prompt.ChatTemplate, error) {
 
 func NewRoutingChatTemplate() (prompt.ChatTemplate, error) {
 	return newChatTemplate(GetRoutingPrompt()), nil
+}
+
+func NewImageCollectionChatTemplate() (prompt.ChatTemplate, error) {
+	return newChatTemplate(GetImageCollectionPrompt()), nil
 }
 
 func newChatTemplate(systemPrompt string) prompt.ChatTemplate {

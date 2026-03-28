@@ -1,4 +1,4 @@
-package graphtools
+package aitools
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"workspace-yikou-ai-go/biz/ai/aimodel"
 	"workspace-yikou-ai-go/pkg/myfile"
 
 	"github.com/bytedance/gopkg/util/logger"
@@ -17,7 +18,6 @@ import (
 	"github.com/cloudwego/eino/components/tool/utils"
 	"github.com/cloudwego/eino/schema"
 	"workspace-yikou-ai-go/biz/dal"
-	"workspace-yikou-ai-go/biz/graph/graphmodel"
 	"workspace-yikou-ai-go/biz/manager"
 	"workspace-yikou-ai-go/config"
 	"workspace-yikou-ai-go/pkg/random"
@@ -104,7 +104,7 @@ type DashScopeImageResult struct {
 	URL string `json:"url"`
 }
 
-func generateLogos(apiKey string, imageModel string, cosManager *manager.CosManager, description string) ([]*graphmodel.ImageSource, error) {
+func generateLogos(apiKey string, imageModel string, cosManager *manager.CosManager, description string) ([]*ai.ImageSource, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("DashScope API Key 未配置")
 	}
@@ -137,7 +137,7 @@ func generateLogos(apiKey string, imageModel string, cosManager *manager.CosMana
 		return nil, err
 	}
 
-	logoList := make([]*graphmodel.ImageSource, 0)
+	logoList := make([]*ai.ImageSource, 0)
 	for _, result := range taskOutput.Results {
 		if result.URL == "" {
 			continue
@@ -146,16 +146,16 @@ func generateLogos(apiKey string, imageModel string, cosManager *manager.CosMana
 		cosURL, err := downloadAndUploadToCOS(result.URL, cosManager)
 		if err != nil {
 			logger.Errorf("上传 Logo 到 COS 失败: %v", err)
-			logoList = append(logoList, graphmodel.NewImageSource(
-				graphmodel.ImageCategoryLogo,
+			logoList = append(logoList, ai.NewImageSource(
+				ai.ImageCategoryLogo,
 				description,
 				result.URL,
 			))
 			continue
 		}
 
-		logoList = append(logoList, graphmodel.NewImageSource(
-			graphmodel.ImageCategoryLogo,
+		logoList = append(logoList, ai.NewImageSource(
+			ai.ImageCategoryLogo,
 			description,
 			cosURL,
 		))

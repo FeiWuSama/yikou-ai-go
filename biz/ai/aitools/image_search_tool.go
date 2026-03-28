@@ -1,4 +1,4 @@
-package graphtools
+package aitools
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"workspace-yikou-ai-go/biz/graph/graphmodel"
+	"workspace-yikou-ai-go/biz/ai/aimodel"
 	"workspace-yikou-ai-go/config"
 
 	"github.com/bytedance/gopkg/util/logger"
@@ -76,7 +76,7 @@ type PexelsSrc struct {
 	Small    string `json:"small"`
 }
 
-func searchImages(apiKey string, query string) ([]*graphmodel.ImageSource, error) {
+func searchImages(apiKey string, query string) ([]*ai.ImageSource, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("pexels API Key 未配置")
 	}
@@ -123,14 +123,14 @@ func searchImages(apiKey string, query string) ([]*graphmodel.ImageSource, error
 		return nil, fmt.Errorf("解析响应失败: %w", err)
 	}
 
-	imageList := make([]*graphmodel.ImageSource, 0, len(pexelsResp.Photos))
+	imageList := make([]*ai.ImageSource, 0, len(pexelsResp.Photos))
 	for _, photo := range pexelsResp.Photos {
 		description := photo.Alt
 		if description == "" {
 			description = query
 		}
-		imageList = append(imageList, graphmodel.NewImageSource(
-			graphmodel.ImageCategoryContent,
+		imageList = append(imageList, ai.NewImageSource(
+			ai.ImageCategoryContent,
 			description,
 			photo.Src.Medium,
 		))

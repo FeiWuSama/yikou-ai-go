@@ -1,4 +1,4 @@
-package graphtools
+package aitools
 
 import (
 	"context"
@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"workspace-yikou-ai-go/biz/ai/aimodel"
 
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/components/tool/utils"
 	"github.com/cloudwego/eino/schema"
-	"workspace-yikou-ai-go/biz/graph/graphmodel"
 )
 
 type UndrawIllustrationToolParams struct {
@@ -64,9 +65,10 @@ type UndrawIllustration struct {
 	Media string `json:"media"`
 }
 
-func searchUndrawIllustrations(query string) ([]*graphmodel.ImageSource, error) {
+func searchUndrawIllustrations(query string) ([]*ai.ImageSource, error) {
 	searchCount := 12
-	apiURL := fmt.Sprintf("https://undraw.co/_next/data/rxbI0cNBbVhP70ybALHAo/search/%s.json?term=%s", query, query)
+	encodedQuery := url.QueryEscape(query)
+	apiURL := fmt.Sprintf("https://undraw.co/_next/data/rxbI0cNBbVhP70ybALHAo/search/%s.json?term=%s", encodedQuery, encodedQuery)
 
 	client := &http.Client{Timeout: 10000000000}
 	resp, err := client.Get(apiURL)
@@ -89,7 +91,7 @@ func searchUndrawIllustrations(query string) ([]*graphmodel.ImageSource, error) 
 		return nil, fmt.Errorf("解析响应失败: %w", err)
 	}
 
-	imageList := make([]*graphmodel.ImageSource, 0)
+	imageList := make([]*ai.ImageSource, 0)
 	initialResults := undrawResp.PageProps.InitialResults
 	if len(initialResults) == 0 {
 		return imageList, nil
@@ -109,8 +111,8 @@ func searchUndrawIllustrations(query string) ([]*graphmodel.ImageSource, error) 
 		if title == "" {
 			title = "插画"
 		}
-		imageList = append(imageList, graphmodel.NewImageSource(
-			graphmodel.ImageCategoryIllustration,
+		imageList = append(imageList, ai.NewImageSource(
+			ai.ImageCategoryIllustration,
 			title,
 			illustration.Media,
 		))
