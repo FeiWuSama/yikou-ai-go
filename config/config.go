@@ -11,12 +11,13 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig   `yaml:"server"`
-	Database DatabaseConfig `yaml:"database"`
-	Redis    RedisConfig    `yaml:"redis"`
-	AI       AIConfig       `yaml:"ai"`
-	COS      COSConfig      `yaml:"cos"`
-	Pexels   PexelsConfig   `yaml:"pexels"`
+	Server    ServerConfig    `yaml:"server"`
+	Database  DatabaseConfig  `yaml:"database"`
+	Redis     RedisConfig     `yaml:"redis"`
+	AI        AIConfig        `yaml:"ai"`
+	COS       COSConfig       `yaml:"cos"`
+	Pexels    PexelsConfig    `yaml:"pexels"`
+	DashScope DashScopeConfig `yaml:"dashscope"`
 }
 
 //var GlobalConfig *Config
@@ -52,6 +53,11 @@ type COSConfig struct {
 
 type PexelsConfig struct {
 	APIKey string `yaml:"api-key"`
+}
+
+type DashScopeConfig struct {
+	APIKey     string `yaml:"api-key"`
+	ImageModel string `yaml:"image-model"`
 }
 
 type AIConfig struct {
@@ -229,6 +235,15 @@ func mergePexelsConfig(base, override *PexelsConfig) {
 	}
 }
 
+func mergeDashScopeConfig(base, override *DashScopeConfig) {
+	if override.APIKey != "" {
+		base.APIKey = override.APIKey
+	}
+	if override.ImageModel != "" {
+		base.ImageModel = override.ImageModel
+	}
+}
+
 // InitConfig 初始化配置文件
 func InitConfig() *Config {
 	projectRoot, err := pkg.GetProjectRoot()
@@ -258,6 +273,7 @@ func InitConfig() *Config {
 				mergeAIConfig(&config.AI, &overrideConfig.AI)
 				mergeCOSConfig(&config.COS, &overrideConfig.COS)
 				mergePexelsConfig(&config.Pexels, &overrideConfig.Pexels)
+				mergeDashScopeConfig(&config.DashScope, &overrideConfig.DashScope)
 			}
 		}
 	}

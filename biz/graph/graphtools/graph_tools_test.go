@@ -50,3 +50,16 @@ func TestCreateMermaidDiagramTool(t *testing.T) {
 	assert.NotNil(t, mermaidDiagram)
 	fmt.Println(mermaidDiagram[0])
 }
+
+func TestCreateLogoGeneratorTool(t *testing.T) {
+	initConfig := config.InitConfig()
+	client := dal.InitCOSClient(initConfig)
+	cosManager := manager.NewCosManager(client, initConfig)
+	logos, err := generateLogos(initConfig.DashScope.APIKey, initConfig.DashScope.ImageModel, cosManager, "技术公司现代简约风格logo")
+	if err != nil {
+		fmt.Println(err)
+	}
+	for _, logo := range logos {
+		fmt.Println(logo)
+	}
+}
