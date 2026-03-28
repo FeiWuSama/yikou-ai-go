@@ -3,29 +3,20 @@ package agent
 import (
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/eino-ext/components/model/openai"
-	"github.com/redis/go-redis/v9"
 	"workspace-yikou-ai-go/biz/ai/aitools"
 	"workspace-yikou-ai-go/biz/ai/llm"
-	chatHistory "workspace-yikou-ai-go/biz/service/chathistory"
 	"workspace-yikou-ai-go/config"
 )
 
 type ImageCollectionServiceFactory struct {
 	chatModel              *llm.BaseAiChatModel
-	redisClient            *redis.Client
-	chatHistoryService     chatHistory.IChatHistoryService
 	imageSearchTool        *aitools.ImageSearchTool
 	undrawIllustrationTool *aitools.UndrawIllustrationTool
 	mermaidDiagramTool     *aitools.MermaidDiagramTool
 	logoGeneratorTool      *aitools.LogoGeneratorTool
 }
 
-func NewImageCollectionServiceFactory(
-	chatModel *llm.BaseAiChatModel,
-	redisClient *redis.Client,
-	chatHistoryService chatHistory.IChatHistoryService,
-	cfg *config.Config,
-) *ImageCollectionServiceFactory {
+func NewImageCollectionServiceFactory(chatModel *llm.BaseAiChatModel, cfg *config.Config) *ImageCollectionServiceFactory {
 	imageSearchTool, err := aitools.CreateImageSearchTool(cfg)
 	if err != nil {
 		logger.Errorf("创建图片搜索工具失败: %v", err)
@@ -48,8 +39,6 @@ func NewImageCollectionServiceFactory(
 
 	return &ImageCollectionServiceFactory{
 		chatModel:              chatModel,
-		redisClient:            redisClient,
-		chatHistoryService:     chatHistoryService,
 		imageSearchTool:        imageSearchTool,
 		undrawIllustrationTool: undrawIllustrationTool,
 		mermaidDiagramTool:     mermaidDiagramTool,
@@ -57,13 +46,17 @@ func NewImageCollectionServiceFactory(
 	}
 }
 
+var imageCollectionServiceInstance *ImageCollectionAgent
+
 func (f *ImageCollectionServiceFactory) GetImageCollectionService() (*ImageCollectionAgent, error) {
-	newAgent := NewImageCollectionAgent(
-		(*openai.ChatModel)(f.chatModel),
-		f.imageSearchTool,
-		f.undrawIllustrationTool,
-		f.mermaidDiagramTool,
-		f.logoGeneratorTool,
-	)
-	return newAgent, nil
+	if imageCollectionServiceInstance == nil {
+		imageCollectionServiceInstance = NewImageCollectionAgent(
+			(*openai.ChatModel)(f.chatModel),
+			f.imageSearchTool,
+			f.undrawIllustrationTool,
+			f.mermaidDiagramTool,
+			f.logoGeneratorTool,
+		)
+	}
+	return imageCollectionServiceInstance, nil
 }
