@@ -2,35 +2,52 @@ package node
 
 import (
 	"context"
-	"workspace-yikou-ai-go/biz/ai/aimodel"
+	"workspace-yikou-ai-go/biz/ai/agent"
+	"workspace-yikou-ai-go/biz/ai/llm"
+	"workspace-yikou-ai-go/config"
 
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/eino/compose"
 	"workspace-yikou-ai-go/biz/graph/state"
 )
 
+var (
+	imageCollectionFactory *agent.ImageCollectionAgentFactory
+)
+
+func InitImageCollectorNode(cfg *config.Config, chatModel *llm.BaseAiChatModel) {
+	imageCollectionFactory = agent.NewImageCollectionServiceFactory(chatModel, cfg)
+}
+
 func NewImageCollectorNode() *compose.Lambda {
 	return compose.InvokableLambda(func(ctx context.Context, input map[string]any) (map[string]any, error) {
 		logger.Info("执行节点: 图片收集")
 
-		imageList := []*ai.ImageSource{
-			ai.NewImageSource(
-				ai.ImageCategoryContent,
-				"假数据图片1",
-				"https://www.codefather.cn/logo.png",
-			),
-			ai.NewImageSource(
-				ai.ImageCategoryLogo,
-				"假数据图片2",
-				"https://www.codefather.cn/logo.png",
-			),
+		graphState := state.GenGraphState(ctx)
+		workflowContext := state.GetContext(graphState)
+		if workflowContext == nil {
+			workflowContext = &state.WorkFlowContext{}
 		}
 
-		logger.Infof("图片收集完成，共收集 %d 张图片", len(imageList))
+		originalPrompt := workflowContext.OriginalPrompt
+
+		var imageListStr string
+
+		imageCollectionAgent, err := imageCollectionFactory.GetImageCollectionAgent()
+		if err != nil {
+			logger.Errorf("获取图片收集Agent失败: %v", err)
+		} else {
+			result, err := imageCollectionAgent.CollectImages(ctx, originalPrompt)
+			if err != nil {
+				logger.Errorf("图片收集失败: %v", err)
+			} else {
+				imageListStr = result.Content
+			}
+		}
 
 		return map[string]any{
-			"nodeName":  "image_collector",
-			"imageList": imageList,
+			"nodeName":     "image_collector",
+			"imageListStr": imageListStr,
 		}, nil
 	})
 }
@@ -39,10 +56,8 @@ func ImageCollectorStatePostHandler(ctx context.Context, output map[string]any, 
 	workFlowContext := state.GetContext(graphState)
 	if workFlowContext != nil {
 		workFlowContext.CurrentStep = "图片收集"
-		if imageList, ok := output["imageList"].([]*ai.ImageSource); ok {
-			for _, img := range imageList {
-				workFlowContext.ImageList = append(workFlowContext.ImageList, *img)
-			}
+		if imageListStr, ok := output["imageListStr"].(string); ok {
+			workFlowContext.ImageListStr = imageListStr
 		}
 	}
 	return output, nil

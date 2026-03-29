@@ -2,6 +2,8 @@ package node
 
 import (
 	"context"
+	"workspace-yikou-ai-go/biz/ai/agent"
+	"workspace-yikou-ai-go/biz/ai/llm"
 
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/eino/compose"
@@ -9,11 +11,41 @@ import (
 	"workspace-yikou-ai-go/biz/model/enum"
 )
 
+var (
+	routingAgentFactory *agent.CodeGenTypeRoutingAgentFactory
+)
+
+func InitRouterNode(chatModel *llm.BaseAiChatModel) {
+	routingAgentFactory = agent.NewCodeGenTypeRoutingAgentFactory(chatModel)
+}
+
 func NewRouterNode() *compose.Lambda {
 	return compose.InvokableLambda(func(ctx context.Context, input map[string]any) (map[string]any, error) {
 		logger.Info("执行节点: 智能路由")
 
-		generationType := enum.HtmlCodeGen
+		graphState := state.GenGraphState(ctx)
+		workflowContext := state.GetContext(graphState)
+		if workflowContext == nil {
+			workflowContext = &state.WorkFlowContext{}
+		}
+
+		originalPrompt := workflowContext.OriginalPrompt
+
+		var generationType enum.CodeGenTypeEnum
+		if routingAgentFactory != nil && originalPrompt != "" {
+			routingAgent := routingAgentFactory.GetRoutingAgent()
+			result, err := routingAgent.RouteCodeGenType(ctx, originalPrompt)
+			if err != nil {
+				logger.Errorf("AI智能路由失败，使用默认HTML类型: %v", err)
+				generationType = enum.HtmlCodeGen
+			} else {
+				generationType = result
+				logger.Infof("AI智能路由完成，选择类型: %s (%s)", generationType, enum.CodeGenTypeTextMap[generationType])
+			}
+		} else {
+			logger.Warn("RoutingAgentFactory 未初始化或原始提示词为空，使用默认HTML类型")
+			generationType = enum.HtmlCodeGen
+		}
 
 		logger.Infof("路由决策完成，选择类型: %s", enum.CodeGenTypeTextMap[generationType])
 

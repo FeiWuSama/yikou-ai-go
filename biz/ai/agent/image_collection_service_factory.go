@@ -8,7 +8,7 @@ import (
 	"workspace-yikou-ai-go/config"
 )
 
-type ImageCollectionServiceFactory struct {
+type ImageCollectionAgentFactory struct {
 	chatModel              *llm.BaseAiChatModel
 	imageSearchTool        *aitools.ImageSearchTool
 	undrawIllustrationTool *aitools.UndrawIllustrationTool
@@ -16,7 +16,7 @@ type ImageCollectionServiceFactory struct {
 	logoGeneratorTool      *aitools.LogoGeneratorTool
 }
 
-func NewImageCollectionServiceFactory(chatModel *llm.BaseAiChatModel, cfg *config.Config) *ImageCollectionServiceFactory {
+func NewImageCollectionServiceFactory(chatModel *llm.BaseAiChatModel, cfg *config.Config) *ImageCollectionAgentFactory {
 	imageSearchTool, err := aitools.CreateImageSearchTool(cfg)
 	if err != nil {
 		logger.Errorf("创建图片搜索工具失败: %v", err)
@@ -37,7 +37,7 @@ func NewImageCollectionServiceFactory(chatModel *llm.BaseAiChatModel, cfg *confi
 		logger.Errorf("创建Logo生成工具失败: %v", err)
 	}
 
-	return &ImageCollectionServiceFactory{
+	return &ImageCollectionAgentFactory{
 		chatModel:              chatModel,
 		imageSearchTool:        imageSearchTool,
 		undrawIllustrationTool: undrawIllustrationTool,
@@ -48,7 +48,7 @@ func NewImageCollectionServiceFactory(chatModel *llm.BaseAiChatModel, cfg *confi
 
 var imageCollectionServiceInstance *ImageCollectionAgent
 
-func (f *ImageCollectionServiceFactory) GetImageCollectionService() (*ImageCollectionAgent, error) {
+func (f *ImageCollectionAgentFactory) GetImageCollectionAgent() (*ImageCollectionAgent, error) {
 	if imageCollectionServiceInstance == nil {
 		imageCollectionServiceInstance = NewImageCollectionAgent(
 			(*openai.ChatModel)(f.chatModel),
