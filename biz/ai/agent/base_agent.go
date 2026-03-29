@@ -57,6 +57,7 @@ func (a *BaseAgent) NewAdkAgent(name, description, instruction string, tools []t
 				},
 			},
 		},
+		MaxIterations: 50,
 	})
 	if err != nil {
 		logger.Errorf("创建Agent失败: %v", err)
