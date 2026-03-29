@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 	"workspace-yikou-ai-go/biz/ai/aimodel"
 
 	"github.com/bytedance/gopkg/util/logger"
@@ -70,7 +71,7 @@ func searchUndrawIllustrations(query string) ([]*ai.ImageSource, error) {
 	encodedQuery := url.QueryEscape(query)
 	apiURL := fmt.Sprintf("https://undraw.co/_next/data/rxbI0cNBbVhP70ybALHAo/search/%s.json?term=%s", encodedQuery, encodedQuery)
 
-	client := &http.Client{Timeout: 10000000000}
+	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Get(apiURL)
 	if err != nil {
 		return nil, fmt.Errorf("请求失败: %w", err)
