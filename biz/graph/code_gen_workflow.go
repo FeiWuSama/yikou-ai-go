@@ -8,6 +8,7 @@ import (
 	"github.com/cloudwego/eino/compose"
 	"workspace-yikou-ai-go/biz/graph/node"
 	"workspace-yikou-ai-go/biz/graph/state"
+	"workspace-yikou-ai-go/biz/model/enum"
 )
 
 func createWorkflow(ctx context.Context) (compose.Runnable[map[string]any, map[string]any], error) {
@@ -27,8 +28,16 @@ func createWorkflow(ctx context.Context) (compose.Runnable[map[string]any, map[s
 		compose.WithNodeName("智能路由节点"),
 		compose.WithStatePostHandler(node.RouterStatePostHandler))
 
-	graph.AddLambdaNode("code_generator", node.NewCodeGeneratorNode(),
-		compose.WithNodeName("代码生成节点"),
+	graph.AddLambdaNode("html_generator", node.NewHtmlCodeGeneratorNode(),
+		compose.WithNodeName("HTML代码生成节点"),
+		compose.WithStatePostHandler(node.CodeGeneratorStatePostHandler))
+
+	graph.AddLambdaNode("multi_file_generator", node.NewMultiFileCodeGeneratorNode(),
+		compose.WithNodeName("多文件代码生成节点"),
+		compose.WithStatePostHandler(node.CodeGeneratorStatePostHandler))
+
+	graph.AddLambdaNode("vue_generator", node.NewVueCodeGeneratorNode(),
+		compose.WithNodeName("Vue代码生成节点"),
 		compose.WithStatePostHandler(node.CodeGeneratorStatePostHandler))
 
 	graph.AddLambdaNode("project_builder", node.NewProjectBuilderNode(),
@@ -38,8 +47,40 @@ func createWorkflow(ctx context.Context) (compose.Runnable[map[string]any, map[s
 	graph.AddEdge(compose.START, "image_collector")
 	graph.AddEdge("image_collector", "prompt_enhancer")
 	graph.AddEdge("prompt_enhancer", "router")
-	graph.AddEdge("router", "code_generator")
-	graph.AddEdge("code_generator", "project_builder")
+
+	graph.AddBranch("router", compose.NewGraphBranch(
+		func(ctx context.Context, input map[string]any) (string, error) {
+			graphState := state.GenGraphState(ctx)
+			workflowContext := state.GetContext(graphState)
+			if workflowContext == nil {
+				return "html_generator", nil
+			}
+
+			switch workflowContext.GenerationType {
+			case enum.HtmlCodeGen:
+				logger.Info("路由分支: 选择 HTML 代码生成")
+				return "html_generator", nil
+			case enum.MultiFileGen:
+				logger.Info("路由分支: 选择多文件代码生成")
+				return "multi_file_generator", nil
+			case enum.VueCodeGen:
+				logger.Info("路由分支: 选择 Vue 代码生成")
+				return "vue_generator", nil
+			default:
+				logger.Info("路由分支: 默认选择 HTML 代码生成")
+				return "html_generator", nil
+			}
+		},
+		map[string]bool{
+			"html_generator":       true,
+			"multi_file_generator": true,
+			"vue_generator":        true,
+		},
+	))
+
+	graph.AddEdge("html_generator", compose.END)
+	graph.AddEdge("multi_file_generator", compose.END)
+	graph.AddEdge("vue_generator", "project_builder")
 	graph.AddEdge("project_builder", compose.END)
 
 	runnable, err := graph.Compile(ctx, compose.WithGraphName("代码生成工作流"))

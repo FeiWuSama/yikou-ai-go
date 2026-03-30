@@ -63,3 +63,27 @@ func TestCodeGenWorkflow_ExecuteWorkflow(t *testing.T) {
 		fmt.Println(err)
 	}
 }
+
+func TestCodeGenWorkflow_ExecuteWorkflow2(t *testing.T) {
+	initConfig := config.InitConfig()
+	chatModel := llm.NewBaseAiChatModel(initConfig)
+	reasoningChatModel := llm.NewReasoningChatModel(initConfig)
+	node.InitImageCollectorNode(initConfig, chatModel)
+	node.InitRouterNode(chatModel)
+	redis := dal.InitRedis(initConfig)
+	db := dal.InitDB(initConfig)
+	chatHistoryService := chathistory.NewChatHistoryService(db)
+	toolManager, err := aitools.NewToolManager()
+	if err != nil {
+		fmt.Println(err)
+	}
+	codeGenAgentFactory := agent.NewCodeGenAgentFactory(chatModel, reasoningChatModel, redis, chatHistoryService, toolManager)
+	node.InitCodeGeneratorNode(core.NewYiKouAiCodegenFacade(ai.NewYiKouAiCodegenService((*openai.ChatModel)(chatModel)),
+		parser.NewCodeParserExecutor(),
+		saver.NewCodeFileSaverExecutor(),
+		codeGenAgentFactory))
+	_, err = ExecuteWorkflow(context.Background(), "创建一个简单的个人主页")
+	if err != nil {
+		fmt.Println(err)
+	}
+}
