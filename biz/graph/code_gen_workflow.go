@@ -16,9 +16,9 @@ func createWorkflow(ctx context.Context) (compose.Runnable[map[string]any, map[s
 		compose.WithGenLocalState(state.GenGraphState),
 	)
 
-	graph.AddLambdaNode("image_collector", node.NewImageCollectorNode(),
-		compose.WithNodeName("图片收集节点"),
-		compose.WithStatePostHandler(node.ImageCollectorStatePostHandler))
+	graph.AddLambdaNode("image_collector_plan", node.NewImageCollectorPlanNode(),
+		compose.WithNodeName("图片收集计划节点"),
+		compose.WithStatePostHandler(node.ImageCollectorPlanStatePostHandler))
 
 	graph.AddLambdaNode("prompt_enhancer", node.NewPromptEnhancerNode(),
 		compose.WithNodeName("提示词增强节点"),
@@ -48,8 +48,8 @@ func createWorkflow(ctx context.Context) (compose.Runnable[map[string]any, map[s
 		compose.WithNodeName("项目构建节点"),
 		compose.WithStatePostHandler(node.ProjectBuilderStatePostHandler))
 
-	graph.AddEdge(compose.START, "image_collector")
-	graph.AddEdge("image_collector", "prompt_enhancer")
+	graph.AddEdge(compose.START, "image_collector_plan")
+	graph.AddEdge("image_collector_plan", "prompt_enhancer")
 	graph.AddEdge("prompt_enhancer", "router")
 
 	graph.AddBranch("router", compose.NewGraphBranch(

@@ -58,7 +58,7 @@ func mermaidDiagramToolFunc(cosManager *manager.CosManager) func(ctx context.Con
 			return schema.StreamReaderFromArray([]*schema.ToolResult{result}), nil
 		}
 
-		imageList, err := generateMermaidDiagram(cosManager, params.MermaidCode, params.Description)
+		imageList, err := GenerateMermaidDiagram(cosManager, params.MermaidCode, params.Description)
 		if err != nil {
 			logger.Errorf("生成架构图失败: %v", err)
 			return nil, err
@@ -79,7 +79,7 @@ func mermaidDiagramToolFunc(cosManager *manager.CosManager) func(ctx context.Con
 	}
 }
 
-func generateMermaidDiagram(cosManager *manager.CosManager, mermaidCode string, description string) ([]*ai.ImageSource, error) {
+func GenerateMermaidDiagram(cosManager *manager.CosManager, mermaidCode string, description string) ([]*ai.ImageSource, error) {
 	projectRoot, err := myfile.GetProjectRoot()
 	if err != nil {
 		return nil, err

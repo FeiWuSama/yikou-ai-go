@@ -35,7 +35,7 @@ func CreateUndrawIllustrationTool() (*UndrawIllustrationTool, error) {
 }
 
 func undrawIllustrationToolFunc(ctx context.Context, params UndrawIllustrationToolParams) (*schema.StreamReader[*schema.ToolResult], error) {
-	imageList, err := searchUndrawIllustrations(params.Query)
+	imageList, err := SearchUndrawIllustrations(params.Query)
 	if err != nil {
 		logger.Errorf("Undraw API 调用失败: %v", err)
 		return nil, err
@@ -66,7 +66,7 @@ type UndrawIllustration struct {
 	Media string `json:"media"`
 }
 
-func searchUndrawIllustrations(query string) ([]*ai.ImageSource, error) {
+func SearchUndrawIllustrations(query string) ([]*ai.ImageSource, error) {
 	searchCount := 12
 	encodedQuery := url.QueryEscape(query)
 	apiURL := fmt.Sprintf("https://undraw.co/_next/data/rxbI0cNBbVhP70ybALHAo/search/%s.json?term=%s", encodedQuery, encodedQuery)

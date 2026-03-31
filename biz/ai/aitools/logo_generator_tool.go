@@ -52,7 +52,7 @@ func CreateLogoGeneratorTool(cfg *config.Config) (*LogoGeneratorTool, error) {
 
 func logoGeneratorToolFunc(apiKey string, imageModel string, cosManager *manager.CosManager) func(ctx context.Context, params LogoGeneratorToolParams) (*schema.StreamReader[*schema.ToolResult], error) {
 	return func(ctx context.Context, params LogoGeneratorToolParams) (*schema.StreamReader[*schema.ToolResult], error) {
-		logoList, err := generateLogos(apiKey, imageModel, cosManager, params.Description)
+		logoList, err := GenerateLogos(apiKey, imageModel, cosManager, params.Description)
 		if err != nil {
 			logger.Errorf("生成 Logo 失败: %v", err)
 			return nil, err
@@ -104,7 +104,7 @@ type DashScopeImageResult struct {
 	URL string `json:"url"`
 }
 
-func generateLogos(apiKey string, imageModel string, cosManager *manager.CosManager, description string) ([]*ai.ImageSource, error) {
+func GenerateLogos(apiKey string, imageModel string, cosManager *manager.CosManager, description string) ([]*ai.ImageSource, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("DashScope API Key 未配置")
 	}

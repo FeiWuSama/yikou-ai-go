@@ -38,7 +38,7 @@ func CreateImageSearchTool(cfg *config.Config) (*ImageSearchTool, error) {
 
 func imageSearchToolFunc(apiKey string) func(ctx context.Context, params ImageSearchToolParams) (*schema.StreamReader[*schema.ToolResult], error) {
 	return func(ctx context.Context, params ImageSearchToolParams) (*schema.StreamReader[*schema.ToolResult], error) {
-		imageList, err := searchImages(apiKey, params.Query)
+		imageList, err := SearchImages(apiKey, params.Query)
 		if err != nil {
 			logger.Errorf("Pexels API 调用失败: %v", err)
 			return nil, err
@@ -76,7 +76,7 @@ type PexelsSrc struct {
 	Small    string `json:"small"`
 }
 
-func searchImages(apiKey string, query string) ([]*ai.ImageSource, error) {
+func SearchImages(apiKey string, query string) ([]*ai.ImageSource, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("pexels API Key 未配置")
 	}
