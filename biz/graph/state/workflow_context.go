@@ -20,6 +20,7 @@ type WorkFlowContext struct {
 	GenerateCodeDir string
 	BuildResultDir  string
 	ErrorMessage    string
+	QualityResult   ai.QualityResult
 }
 
 func GetContext(graphState *GraphState) *WorkFlowContext {

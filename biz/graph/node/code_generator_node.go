@@ -12,6 +12,7 @@ import (
 
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/eino/compose"
+	ai "workspace-yikou-ai-go/biz/ai/aimodel"
 	"workspace-yikou-ai-go/biz/graph/state"
 )
 
@@ -50,7 +51,7 @@ func generateCode(ctx context.Context, generationType enum.CodeGenTypeEnum) (map
 		workflowContext = &state.WorkFlowContext{}
 	}
 
-	userMessage := workflowContext.EnhancedPrompt
+	userMessage := buildUserMessage(workflowContext)
 	appId := int64(0)
 
 	logger.Infof("开始生成代码，类型: %s", generationType)
@@ -92,4 +93,35 @@ func CodeGeneratorStatePostHandler(ctx context.Context, output map[string]any, g
 		}
 	}
 	return output, nil
+}
+
+func buildUserMessage(workflowContext *state.WorkFlowContext) string {
+	userMessage := workflowContext.EnhancedPrompt
+	if isQualityCheckFailed(workflowContext.QualityResult) {
+		userMessage = buildErrorFixPrompt(workflowContext.QualityResult)
+	}
+	return userMessage
+}
+
+func isQualityCheckFailed(qualityResult ai.QualityResult) bool {
+	return !qualityResult.IsValid && len(qualityResult.Errors) > 0
+}
+
+func buildErrorFixPrompt(qualityResult ai.QualityResult) string {
+	var errorInfo strings.Builder
+	errorInfo.WriteString("\n\n## 上次生成的代码存在以下问题，请修复：\n")
+
+	for _, error := range qualityResult.Errors {
+		errorInfo.WriteString(fmt.Sprintf("- %s\n", error))
+	}
+
+	if len(qualityResult.Suggestions) > 0 {
+		errorInfo.WriteString("\n## 修复建议：\n")
+		for _, suggestion := range qualityResult.Suggestions {
+			errorInfo.WriteString(fmt.Sprintf("- %s\n", suggestion))
+		}
+	}
+
+	errorInfo.WriteString("\n请根据上述问题和建议重新生成代码，确保修复所有提到的问题。")
+	return errorInfo.String()
 }
