@@ -11,16 +11,21 @@ type contextKey string
 const workflowContextCtxKey contextKey = "workflow_context_ctx"
 
 type WorkFlowContext struct {
-	CurrentStep     string
-	OriginalPrompt  string
-	ImageListStr    string
-	ImageList       []ai.ImageSource
-	EnhancedPrompt  string
-	GenerationType  enum.CodeGenTypeEnum
-	GenerateCodeDir string
-	BuildResultDir  string
-	ErrorMessage    string
-	QualityResult   ai.QualityResult
+	CurrentStep         string
+	OriginalPrompt      string
+	ImageListStr        string
+	ImageList           []ai.ImageSource
+	EnhancedPrompt      string
+	GenerationType      enum.CodeGenTypeEnum
+	GenerateCodeDir     string
+	BuildResultDir      string
+	ErrorMessage        string
+	QualityResult       ai.QualityResult
+	ImageCollectionPlan ai.ImageCollectionPlan
+	ContentImage        []ai.ImageSource
+	Illustrations       []ai.ImageSource
+	Diagrams            []ai.ImageSource
+	Logos               []ai.ImageSource
 }
 
 func GetContext(graphState *GraphState) *WorkFlowContext {

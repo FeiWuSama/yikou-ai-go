@@ -16,8 +16,21 @@ func RunWorkflowApp() error {
 
 	graph := compose.NewGraph[map[string]any, map[string]any](compose.WithGenLocalState(state.GenGraphState))
 
-	graph.AddLambdaNode("image_collector_plan", node.NewImageCollectorPlanNode(),
-		compose.WithNodeName("图片收集计划节点"), compose.WithStatePostHandler(node.ImageCollectorPlanStatePostHandler))
+	graph.AddLambdaNode("image_plan", node.NewImagePlanNode(),
+		compose.WithNodeName("图片计划生成节点"), compose.WithStatePostHandler(node.ImagePlanStatePostHandler))
+
+	graph.AddLambdaNode("content_image_collector", node.NewContentImageCollectorNode(),
+		compose.WithNodeName("内容图片收集节点"), compose.WithStatePostHandler(node.ContentImageCollectorStatePostHandler))
+	graph.AddLambdaNode("illustration_collector", node.NewIllustrationCollectorNode(),
+		compose.WithNodeName("插画收集节点"), compose.WithStatePostHandler(node.IllustrationCollectorStatePostHandler))
+	graph.AddLambdaNode("diagram_collector", node.NewDiagramCollectorNode(),
+		compose.WithNodeName("架构图生成节点"), compose.WithStatePostHandler(node.DiagramCollectorStatePostHandler))
+	graph.AddLambdaNode("logo_collector", node.NewLogoCollectorNode(),
+		compose.WithNodeName("Logo生成节点"), compose.WithStatePostHandler(node.LogoCollectorStatePostHandler))
+
+	graph.AddLambdaNode("image_merge", node.NewImageMergeNode(),
+		compose.WithNodeName("图片合并节点"), compose.WithStatePostHandler(node.ImageMergeStatePostHandler))
+
 	graph.AddLambdaNode("prompt_enhancer", node.NewPromptEnhancerNode(),
 		compose.WithNodeName("提示词增强节点"), compose.WithStatePostHandler(node.PromptEnhancerStatePostHandler))
 	graph.AddLambdaNode("router", node.NewRouterNode(),
@@ -36,8 +49,19 @@ func RunWorkflowApp() error {
 	graph.AddLambdaNode("project_builder", node.NewProjectBuilderNode(),
 		compose.WithNodeName("项目构建节点"), compose.WithStatePostHandler(node.ProjectBuilderStatePostHandler))
 
-	graph.AddEdge(compose.START, "image_collector_plan")
-	graph.AddEdge("image_collector_plan", "prompt_enhancer")
+	graph.AddEdge(compose.START, "image_plan")
+
+	graph.AddEdge("image_plan", "content_image_collector")
+	graph.AddEdge("image_plan", "illustration_collector")
+	graph.AddEdge("image_plan", "diagram_collector")
+	graph.AddEdge("image_plan", "logo_collector")
+
+	graph.AddEdge("content_image_collector", "image_merge")
+	graph.AddEdge("illustration_collector", "image_merge")
+	graph.AddEdge("diagram_collector", "image_merge")
+	graph.AddEdge("logo_collector", "image_merge")
+
+	graph.AddEdge("image_merge", "prompt_enhancer")
 	graph.AddEdge("prompt_enhancer", "router")
 
 	graph.AddBranch("router", compose.NewGraphBranch(

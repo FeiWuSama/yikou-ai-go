@@ -106,11 +106,12 @@ func GenerateMermaidDiagram(cosManager *manager.CosManager, mermaidCode string, 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Errorf("Mermaid CLI 执行失败: %v, output: %s", err, string(output))
-		return nil, fmt.Errorf("Mermaid CLI 执行失败: %w", err)
+		return []*ai.ImageSource{}, nil
 	}
 
 	if _, err := os.Stat(outputFile); os.IsNotExist(err) {
-		return nil, fmt.Errorf("Mermaid CLI 执行失败，输出文件不存在")
+		logger.Errorf("Mermaid CLI 执行失败，输出文件不存在")
+		return []*ai.ImageSource{}, nil
 	}
 
 	randomStr := random.RandString(5)

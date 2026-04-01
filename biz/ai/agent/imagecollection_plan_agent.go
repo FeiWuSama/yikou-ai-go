@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/adk"
@@ -60,6 +62,24 @@ func (a *ImageCollectionPlanAgent) getAdkAgent() *adk.ChatModelAgent {
 
 func parseImageCollectionPlan(content string) (ai.ImageCollectionPlan, error) {
 	var plan ai.ImageCollectionPlan
+
+	re := regexp.MustCompile("(?s)```json\\s*\\n?(.*?)\\n?```")
+	matches := re.FindStringSubmatch(content)
+	if len(matches) > 1 {
+		content = strings.TrimSpace(matches[1])
+	} else {
+		content = strings.TrimSpace(content)
+		if strings.HasPrefix(content, "```json") {
+			content = strings.TrimPrefix(content, "```json")
+		}
+		if strings.HasPrefix(content, "```") {
+			content = strings.TrimPrefix(content, "```")
+		}
+		if strings.HasSuffix(content, "```") {
+			content = strings.TrimSuffix(content, "```")
+		}
+		content = strings.TrimSpace(content)
+	}
 
 	if err := json.Unmarshal([]byte(content), &plan); err != nil {
 		return ai.ImageCollectionPlan{
