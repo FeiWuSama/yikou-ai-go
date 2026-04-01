@@ -3,10 +3,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"github.com/bytedance/gopkg/util/logger"
+	"github.com/cloudwego/eino-ext/devops"
 	"os"
 	"os/signal"
 	"syscall"
+	"workspace-yikou-ai-go/biz/graph"
 
 	_ "workspace-yikou-ai-go/biz/dal"
 	"workspace-yikou-ai-go/pkg/myutils"
@@ -19,12 +23,27 @@ func main() {
 		panic(fmt.Errorf("注入失败: %w", err))
 	}
 
+	ctx := context.Background()
+	err = devops.Init(ctx)
+	if err != nil {
+		logger.Errorf("[eino dev] init failed, err=%v", err)
+		return
+	}
+
+	graph.ExecuteWorkflow(ctx, "创建一个简单的个人主页")
+
 	go func() {
 		quit := make(chan os.Signal, 1)
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 		<-quit
 		myutils.CloseBrowser()
 	}()
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	<-sigs
+
+	logger.Infof("[eino dev] shutting down\n")
 
 	h.Spin()
 }

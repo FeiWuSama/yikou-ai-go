@@ -27,10 +27,10 @@ import (
 	"workspace-yikou-ai-go/biz/core/parser"
 	"workspace-yikou-ai-go/biz/core/saver"
 	"workspace-yikou-ai-go/biz/dal"
+	"workspace-yikou-ai-go/biz/graph/node"
 	appHandler "workspace-yikou-ai-go/biz/handler/app"
 	chatHistoryHandler "workspace-yikou-ai-go/biz/handler/chathistory"
 	static "workspace-yikou-ai-go/biz/handler/static"
-	userHandler "workspace-yikou-ai-go/biz/handler/user"
 	"workspace-yikou-ai-go/biz/manager"
 	"workspace-yikou-ai-go/biz/model/api/common"
 	"workspace-yikou-ai-go/biz/router"
@@ -81,6 +81,26 @@ var handlerSet = wire.NewSet(
 
 var llmSet = wire.NewSet(
 	llm.NewBaseAiChatModel, llm.NewReasoningChatModel, llm.NewChatModel)
+
+type NodeInitializer struct{}
+
+func InitAllNodes(
+	cfg *config.Config,
+	chatModel *llm.BaseAiChatModel,
+	cosManager *manager.CosManager,
+	facade *core.YiKouAiCodegenFacade,
+) *NodeInitializer {
+	node.InitImagePlanNode(chatModel)
+	node.InitImageCollectorPlanNode(chatModel, cfg, cosManager)
+	node.InitContentImageCollectorNode(cfg)
+	node.InitDiagramCollectorNode(cosManager)
+	node.InitLogoCollectorNode(cfg, cosManager)
+	node.InitRouterNode(chatModel)
+	node.InitCodeQualityCheckNode(cfg, chatModel)
+	node.InitCodeGeneratorNode(facade)
+	node.InitImageCollectorNode(cfg, chatModel)
+	return &NodeInitializer{}
+}
 
 func CustomRecoveryHandler(ctx context.Context, c *app.RequestContext, err interface{}, stack []byte) {
 	logger.Errorf("panic recovered: %v\n%s", err, stack)
@@ -142,5 +162,6 @@ func InitializeApp() (*server.Hertz, error) {
 		aitools.NewToolManager,
 		messagehandler.NewStreamHandlerExecutor,
 		manager.NewCosManager,
+		InitAllNodes,
 	))
 }
