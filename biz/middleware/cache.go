@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"strconv"
 	"time"
+	"workspace-yikou-ai-go/biz/model/api/common"
+	"workspace-yikou-ai-go/biz/model/vo"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
@@ -34,12 +36,15 @@ func CacheMiddleware(cacheManager *cache.CacheManager, config CacheMiddlewareCon
 
 		cachedData, err := cacheManager.GetRaw(ctx, config.CacheName, cacheKey)
 		if err == nil && len(cachedData) > 0 {
-			c.Header("X-Cache", "HIT")
-			c.Data(consts.StatusOK, "application/json; charset=utf-8", cachedData)
+			var goodAppList []vo.AppVo
+			err := json.Unmarshal(cachedData, &goodAppList)
+			if err != nil {
+				return
+			}
+			c.JSON(consts.StatusOK, common.NewSuccessResponse[any](goodAppList))
+			c.Abort()
 			return
 		}
-
-		c.Header("X-Cache", "MISS")
 
 		c.Next(ctx)
 
