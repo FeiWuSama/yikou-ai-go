@@ -68,12 +68,12 @@ var ErrMessageMap = map[int]string{
 }
 
 var (
-	Success        = NewErrorNoByCode(SuccessErrCode)
-	ParamsError    = NewErrorNoByCode(ParamErrCode)
-	NotLoginError  = NewErrorNoByCode(NotLoginErrCode)
-	NotAuthError   = NewErrorNoByCode(NotAuthErrCode)
-	ForbiddenError = NewErrorNoByCode(ForbiddenErrorCode)
-	InternalError  = NewErrorNoByCode(TooManyRequestErrCode)
-	SystemError    = NewErrorNoByCode(SystemErrorCode)
-	OperationError = NewErrorNoByCode(OperationErrorCode)
+	Success             = NewErrorNoByCode(SuccessErrCode)
+	ParamsError         = NewErrorNoByCode(ParamErrCode)
+	NotLoginError       = NewErrorNoByCode(NotLoginErrCode)
+	NotAuthError        = NewErrorNoByCode(NotAuthErrCode)
+	ForbiddenError      = NewErrorNoByCode(ForbiddenErrorCode)
+	TooManyRequestError = NewErrorNoByCode(TooManyRequestErrCode)
+	SystemError         = NewErrorNoByCode(SystemErrorCode)
+	OperationError      = NewErrorNoByCode(OperationErrorCode)
 )

@@ -25,15 +25,18 @@ import (
 	"workspace-yikou-ai-go/biz/ai/agent"
 	"workspace-yikou-ai-go/biz/ai/aitools"
 	"workspace-yikou-ai-go/biz/ai/llm"
+	"workspace-yikou-ai-go/biz/cache"
 	"workspace-yikou-ai-go/biz/core"
 	"workspace-yikou-ai-go/biz/core/messagehandler"
 	"workspace-yikou-ai-go/biz/core/parser"
 	"workspace-yikou-ai-go/biz/core/saver"
 	"workspace-yikou-ai-go/biz/dal"
+	"workspace-yikou-ai-go/biz/graph/node"
 	"workspace-yikou-ai-go/biz/handler/app"
 	chathistory2 "workspace-yikou-ai-go/biz/handler/chathistory"
 	"workspace-yikou-ai-go/biz/handler/static"
 	handler2 "workspace-yikou-ai-go/biz/handler/user"
+	handler3 "workspace-yikou-ai-go/biz/handler/workflow"
 	"workspace-yikou-ai-go/biz/manager"
 	"workspace-yikou-ai-go/biz/model/api/common"
 	"workspace-yikou-ai-go/biz/router"
@@ -79,7 +82,10 @@ func InitializeApp() (*server.Hertz, error) {
 	userHandler := handler2.NewUserHandler(userService)
 	chatHistoryHandler := chathistory2.NewChatHistoryHandler(chatHistoryService, userService)
 	staticResourceHandler := static.NewStaticResourceHandler(configConfig)
-	hertz := InitServer(configConfig, appHandler, userHandler, chatHistoryHandler, staticResourceHandler, db, client)
+	workflowHandler := handler3.NewWorkflowHandler()
+	cacheManager := cache.InitCacheManager(client)
+	nodeInitializer := InitAllNodes(configConfig, baseAiChatModel, cosManager, yiKouAiCodegenFacade)
+	hertz := InitServer(configConfig, appHandler, userHandler, chatHistoryHandler, staticResourceHandler, workflowHandler, cacheManager, db, client, userService, nodeInitializer)
 	return hertz, nil
 }
 
@@ -91,13 +97,36 @@ var configSet = wire.NewSet(config.InitConfig)
 // 数据库依赖
 var dbSet = wire.NewSet(dal.InitDB, dal.InitRedis, dal.InitCOSClient)
 
+// 缓存依赖
+var cacheSet = wire.NewSet(cache.InitCacheManager)
+
 // Service依赖
 var serviceSet = wire.NewSet(core.NewYiKouAiCodegenFacade, service2.NewAppService, wire.Bind(new(service2.IAppService), new(*service2.AppService)), service.NewUserService, wire.Bind(new(service.IUserService), new(*service.UserService)), chathistory.NewChatHistoryService, wire.Bind(new(chathistory.IChatHistoryService), new(*chathistory.ChatHistoryService)), screenshot.NewScreenshotService, wire.Bind(new(screenshot.IScreenshotService), new(*screenshot.ScreenshotService)), download.NewProjectDownloadService, wire.Bind(new(download.IProjectDownloadService), new(*download.ProjectDownloadService)))
 
 // Handler依赖
-var handlerSet = wire.NewSet(handler.NewAppHandler, handler2.NewUserHandler, chathistory2.NewChatHistoryHandler, static.NewStaticResourceHandler)
+var handlerSet = wire.NewSet(handler.NewAppHandler, handler2.NewUserHandler, chathistory2.NewChatHistoryHandler, static.NewStaticResourceHandler, handler3.NewWorkflowHandler)
 
 var llmSet = wire.NewSet(llm.NewBaseAiChatModel, llm.NewReasoningChatModel, llm.NewChatModel)
+
+type NodeInitializer struct{}
+
+func InitAllNodes(
+	cfg *config.Config,
+	chatModel *llm.BaseAiChatModel,
+	cosManager *manager.CosManager,
+	facade *core.YiKouAiCodegenFacade,
+) *NodeInitializer {
+	node.InitImagePlanNode(chatModel)
+	node.InitImageCollectorPlanNode(chatModel, cfg, cosManager)
+	node.InitContentImageCollectorNode(cfg)
+	node.InitDiagramCollectorNode(cosManager)
+	node.InitLogoCollectorNode(cfg, cosManager)
+	node.InitRouterNode(chatModel)
+	node.InitCodeQualityCheckNode(cfg, chatModel)
+	node.InitCodeGeneratorNode(facade)
+	node.InitImageCollectorNode(cfg, chatModel)
+	return &NodeInitializer{}
+}
 
 func CustomRecoveryHandler(ctx context.Context, c *app.RequestContext, err interface{}, stack []byte) {
 	logger.Errorf("panic recovered: %v\n%s", err, stack)
@@ -112,8 +141,12 @@ func InitServer(
 	userHandler *handler2.UserHandler,
 	chatHistoryHandler *chathistory2.ChatHistoryHandler,
 	staticResourceHandler *static.StaticResourceHandler,
+	workflowHandler *handler3.WorkflowHandler,
+	cacheManager *cache.CacheManager,
 	db *gorm.DB,
 	redisClient *redis.Client,
+	userService service.IUserService,
+	_ *NodeInitializer,
 ) *server.Hertz {
 	basePath := serverConfig.Server.ContextPath
 	docs.SwaggerInfo.
@@ -133,6 +166,6 @@ func InitServer(
 		AllowCredentials: false,
 		MaxAge:           12 * time.Hour,
 	}))
-	router.CustomizedRegister(h, db, redisClient, appHandler, userHandler, chatHistoryHandler, staticResourceHandler, url)
+	router.CustomizedRegister(h, db, redisClient, appHandler, userHandler, chatHistoryHandler, staticResourceHandler, workflowHandler, cacheManager, userService, url)
 	return h
 }

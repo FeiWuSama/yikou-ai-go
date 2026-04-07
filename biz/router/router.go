@@ -4,6 +4,7 @@ package router
 
 import (
 	"time"
+	service "workspace-yikou-ai-go/biz/service/user"
 
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/hertz-contrib/swagger"
@@ -24,7 +25,9 @@ import (
 )
 
 // CustomizedRegister registers customize routers.
-func CustomizedRegister(r *server.Hertz, db *gorm.DB, redisClient *redis.Client, appHandler *app.AppHandler, userHandler *user.UserHandler, chatHistoryHandler *chatHistory.ChatHistoryHandler, staticHandler *static.StaticResourceHandler, workflowHandler *workflow.WorkflowHandler, cacheManager *cache.CacheManager, url func(config *swagger.Config)) {
+func CustomizedRegister(r *server.Hertz, db *gorm.DB, redisClient *redis.Client, appHandler *app.AppHandler, userHandler *user.UserHandler,
+	chatHistoryHandler *chatHistory.ChatHistoryHandler, staticHandler *static.StaticResourceHandler, workflowHandler *workflow.WorkflowHandler,
+	cacheManager *cache.CacheManager, userService service.IUserService, url func(config *swagger.Config)) {
 	r.GET("/ping", handler.Ping)
 	r.GET("/swagger/*any", swagger.WrapHandler(swaggerFiles.Handler, url))
 
@@ -61,7 +64,13 @@ func CustomizedRegister(r *server.Hertz, db *gorm.DB, redisClient *redis.Client,
 		appRoute.POST("/add", middleware.AuthMiddleware(enum.UserRole, db, redisClient), appHandler.AddApp)
 		appRoute.POST("/update", middleware.AuthMiddleware(enum.UserRole, db, redisClient), appHandler.UpdateApp)
 		appRoute.POST("/delete", middleware.AuthMiddleware(enum.UserRole, db, redisClient), appHandler.DeleteApp)
-		appRoute.GET("/chat/gen/code", middleware.AuthMiddleware(enum.UserRole, db, redisClient), appHandler.ChatToGenCode)
+		appRoute.GET("/chat/gen/code", middleware.AuthMiddleware(enum.UserRole, db, redisClient),
+			middleware.RateLimitMiddleware(redisClient, userService, middleware.RateLimitConfig{
+				Rate:         5,
+				RateInterval: 60,
+				LimitType:    middleware.RateLimitTypeUSER,
+				Message:      "AI对话请求过于频繁，请稍后再试",
+			}), appHandler.ChatToGenCode)
 		appRoute.POST("/deploy", middleware.AuthMiddleware(enum.UserRole, db, redisClient), appHandler.DeployApp)
 		appRoute.GET("/download/:appId", middleware.AuthMiddleware(enum.UserRole, db, redisClient), appHandler.DownloadAppCode)
 

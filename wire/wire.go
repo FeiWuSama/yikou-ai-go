@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+	workflow "workspace-yikou-ai-go/biz/handler/workflow"
 
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/hertz/pkg/app"
@@ -32,7 +33,7 @@ import (
 	appHandler "workspace-yikou-ai-go/biz/handler/app"
 	chatHistoryHandler "workspace-yikou-ai-go/biz/handler/chathistory"
 	static "workspace-yikou-ai-go/biz/handler/static"
-	"workspace-yikou-ai-go/biz/handler/workflow"
+	userHandler "workspace-yikou-ai-go/biz/handler/user"
 	"workspace-yikou-ai-go/biz/manager"
 	"workspace-yikou-ai-go/biz/model/api/common"
 	"workspace-yikou-ai-go/biz/router"
@@ -127,6 +128,8 @@ func InitServer(
 	cacheManager *cache.CacheManager,
 	db *gorm.DB,
 	redisClient *redis.Client,
+	userService user.IUserService,
+	_ *NodeInitializer,
 ) *server.Hertz {
 	basePath := serverConfig.Server.ContextPath
 	// 动态补充swagger前缀
@@ -150,7 +153,7 @@ func InitServer(
 		MaxAge:           12 * time.Hour,
 	}))
 	// 注册路由
-	router.CustomizedRegister(h, db, redisClient, appHandler, userHandler, chatHistoryHandler, staticResourceHandler, workflowHandler, cacheManager, url)
+	router.CustomizedRegister(h, db, redisClient, appHandler, userHandler, chatHistoryHandler, staticResourceHandler, workflowHandler, cacheManager, userService, url)
 	return h
 }
 
