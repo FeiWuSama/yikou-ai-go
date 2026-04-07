@@ -40,10 +40,10 @@ func NewImageMergeNode() *compose.Lambda {
 func ImageMergeStatePostHandler(ctx context.Context, output map[string]any, graphState *state.GraphState) (map[string]any, error) {
 	workFlowContext := state.GetContext(graphState)
 	if workFlowContext != nil {
-		workFlowContext.CurrentStep = "图片收集"
 		if imageList, ok := output["imageList"].([]ai.ImageSource); ok {
 			workFlowContext.ImageList = imageList
 		}
+		state.NotifyStepCompleted(workFlowContext, "图片收集")
 	}
 	return output, nil
 }

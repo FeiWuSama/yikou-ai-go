@@ -75,10 +75,10 @@ func NewCodeQualityCheckNode() *compose.Lambda {
 func CodeQualityCheckStatePostHandler(ctx context.Context, output map[string]any, graphState *state.GraphState) (map[string]any, error) {
 	workFlowContext := state.GetContext(graphState)
 	if workFlowContext != nil {
-		workFlowContext.CurrentStep = "代码质量检查"
 		if qualityResult, ok := output["qualityResult"].(ai.QualityResult); ok {
 			workFlowContext.QualityResult = qualityResult
 		}
+		state.NotifyStepCompleted(workFlowContext, "代码质量检查")
 	}
 	return output, nil
 }

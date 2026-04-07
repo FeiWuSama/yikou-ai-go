@@ -45,10 +45,10 @@ func NewProjectBuilderNode() *compose.Lambda {
 func ProjectBuilderStatePostHandler(ctx context.Context, output map[string]any, graphState *state.GraphState) (map[string]any, error) {
 	workFlowContext := state.GetContext(graphState)
 	if workFlowContext != nil {
-		workFlowContext.CurrentStep = "项目构建"
 		if buildResultDir, ok := output["buildResultDir"].(string); ok {
 			workFlowContext.BuildResultDir = buildResultDir
 		}
+		state.NotifyStepCompleted(workFlowContext, "项目构建")
 	}
 	return output, nil
 }

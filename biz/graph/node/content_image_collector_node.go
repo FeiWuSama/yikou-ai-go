@@ -93,6 +93,7 @@ func ContentImageCollectorStatePostHandler(ctx context.Context, output map[strin
 			}
 			workFlowContext.ContentImage = imageSourceList
 		}
+		state.NotifyStepCompleted(workFlowContext, "内容图片收集")
 	}
 	return output, nil
 }

@@ -53,10 +53,10 @@ func NewImagePlanNode() *compose.Lambda {
 func ImagePlanStatePostHandler(ctx context.Context, output map[string]any, graphState *state.GraphState) (map[string]any, error) {
 	workFlowContext := state.GetContext(graphState)
 	if workFlowContext != nil {
-		workFlowContext.CurrentStep = "图片计划"
 		if plan, ok := output["plan"].(ai.ImageCollectionPlan); ok {
 			workFlowContext.ImageCollectionPlan = plan
 		}
+		state.NotifyStepCompleted(workFlowContext, "图片计划")
 	}
 	return output, nil
 }

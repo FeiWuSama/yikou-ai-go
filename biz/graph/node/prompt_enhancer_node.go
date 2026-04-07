@@ -58,10 +58,10 @@ func NewPromptEnhancerNode() *compose.Lambda {
 func PromptEnhancerStatePostHandler(ctx context.Context, output map[string]any, graphState *state.GraphState) (map[string]any, error) {
 	workFlowContext := state.GetContext(graphState)
 	if workFlowContext != nil {
-		workFlowContext.CurrentStep = "提示词增强"
 		if enhancedPrompt, ok := output["enhancedPrompt"].(string); ok {
 			workFlowContext.EnhancedPrompt = enhancedPrompt
 		}
+		state.NotifyStepCompleted(workFlowContext, "提示词增强")
 	}
 	return output, nil
 }

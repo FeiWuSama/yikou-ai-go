@@ -59,10 +59,10 @@ func NewRouterNode() *compose.Lambda {
 func RouterStatePostHandler(ctx context.Context, output map[string]any, graphState *state.GraphState) (map[string]any, error) {
 	workFlowContext := state.GetContext(graphState)
 	if workFlowContext != nil {
-		workFlowContext.CurrentStep = "智能路由"
 		if generationType, ok := output["generationType"].(enum.CodeGenTypeEnum); ok {
 			workFlowContext.GenerationType = generationType
 		}
+		state.NotifyStepCompleted(workFlowContext, "智能路由")
 	}
 	return output, nil
 }

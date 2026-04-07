@@ -96,6 +96,7 @@ func LogoCollectorStatePostHandler(ctx context.Context, output map[string]any, g
 			}
 			workFlowContext.Logos = imageSourceList
 		}
+		state.NotifyStepCompleted(workFlowContext, "Logo生成")
 	}
 	return output, nil
 }

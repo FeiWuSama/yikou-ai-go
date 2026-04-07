@@ -84,6 +84,7 @@ func IllustrationCollectorStatePostHandler(ctx context.Context, output map[strin
 			}
 			workFlowContext.Illustrations = imageSourceList
 		}
+		state.NotifyStepCompleted(workFlowContext, "插画收集")
 	}
 	return output, nil
 }

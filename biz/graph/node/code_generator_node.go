@@ -87,10 +87,10 @@ func generateCode(ctx context.Context, generationType enum.CodeGenTypeEnum) (map
 func CodeGeneratorStatePostHandler(ctx context.Context, output map[string]any, graphState *state.GraphState) (map[string]any, error) {
 	workFlowContext := state.GetContext(graphState)
 	if workFlowContext != nil {
-		workFlowContext.CurrentStep = "代码生成"
 		if generatedCodeDir, ok := output["generatedCodeDir"].(string); ok {
 			workFlowContext.GenerateCodeDir = generatedCodeDir
 		}
+		state.NotifyStepCompleted(workFlowContext, "代码生成")
 	}
 	return output, nil
 }

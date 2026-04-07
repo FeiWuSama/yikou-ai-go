@@ -93,6 +93,7 @@ func DiagramCollectorStatePostHandler(ctx context.Context, output map[string]any
 			}
 			workFlowContext.Diagrams = imageSourceList
 		}
+		state.NotifyStepCompleted(workFlowContext, "架构图生成")
 	}
 	return output, nil
 }

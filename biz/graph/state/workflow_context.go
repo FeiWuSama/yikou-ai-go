@@ -2,6 +2,7 @@ package state
 
 import (
 	"context"
+	"sync"
 	"workspace-yikou-ai-go/biz/ai/aimodel"
 	"workspace-yikou-ai-go/biz/model/enum"
 )
@@ -10,7 +11,10 @@ type contextKey string
 
 const workflowContextCtxKey contextKey = "workflow_context_ctx"
 
+type StepCallback func(stepNumber int, currentStep string)
+
 type WorkFlowContext struct {
+	mu                  sync.Mutex
 	CurrentStep         string
 	OriginalPrompt      string
 	ImageListStr        string
@@ -26,6 +30,8 @@ type WorkFlowContext struct {
 	Illustrations       []ai.ImageSource
 	Diagrams            []ai.ImageSource
 	Logos               []ai.ImageSource
+	StepCallback        StepCallback
+	StepCounter         int
 }
 
 func GetContext(graphState *GraphState) *WorkFlowContext {
@@ -51,4 +57,19 @@ func GenGraphState(ctx context.Context) *GraphState {
 
 func WithWorkflowContext(ctx context.Context, workflowCtx *WorkFlowContext) context.Context {
 	return context.WithValue(ctx, workflowContextCtxKey, workflowCtx)
+}
+
+func NotifyStepCompleted(workflowCtx *WorkFlowContext, currentStep string) {
+	if workflowCtx == nil {
+		return
+	}
+	workflowCtx.mu.Lock()
+	workflowCtx.StepCounter++
+	workflowCtx.CurrentStep = currentStep
+	callback := workflowCtx.StepCallback
+	workflowCtx.mu.Unlock()
+
+	if callback != nil {
+		callback(workflowCtx.StepCounter, currentStep)
+	}
 }

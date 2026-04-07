@@ -2,10 +2,13 @@ package graph
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/eino/compose"
+	"github.com/cloudwego/eino/schema"
 	"workspace-yikou-ai-go/biz/graph/node"
 	"workspace-yikou-ai-go/biz/graph/state"
 	"workspace-yikou-ai-go/biz/model/enum"
@@ -195,4 +198,76 @@ func ExecuteWorkflow(ctx context.Context, originalPrompt string) (*state.WorkFlo
 	logger.Info("代码生成工作流执行完成！")
 
 	return initialContext, nil
+}
+
+func ExecuteWorkflowStream(ctx context.Context, originalPrompt string) (*schema.StreamReader[string], *state.WorkFlowContext, error) {
+	runnable, err := createWorkflow(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	reader, writer := schema.Pipe[string](2)
+
+	initialContext := &state.WorkFlowContext{
+		OriginalPrompt: originalPrompt,
+		CurrentStep:    "初始化",
+		StepCallback: func(stepNumber int, currentStep string) {
+			writer.Send(formatSseEvent("step_completed", map[string]any{
+				"stepNumber":  stepNumber,
+				"currentStep": currentStep,
+			}), nil)
+		},
+	}
+
+	logger.Infof("初始输入: %s", initialContext.OriginalPrompt)
+	logger.Info("开始执行代码生成工作流(流式)")
+
+	ctx = state.WithWorkflowContext(ctx, initialContext)
+
+	input := map[string]any{}
+
+	stream, err := runnable.Stream(ctx, input)
+	if err != nil {
+		return nil, nil, fmt.Errorf("执行工作流失败: %w", err)
+	}
+
+	go func() {
+		defer writer.Close()
+		defer stream.Close()
+
+		writer.Send(formatSseEvent("workflow_start", map[string]any{
+			"message":        "开始执行代码生成工作流",
+			"originalPrompt": originalPrompt,
+		}), nil)
+
+		for {
+			_, err := stream.Recv()
+			if err == io.EOF {
+				writer.Send(formatSseEvent("workflow_completed", map[string]any{
+					"message": "代码生成工作流执行完成！",
+				}), nil)
+				logger.Info("代码生成工作流执行完成！")
+				return
+			}
+			if err != nil {
+				writer.Send(formatSseEvent("workflow_error", map[string]any{
+					"error":   err.Error(),
+					"message": "工作流执行失败",
+				}), err)
+				logger.Errorf("工作流执行失败: %v", err)
+				return
+			}
+		}
+	}()
+
+	return reader, initialContext, nil
+}
+
+func formatSseEvent(eventType string, data any) string {
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		logger.Errorf("格式化 SSE 事件失败: %v", err)
+		return "event: error\ndata: {\"error\":\"格式化失败\"}\n\n"
+	}
+	return fmt.Sprintf("event: %s\ndata: %s\n\n", eventType, string(jsonData))
 }
