@@ -10,8 +10,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"workspace-yikou-ai-go/biz/graph"
-
 	_ "workspace-yikou-ai-go/biz/dal"
 	"workspace-yikou-ai-go/pkg/myutils"
 	"workspace-yikou-ai-go/wire"
@@ -30,7 +28,8 @@ func main() {
 		return
 	}
 
-	graph.ExecuteWorkflow(ctx, "创建一个简单的个人主页")
+	// 执行一次工作流后，可以在eino dev插件上调试工作流
+	//graph.ExecuteWorkflow(ctx, "创建一个简单的个人主页")
 
 	go func() {
 		quit := make(chan os.Signal, 1)
