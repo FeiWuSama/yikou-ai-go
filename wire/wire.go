@@ -22,6 +22,7 @@ import (
 	"workspace-yikou-ai-go/biz/ai/agent"
 	"workspace-yikou-ai-go/biz/ai/aitools"
 	"workspace-yikou-ai-go/biz/ai/llm"
+	"workspace-yikou-ai-go/biz/cache"
 	"workspace-yikou-ai-go/biz/core"
 	"workspace-yikou-ai-go/biz/core/messagehandler"
 	"workspace-yikou-ai-go/biz/core/parser"
@@ -31,6 +32,7 @@ import (
 	appHandler "workspace-yikou-ai-go/biz/handler/app"
 	chatHistoryHandler "workspace-yikou-ai-go/biz/handler/chathistory"
 	static "workspace-yikou-ai-go/biz/handler/static"
+	"workspace-yikou-ai-go/biz/handler/workflow"
 	"workspace-yikou-ai-go/biz/manager"
 	"workspace-yikou-ai-go/biz/model/api/common"
 	"workspace-yikou-ai-go/biz/router"
@@ -56,6 +58,11 @@ var dbSet = wire.NewSet(
 	dal.InitCOSClient,
 )
 
+// 缓存依赖
+var cacheSet = wire.NewSet(
+	cache.InitCacheManager,
+)
+
 // Service依赖
 var serviceSet = wire.NewSet(
 	core.NewYiKouAiCodegenFacade,
@@ -77,6 +84,7 @@ var handlerSet = wire.NewSet(
 	userHandler.NewUserHandler,
 	chatHistoryHandler.NewChatHistoryHandler,
 	static.NewStaticResourceHandler,
+	workflow.NewWorkflowHandler,
 )
 
 var llmSet = wire.NewSet(
@@ -115,6 +123,8 @@ func InitServer(
 	userHandler *userHandler.UserHandler,
 	chatHistoryHandler *chatHistoryHandler.ChatHistoryHandler,
 	staticResourceHandler *static.StaticResourceHandler,
+	workflowHandler *workflow.WorkflowHandler,
+	cacheManager *cache.CacheManager,
 	db *gorm.DB,
 	redisClient *redis.Client,
 ) *server.Hertz {
@@ -140,7 +150,7 @@ func InitServer(
 		MaxAge:           12 * time.Hour,
 	}))
 	// 注册路由
-	router.CustomizedRegister(h, db, redisClient, appHandler, userHandler, chatHistoryHandler, staticResourceHandler, url)
+	router.CustomizedRegister(h, db, redisClient, appHandler, userHandler, chatHistoryHandler, staticResourceHandler, workflowHandler, cacheManager, url)
 	return h
 }
 
@@ -149,6 +159,7 @@ func InitializeApp() (*server.Hertz, error) {
 	panic(wire.Build(
 		configSet,
 		dbSet,
+		cacheSet,
 		serviceSet,
 		handlerSet,
 		InitServer,

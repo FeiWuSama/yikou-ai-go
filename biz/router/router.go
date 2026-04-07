@@ -3,12 +3,15 @@
 package router
 
 import (
+	"time"
+
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/hertz-contrib/swagger"
 	"github.com/redis/go-redis/v9"
 	swaggerFiles "github.com/swaggo/files"
 	"gorm.io/gorm"
 
+	"workspace-yikou-ai-go/biz/cache"
 	"workspace-yikou-ai-go/biz/handler"
 	app "workspace-yikou-ai-go/biz/handler/app"
 	chatHistory "workspace-yikou-ai-go/biz/handler/chathistory"
@@ -21,7 +24,7 @@ import (
 )
 
 // CustomizedRegister registers customize routers.
-func CustomizedRegister(r *server.Hertz, db *gorm.DB, redisClient *redis.Client, appHandler *app.AppHandler, userHandler *user.UserHandler, chatHistoryHandler *chatHistory.ChatHistoryHandler, staticHandler *static.StaticResourceHandler, workflowHandler *workflow.WorkflowHandler, url func(config *swagger.Config)) {
+func CustomizedRegister(r *server.Hertz, db *gorm.DB, redisClient *redis.Client, appHandler *app.AppHandler, userHandler *user.UserHandler, chatHistoryHandler *chatHistory.ChatHistoryHandler, staticHandler *static.StaticResourceHandler, workflowHandler *workflow.WorkflowHandler, cacheManager *cache.CacheManager, url func(config *swagger.Config)) {
 	r.GET("/ping", handler.Ping)
 	r.GET("/swagger/*any", swagger.WrapHandler(swaggerFiles.Handler, url))
 
@@ -45,7 +48,12 @@ func CustomizedRegister(r *server.Hertz, db *gorm.DB, redisClient *redis.Client,
 
 	appRoute := r.Group("/app")
 	{
-		appRoute.POST("/good/list/page/vo", appHandler.ListGoodApp)
+		appRoute.POST("/good/list/page/vo", middleware.CacheMiddleware(cacheManager, middleware.CacheMiddlewareConfig{
+			CacheName:  "good_app_page",
+			TTL:        5 * time.Minute,
+			KeyBuilder: middleware.DefaultKeyBuilder,
+			Condition:  middleware.PageCondition(10),
+		}), appHandler.ListGoodApp)
 		appRoute.GET("/get/vo", middleware.AuthMiddleware(enum.UserRole, db, redisClient), appHandler.GetAppVo)
 
 		// 需要登录的接口

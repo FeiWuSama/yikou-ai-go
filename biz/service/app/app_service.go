@@ -575,16 +575,17 @@ func (s *AppService) ListGoodApp(ctx context.Context, req *appApi.YiKouAppFeatur
 		return nil, err
 	}
 
-	// 转换为AppVo列表
 	appVoList, err := s.GetAppVoList(ctx, appList)
+	if err != nil {
+		return nil, err
+	}
 
 	pageResponse := &common.PageResponse[vo.AppVo]{
-		Records:            appVoList,
-		PageNum:            req.PageNum,
-		PageSize:           req.PageSize,
-		TotalPage:          totalPage,
-		TotalRow:           int(totalCount),
-		OptimizeCountQuery: false,
+		Records:   appVoList,
+		PageNum:   req.PageNum,
+		PageSize:  req.PageSize,
+		TotalPage: totalPage,
+		TotalRow:  int(totalCount),
 	}
 
 	return pageResponse, nil
