@@ -14,13 +14,14 @@ import (
 	chatHistory "workspace-yikou-ai-go/biz/handler/chathistory"
 	"workspace-yikou-ai-go/biz/handler/static"
 	user "workspace-yikou-ai-go/biz/handler/user"
+	workflow "workspace-yikou-ai-go/biz/handler/workflow"
 	"workspace-yikou-ai-go/biz/middleware"
 	"workspace-yikou-ai-go/biz/model/enum"
 	_ "workspace-yikou-ai-go/docs"
 )
 
 // CustomizedRegister registers customize routers.
-func CustomizedRegister(r *server.Hertz, db *gorm.DB, redisClient *redis.Client, appHandler *app.AppHandler, userHandler *user.UserHandler, chatHistoryHandler *chatHistory.ChatHistoryHandler, staticHandler *static.StaticResourceHandler, url func(config *swagger.Config)) {
+func CustomizedRegister(r *server.Hertz, db *gorm.DB, redisClient *redis.Client, appHandler *app.AppHandler, userHandler *user.UserHandler, chatHistoryHandler *chatHistory.ChatHistoryHandler, staticHandler *static.StaticResourceHandler, workflowHandler *workflow.WorkflowHandler, url func(config *swagger.Config)) {
 	r.GET("/ping", handler.Ping)
 	r.GET("/swagger/*any", swagger.WrapHandler(swaggerFiles.Handler, url))
 
@@ -75,5 +76,11 @@ func CustomizedRegister(r *server.Hertz, db *gorm.DB, redisClient *redis.Client,
 		chatHistoryRoute.POST("/admin/list/page/vo", middleware.AuthMiddleware(enum.AdminRole, db, redisClient), chatHistoryHandler.ListAllChatHistoryByPageForAdmin)
 
 		chatHistoryRoute.GET("/app/:appId", middleware.AuthMiddleware(enum.UserRole, db, redisClient), chatHistoryHandler.ListAppChatHistory)
+	}
+
+	workflowRoute := r.Group("/workflow")
+	{
+		workflowRoute.POST("/execute", middleware.AuthMiddleware(enum.UserRole, db, redisClient), workflowHandler.ExecuteWorkflow)
+		workflowRoute.POST("execute-flux", middleware.AuthMiddleware(enum.UserRole, db, redisClient), workflowHandler.ExecuteWorkflow)
 	}
 }
