@@ -8,6 +8,7 @@ import (
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
+	"github.com/cloudwego/hertz/pkg/protocol/sse"
 	"github.com/redis/go-redis/v9"
 	pkg "workspace-yikou-ai-go/pkg/errors"
 )
@@ -61,6 +62,21 @@ func RateLimitMiddleware(redisClient *redis.Client, userService user.IUserServic
 			if message == "" {
 				message = "请求过于频繁，请稍后再试"
 			}
+
+			if message == "AI对话请求过于频繁，请稍后再试" {
+				c.Header("Content-Type", "text/event-stream")
+				c.Header("Cache-Control", "no-cache")
+				c.Header("Connection", "keep-alive")
+				c.Header("X-Accel-Buffering", "no")
+
+				w := sse.NewWriter(c)
+				lastEventID := sse.GetLastEventID(&c.Request)
+				_ = w.WriteEvent(lastEventID, "error", []byte(message))
+				_ = w.WriteEvent(lastEventID, "done", []byte{1})
+				c.Abort()
+				return
+			}
+
 			c.JSON(consts.StatusTooManyRequests, map[string]interface{}{
 				"code":    pkg.TooManyRequestError.Code,
 				"message": message,
