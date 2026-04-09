@@ -18,6 +18,7 @@ type ToolManager struct {
 	fileReadTool    *FileReadTool
 	fileDirReadTool *FileDirReadTool
 	fileModifyTool  *FileModifyTool
+	exitTool        *ExitTool
 	toolMap         map[string]ToolInterface
 }
 
@@ -47,6 +48,11 @@ func NewToolManager() (*ToolManager, error) {
 		return nil, err
 	}
 
+	exitTool, err := CreateExitTool()
+	if err != nil {
+		return nil, err
+	}
+
 	toolMap := make(map[string]ToolInterface)
 
 	tools := []ToolInterface{
@@ -55,6 +61,7 @@ func NewToolManager() (*ToolManager, error) {
 		fileReadTool,
 		fileDirReadTool,
 		fileModifyTool,
+		exitTool,
 	}
 
 	for _, t := range tools {
@@ -69,6 +76,7 @@ func NewToolManager() (*ToolManager, error) {
 		fileReadTool:    fileReadTool,
 		fileDirReadTool: fileDirReadTool,
 		fileModifyTool:  fileModifyTool,
+		exitTool:        exitTool,
 		toolMap:         toolMap,
 	}, nil
 }
@@ -84,5 +92,6 @@ func (m *ToolManager) GetAllTools() []tool.BaseTool {
 		m.fileReadTool.BaseTool,
 		m.fileDirReadTool.BaseTool,
 		m.fileModifyTool.BaseTool,
+		m.exitTool.BaseTool,
 	}
 }
