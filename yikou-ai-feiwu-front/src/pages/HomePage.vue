@@ -48,16 +48,16 @@
       <div class="section-title">精选应用</div>
       <!-- 应用列表 -->
       <div class="app-list">
-        <div class="app-cards">
-          <AppCard
-            v-for="item in goodAppData"
-            :key="item.id"
-            :app-data="item"
-            :show-user-info="true"
-            :is-good-app="true"
-            @action="handleCardAction"
-          />
-        </div>
+        <a-row :gutter="[24, 24]">
+          <a-col v-for="(item, index) in goodAppData" :key="item.id" :xs="24" :sm="12" :md="8" :lg="8" :xl="8">
+            <AppCard
+              :app-data="item"
+              :show-user-info="true"
+              :is-good-app="true"
+              @action="handleCardAction"
+            />
+          </a-col>
+        </a-row>
         <!-- 分页 -->
         <div class="pagination-container" v-if="goodTotal > goodSearchParams.pageSize">
           <a-pagination
@@ -76,26 +76,26 @@
       <div v-if="isLoggedIn" class="section-title">我的应用</div>
       <!-- 应用列表 -->
       <div v-if="isLoggedIn" class="app-list">
-        <div class="app-cards">
-          <AppCard
-            v-for="item in myAppData"
-            :key="item.id"
-            :app-data="item"
-            :is-good-app="false"
-            @action="handleCardAction"
-          />
-        </div>
-        <!-- 分页 -->
-        <div class="pagination-container" v-if="myTotal > 6">
-          <a-pagination
-            :current="myPagination.current"
-            :page-size="myPagination.pageSize"
-            :total="myPagination.total"
-            :show-size-changer="myPagination.showSizeChanger"
-            :show-total="myPagination.showTotal"
-            @change="handleMyPageChange"
-          />
-        </div>
+        <a-row :gutter="[24, 24]">
+          <a-col v-for="(item, index) in myAppData" :key="item.id" :xs="24" :sm="12" :md="8" :lg="8" :xl="8">
+            <AppCard
+              :app-data="item"
+              :is-good-app="false"
+              @action="handleCardAction"
+            />
+          </a-col>
+        </a-row>
+      </div>
+      <!-- 分页 -->
+      <div class="pagination-container" v-if="myTotal > 6">
+        <a-pagination
+          :current="myPagination.current"
+          :page-size="myPagination.pageSize"
+          :total="myPagination.total"
+          :show-size-changer="myPagination.showSizeChanger"
+          :show-total="myPagination.showTotal"
+          @change="handleMyPageChange"
+        />
       </div>
 
       <!-- 未登录提示 -->
@@ -415,8 +415,11 @@ onMounted(() => {
 
 <style scoped>
 #homePage {
+  width: 100%;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  box-sizing: border-box;
 }
 
 .title {
@@ -428,17 +431,15 @@ onMounted(() => {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-shadow: 0 0 20px rgba(0, 180, 255, 0.5);
-  position: relative;
   animation: techGlow 3s ease-in-out infinite alternate;
 }
 
 @keyframes techGlow {
   0% {
-    text-shadow: 0 0 20px rgba(0, 180, 255, 0.5), 0 0 40px rgba(0, 81, 255, 0.505);
+    filter: drop-shadow(0 0 20px rgba(0, 180, 255, 0.5));
   }
   100% {
-    text-shadow: 0 0 30px rgba(0, 180, 255, 0.8), 0 0 60px rgba(0, 119, 255, 0.838);
+    filter: drop-shadow(0 0 30px rgba(0, 180, 255, 0.8));
   }
 }
 
@@ -447,29 +448,18 @@ onMounted(() => {
   color: #9f9f9f;
   margin-bottom: 32px;
   font-size: 1.2rem;
-  font-weight: 300;
   background: linear-gradient(135deg, #817df1 0%, #ffc8d9 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-shadow: 0 0 15px rgba(168, 237, 234, 0.4);
-  animation: descGlow 4s ease-in-out infinite alternate;
-}
-
-@keyframes descGlow {
-  0% {
-    text-shadow: 0 0 15px rgba(168, 237, 234, 0.4);
-  }
-  100% {
-    text-shadow: 0 0 25px rgba(168, 237, 234, 0.7), 0 0 35px rgba(168, 237, 234, 0.5);
-  }
 }
 
 .prompt-input-container {
   display: flex;
   justify-content: center;
   position: relative;
-  width: 800px;
+  width: 100%;
+  max-width: 800px;
   margin: 0 auto;
 }
 
@@ -492,6 +482,8 @@ onMounted(() => {
 
 .quick-prompts {
   margin-top: 20px;
+  display: flex;
+  justify-content: center;
 }
 
 .quick-prompts-list {
@@ -514,43 +506,33 @@ onMounted(() => {
 }
 
 .app-sections {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  margin-top: 50px;
-  padding: 0 225px;
+  margin-top: 60px;
+  width: 100%;
 }
 
 .section-title {
-  font-size: 20px;
-  font-weight: bold;
-  margin-bottom: 5px;
-  margin-left: 100px;
-  color: #333;
+  font-size: 22px;
+  font-weight: 600;
+  color: #1a1a1a;
+  text-align: left;
+  width: 100%;
+  max-width: 1200px;
+  margin: 24px auto;
 }
 
 .app-list {
-  min-height: 100px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  padding: 0 80px;
-}
-
-.app-cards {
+  width: 100%;
+  max-width: 1200px;
   margin: 0 auto;
   display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  justify-content: left;
+  justify-content: center;
 }
 
 .pagination-container {
   display: flex;
   justify-content: center;
-  margin-top: 20px;
-  margin-bottom: 20px;
+  margin-top: 24px;
+  width: 100%;
 }
 
 .login-prompt {
@@ -559,8 +541,10 @@ onMounted(() => {
   align-items: center;
   min-height: 200px;
   background: #f8f9fa;
-  border-radius: 8px;
+  border-radius: 12px;
   margin-top: 20px;
+  width: 100%;
+  max-width: 1100px;
 }
 
 .login-prompt-content {
@@ -574,8 +558,42 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .app-card {
-    width: 100%;
+  #homePage {
+    padding: 16px;
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+
+  .desc {
+    font-size: 1rem;
+  }
+
+  .app-sections {
+    margin-top: 40px;
+  }
+
+  .section-title {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  #homePage {
+    padding: 12px;
+  }
+
+  .title {
+    font-size: 1.75rem;
+  }
+
+  .app-sections {
+    margin-top: 30px;
+  }
+
+  .prompt-input-container {
+    max-width: 100%;
   }
 }
 </style>

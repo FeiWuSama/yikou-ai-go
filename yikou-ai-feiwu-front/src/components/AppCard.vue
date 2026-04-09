@@ -136,9 +136,10 @@ const handleViewWork = (appData: API.AppVO) => {
 
 <style scoped>
 .app-card {
-  width: 300px;
+  width: 350px;
   margin: 10px;
   position: relative;
+  border-radius: 8px;
 }
 
 /* Tooltip样式 */
@@ -156,10 +157,11 @@ const handleViewWork = (appData: API.AppVO) => {
 .cover-container {
   position: relative;
   overflow: hidden;
+  border-radius: 8px 8px 0 0;
 }
 
 .app-cover {
-  height: 150px;
+  height: 180px;
   object-fit: cover;
   width: 100%;
   transition: all 0.3s ease;
@@ -177,6 +179,7 @@ const handleViewWork = (appData: API.AppVO) => {
   justify-content: center;
   opacity: 0;
   animation: fadeIn 0.3s ease forwards;
+  border-radius: 8px 8px 0 0;
 }
 
 @keyframes fadeIn {
