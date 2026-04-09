@@ -3,8 +3,6 @@ package agent
 import (
 	"context"
 	"fmt"
-	"io"
-
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/adk"
@@ -12,6 +10,8 @@ import (
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/schema"
+	"io"
+	"workspace-yikou-ai-go/biz/ai/agent/agentmiddleware"
 	"workspace-yikou-ai-go/biz/ai/store"
 )
 
@@ -19,14 +19,22 @@ type BaseAgent struct {
 	model        *openai.ChatModel
 	checkpoint   *store.RedisStore
 	memoryHelper *store.MemoryStoreHelper
+	middleware   *agentmiddleware.CodeGenMiddleware
 }
 
 func NewBaseAgent(model *openai.ChatModel, checkpoint *store.RedisStore, memoryStore store.MemoryStore) *BaseAgent {
 	memoryHelper := store.NewMemoryStoreHelper(memoryStore)
+
+	var middleware *agentmiddleware.CodeGenMiddleware
+	if checkpoint != nil && memoryHelper != nil {
+		middleware = agentmiddleware.NewCodeGenMiddleware(checkpoint.Id, memoryHelper)
+	}
+
 	return &BaseAgent{
 		model:        model,
 		checkpoint:   checkpoint,
 		memoryHelper: memoryHelper,
+		middleware:   middleware,
 	}
 }
 
@@ -44,7 +52,8 @@ func (a *BaseAgent) GetMemoryHelper() *store.MemoryStoreHelper {
 
 func (a *BaseAgent) NewAdkAgent(name, description, instruction string, tools []tool.BaseTool) *adk.ChatModelAgent {
 	ctx := context.Background()
-	agent, err := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
+
+	config := &adk.ChatModelAgentConfig{
 		Name:        name,
 		Description: description,
 		Instruction: instruction,
@@ -58,7 +67,13 @@ func (a *BaseAgent) NewAdkAgent(name, description, instruction string, tools []t
 			},
 		},
 		MaxIterations: 50,
-	})
+	}
+
+	if a.middleware != nil {
+		config.Handlers = []adk.ChatModelAgentMiddleware{a.middleware}
+	}
+
+	agent, err := adk.NewChatModelAgent(ctx, config)
 	if err != nil {
 		logger.Errorf("创建Agent失败: %v", err)
 		return nil
@@ -67,18 +82,9 @@ func (a *BaseAgent) NewAdkAgent(name, description, instruction string, tools []t
 }
 
 func (a *BaseAgent) Generate(ctx context.Context, userMessage string, chatTemplate prompt.ChatTemplate, adkAgent *adk.ChatModelAgent) (*schema.Message, error) {
-	var history []*schema.Message
-	if a.checkpoint != nil && a.memoryHelper != nil {
-		var err error
-		history, err = a.memoryHelper.GetHistory(ctx, a.checkpoint.Id)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	format, err := chatTemplate.Format(ctx, map[string]any{
 		"content": userMessage,
-		"history": history,
+		"history": []*schema.Message{},
 	})
 	if err != nil {
 		return nil, err
@@ -120,33 +126,13 @@ func (a *BaseAgent) Generate(ctx context.Context, userMessage string, chatTempla
 		}
 	}
 
-	if resultMsg == nil {
-		return nil, nil
-	}
-
-	if a.checkpoint != nil && a.memoryHelper != nil {
-		err = a.memoryHelper.SaveHistory(ctx, a.checkpoint.Id, userMessage, resultMsg.Content)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	return resultMsg, nil
 }
 
 func (a *BaseAgent) GenerateStream(ctx context.Context, userMessage string, chatTemplate prompt.ChatTemplate, adkAgent *adk.ChatModelAgent) (*schema.StreamReader[*schema.Message], error) {
-	var history []*schema.Message
-	if a.checkpoint != nil && a.memoryHelper != nil {
-		var err error
-		history, err = a.memoryHelper.GetHistory(ctx, a.checkpoint.Id)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	format, err := chatTemplate.Format(ctx, map[string]any{
 		"content": userMessage,
-		"history": history,
+		"history": []*schema.Message{},
 	})
 	if err != nil {
 		return nil, err
@@ -171,9 +157,6 @@ func (a *BaseAgent) GenerateStream(ctx context.Context, userMessage string, chat
 		for {
 			event, ok := iter.Next()
 			if !ok {
-				if a.checkpoint != nil && a.memoryHelper != nil {
-					_ = a.memoryHelper.SaveHistory(ctx, a.checkpoint.Id, userMessage, fullContent)
-				}
 				break
 			}
 
