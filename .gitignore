@@ -37,3 +37,4 @@ dumped_hertz_remote_config.json
 		  
 /config/config-local.yml
 /tmp/
+/config/config-prod.yml
