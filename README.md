@@ -91,7 +91,7 @@
 
 ### 架构图
 
- <img src="image/yikouai-construction.drawio.png" width="591">
+![架构图](image/yikouai-construction.drawio.png)
 
 ---
 
