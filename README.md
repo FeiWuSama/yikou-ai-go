@@ -215,7 +215,8 @@ yikou-ai-go/
 │   ├── middleware/        # 中间件
 │   ├── model/             # 数据模型
 │   ├── router/            # 路由定义
-│   └── service/           # 业务服务
+│   ├── logic/             # 业务服务具体实现
+|   └── service/           # 业务接口定义
 ├── config/                # 配置文件
 │   ├── config.go          # 配置加载逻辑
 │   ├── config.yml         # 基础配置
