@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/eino-ext/components/model/openai"
@@ -69,6 +70,12 @@ func (a *BaseAgent) NewAdkAgent(name, description, instruction string, tools []t
 		MaxIterations: 50,
 		ModelRetryConfig: &adk.ModelRetryConfig{
 			MaxRetries: 3,
+			IsRetryAble: func(ctx context.Context, err error) bool {
+				if errors.Is(err, context.Canceled) {
+					return false
+				}
+				return true
+			},
 		},
 	}
 

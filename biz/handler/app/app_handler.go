@@ -3,12 +3,14 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"workspace-yikou-ai-go/biz/service/download"
 
 	"github.com/bytedance/gopkg/util/logger"
@@ -27,11 +29,17 @@ import (
 	"workspace-yikou-ai-go/pkg/myfile"
 )
 
+type StreamContext struct {
+	CancelFunc context.CancelFunc
+	Ctx        context.Context
+}
+
 type AppHandler struct {
 	appService             application.IAppService
 	userService            user.IUserService
 	chatHistoryService     chatHistory.IChatHistoryService
 	projectDownloadService download.IProjectDownloadService
+	streamsMap             sync.Map
 }
 
 func NewAppHandler(
@@ -46,6 +54,34 @@ func NewAppHandler(
 		chatHistoryService:     chatHistoryService,
 		projectDownloadService: projectDownloadService,
 	}
+}
+
+func (a *AppHandler) RegisterStream(userId, appId int64) (context.Context, context.CancelFunc) {
+	key := strconv.Itoa(int(userId)) + "_" + strconv.Itoa(int(appId))
+	ctx, cancel := context.WithCancel(context.Background())
+	a.streamsMap.Store(key, &StreamContext{
+		CancelFunc: cancel,
+		Ctx:        ctx,
+	})
+	return ctx, cancel
+}
+
+func (a *AppHandler) StopStreamInternal(userId, appId int64) bool {
+	key := strconv.Itoa(int(userId)) + "_" + strconv.Itoa(int(appId))
+	value, ok := a.streamsMap.Load(key)
+	if !ok {
+		return false
+	}
+
+	streamCtx := value.(*StreamContext)
+	streamCtx.CancelFunc()
+	a.streamsMap.Delete(key)
+	return true
+}
+
+func (a *AppHandler) RemoveStream(userId, appId int64) {
+	key := strconv.Itoa(int(userId)) + "_" + strconv.Itoa(int(appId))
+	a.streamsMap.Delete(key)
 }
 
 // ChatToGenCode 应用聊天生成代码（流式）
@@ -91,8 +127,13 @@ func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 
+	// 注册流到管理器
+	streamCtx, cancel := a.RegisterStream(userVo.ID, appId)
+	defer cancel()
+	defer a.RemoveStream(userVo.ID, appId)
+
 	// 获取流数据
-	streamResp, err := a.appService.ChatToGenCode(ctx, appId, message, &userVo)
+	streamResp, err := a.appService.ChatToGenCode(streamCtx, appId, message, &userVo)
 	if err != nil {
 		_ = w.WriteEvent(lastEventID, "error", []byte(fmt.Sprintf("%v", err)))
 		_ = w.WriteEvent(lastEventID, "done", []byte{1})
@@ -111,7 +152,7 @@ func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
 		}
 
 		chunk, err := streamResp.Recv()
-		if err == io.EOF {
+		if err == io.EOF || errors.Is(err, context.Canceled) {
 			break
 		}
 		if err != nil {
@@ -146,6 +187,38 @@ func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
 			logger.Errorf("保存聊天消息失败: %v", err)
 		}
 	}
+}
+
+// StopStream 停止AI流式输出
+// @Summary 停止AI流式输出
+// @Description 停止AI流式输出
+// @Tags 应用模块
+// @Accept json
+// @Produce json
+// @Param appId query int true "应用ID"
+// @Success 200 {object} common.Response[bool] "停止结果"
+// @Router /app/chat/gen/stop [post]
+func (a *AppHandler) StopStream(ctx context.Context, c *app.RequestContext) {
+	appIdStr := c.Query("appId")
+	if appIdStr == "" {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.ParamsError.WithMessage("应用ID不能为空")))
+		return
+	}
+
+	appId, err := strconv.ParseInt(appIdStr, 10, 64)
+	if err != nil || appId <= 0 {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.ParamsError.WithMessage("应用ID无效")))
+		return
+	}
+
+	userVo, err := a.userService.GetLoginUserVo(ctx, c)
+	if err != nil {
+		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
+		return
+	}
+
+	success := a.StopStreamInternal(userVo.ID, appId)
+	c.JSON(consts.StatusOK, common.NewSuccessResponse[bool](success))
 }
 
 // DeployApp

@@ -181,6 +181,7 @@ func (s *AppService) ChatToGenCode(ctx context.Context, appId int64, message str
 	}
 	// 5. 将用户消息保存到对话记录
 	_ = s.chatHistoryService.AddChatMessage(ctx, appId, message, enum.UserMessageType, loginUser.ID)
+
 	// 6. 调用代码生成服务
 	streamResp, err := s.aiCodeGenFacade.GenCodeStreamAndSave(ctx, message, enum.CodeGenTypeEnum(app.CodeGenType), appId)
 	if err != nil {

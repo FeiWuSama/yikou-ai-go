@@ -71,6 +71,7 @@ func CustomizedRegister(r *server.Hertz, db *gorm.DB, redisClient *redis.Client,
 				LimitType:    middleware.RateLimitTypeUSER,
 				Message:      "AI对话请求过于频繁，请稍后再试",
 			}), appHandler.ChatToGenCode)
+		appRoute.POST("/chat/gen/stop", middleware.AuthMiddleware(enum.UserRole, db, redisClient), appHandler.StopStream)
 		appRoute.POST("/deploy", middleware.AuthMiddleware(enum.UserRole, db, redisClient), appHandler.DeployApp)
 		appRoute.GET("/download/:appId", middleware.AuthMiddleware(enum.UserRole, db, redisClient), appHandler.DownloadAppCode)
 
