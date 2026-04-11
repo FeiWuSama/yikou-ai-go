@@ -4,17 +4,16 @@ import (
 	"context"
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/eino-ext/components/model/openai"
+	"github.com/patrickmn/go-cache"
+	"github.com/redis/go-redis/v9"
 	"strconv"
 	"sync"
 	"time"
-	chatHistory "workspace-yikou-ai-go/biz/service/chathistory"
-
-	"github.com/patrickmn/go-cache"
-	"github.com/redis/go-redis/v9"
 	"workspace-yikou-ai-go/biz/ai/aitools"
 	"workspace-yikou-ai-go/biz/ai/llm"
 	"workspace-yikou-ai-go/biz/ai/store"
 	"workspace-yikou-ai-go/biz/model/enum"
+	chatHistory "workspace-yikou-ai-go/biz/service/chathistory"
 	pkg "workspace-yikou-ai-go/pkg/errors"
 )
 

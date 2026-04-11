@@ -10,7 +10,7 @@ import (
 	"workspace-yikou-ai-go/biz/model/api/chathistory"
 	"workspace-yikou-ai-go/biz/model/api/common"
 	chatHistory "workspace-yikou-ai-go/biz/service/chathistory"
-	user "workspace-yikou-ai-go/biz/service/user"
+	"workspace-yikou-ai-go/biz/service/user"
 	pkg "workspace-yikou-ai-go/pkg/errors"
 )
 

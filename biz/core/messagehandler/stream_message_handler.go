@@ -3,12 +3,11 @@ package messagehandler
 import (
 	"encoding/json"
 	"strings"
-
-	"workspace-yikou-ai-go/biz/ai/aimodel/aimessage"
-	"workspace-yikou-ai-go/biz/ai/aitools"
 	"workspace-yikou-ai-go/biz/service/chathistory"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"workspace-yikou-ai-go/biz/ai/aimodel/aimessage"
+	"workspace-yikou-ai-go/biz/ai/aitools"
 )
 
 type StreamHandler interface {

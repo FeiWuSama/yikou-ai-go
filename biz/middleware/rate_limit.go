@@ -3,13 +3,12 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"time"
-	user "workspace-yikou-ai-go/biz/service/user"
-
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 	"github.com/cloudwego/hertz/pkg/protocol/sse"
 	"github.com/redis/go-redis/v9"
+	"time"
+	"workspace-yikou-ai-go/biz/service/user"
 	pkg "workspace-yikou-ai-go/pkg/errors"
 )
 

@@ -31,11 +31,6 @@ var IgnoredExtensions = map[string]bool{
 	".cache": true,
 }
 
-type IProjectDownloadService interface {
-	IsPathAllowed(projectRoot, fullPath string) bool
-	DownloadProjectAsZip(projectPath, downloadFileName string, c *app.RequestContext) error
-}
-
 func NewProjectDownloadService() *ProjectDownloadService {
 	return &ProjectDownloadService{}
 }

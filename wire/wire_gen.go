@@ -10,7 +10,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/bytedance/gopkg/util/logger"
-	"github.com/cloudwego/hertz/pkg/app"
+	app2 "github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/middlewares/server/recovery"
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
@@ -37,14 +37,19 @@ import (
 	"workspace-yikou-ai-go/biz/handler/static"
 	handler2 "workspace-yikou-ai-go/biz/handler/user"
 	handler3 "workspace-yikou-ai-go/biz/handler/workflow"
+	"workspace-yikou-ai-go/biz/logic/app"
+	"workspace-yikou-ai-go/biz/logic/chathistory"
+	"workspace-yikou-ai-go/biz/logic/download"
+	"workspace-yikou-ai-go/biz/logic/screenshot"
+	"workspace-yikou-ai-go/biz/logic/user"
 	"workspace-yikou-ai-go/biz/manager"
 	"workspace-yikou-ai-go/biz/model/api/common"
 	"workspace-yikou-ai-go/biz/router"
-	service2 "workspace-yikou-ai-go/biz/service/app"
-	"workspace-yikou-ai-go/biz/service/chathistory"
-	"workspace-yikou-ai-go/biz/service/download"
-	"workspace-yikou-ai-go/biz/service/screenshot"
-	"workspace-yikou-ai-go/biz/service/user"
+	"workspace-yikou-ai-go/biz/service/app"
+	chathistory3 "workspace-yikou-ai-go/biz/service/chathistory"
+	download2 "workspace-yikou-ai-go/biz/service/download"
+	screenshot2 "workspace-yikou-ai-go/biz/service/screenshot"
+	user2 "workspace-yikou-ai-go/biz/service/user"
 	"workspace-yikou-ai-go/config"
 	"workspace-yikou-ai-go/docs"
 	"workspace-yikou-ai-go/pkg/errors"
@@ -63,20 +68,21 @@ func InitializeApp() (*server.Hertz, error) {
 	reasoningChatModel := llm.NewReasoningChatModel(configConfig)
 	client := dal.InitRedis(configConfig)
 	db := dal.InitDB(configConfig)
-	chatHistoryService := chathistory.NewChatHistoryService(db)
+	chatSummaryAgentFactory := agent.NewChatSummaryAgentFactory(baseAiChatModel)
+	chatHistoryService := chathistory.NewChatHistoryService(db, chatSummaryAgentFactory)
 	toolManager, err := aitools.NewToolManager()
 	if err != nil {
 		return nil, err
 	}
 	codeGenAgentFactory := agent.NewCodeGenAgentFactory(baseAiChatModel, reasoningChatModel, client, chatHistoryService, toolManager)
 	yiKouAiCodegenFacade := core.NewYiKouAiCodegenFacade(yiKouAiCodegenService, codeParserExecutor, codeFileSaverExecutor, codeGenAgentFactory)
-	userService := service.NewUserService(db, client)
+	userService := user.NewUserService(db, client)
 	streamHandlerExecutor := messagehandler.NewStreamHandlerExecutor(chatHistoryService, toolManager)
 	cosClient := dal.InitCOSClient(configConfig)
 	cosManager := manager.NewCosManager(cosClient, configConfig)
 	screenshotService := screenshot.NewScreenshotService(cosManager)
 	codeGenTypeRoutingAgentFactory := agent.NewCodeGenTypeRoutingAgentFactory(baseAiChatModel)
-	appService := service2.NewAppService(yiKouAiCodegenFacade, userService, chatHistoryService, streamHandlerExecutor, screenshotService, codeGenTypeRoutingAgentFactory, db)
+	appService := app.NewAppService(yiKouAiCodegenFacade, userService, chatHistoryService, streamHandlerExecutor, screenshotService, codeGenTypeRoutingAgentFactory, db)
 	projectDownloadService := download.NewProjectDownloadService()
 	appHandler := handler.NewAppHandler(appService, userService, chatHistoryService, projectDownloadService)
 	userHandler := handler2.NewUserHandler(userService)
@@ -101,7 +107,7 @@ var dbSet = wire.NewSet(dal.InitDB, dal.InitRedis, dal.InitCOSClient)
 var cacheSet = wire.NewSet(cache.InitCacheManager)
 
 // Service依赖
-var serviceSet = wire.NewSet(core.NewYiKouAiCodegenFacade, service2.NewAppService, wire.Bind(new(service2.IAppService), new(*service2.AppService)), service.NewUserService, wire.Bind(new(service.IUserService), new(*service.UserService)), chathistory.NewChatHistoryService, wire.Bind(new(chathistory.IChatHistoryService), new(*chathistory.ChatHistoryService)), screenshot.NewScreenshotService, wire.Bind(new(screenshot.IScreenshotService), new(*screenshot.ScreenshotService)), download.NewProjectDownloadService, wire.Bind(new(download.IProjectDownloadService), new(*download.ProjectDownloadService)))
+var serviceSet = wire.NewSet(core.NewYiKouAiCodegenFacade, app.NewAppService, wire.Bind(new(service.IAppService), new(*app.AppService)), user.NewUserService, wire.Bind(new(user2.IUserService), new(*user.UserService)), chathistory.NewChatHistoryService, wire.Bind(new(chathistory3.IChatHistoryService), new(*chathistory.ChatHistoryService)), screenshot.NewScreenshotService, wire.Bind(new(screenshot2.IScreenshotService), new(*screenshot.ScreenshotService)), download.NewProjectDownloadService, wire.Bind(new(download2.IProjectDownloadService), new(*download.ProjectDownloadService)))
 
 // Handler依赖
 var handlerSet = wire.NewSet(handler.NewAppHandler, handler2.NewUserHandler, chathistory2.NewChatHistoryHandler, static.NewStaticResourceHandler, handler3.NewWorkflowHandler)
@@ -128,7 +134,7 @@ func InitAllNodes(
 	return &NodeInitializer{}
 }
 
-func CustomRecoveryHandler(ctx context.Context, c *app.RequestContext, err interface{}, stack []byte) {
+func CustomRecoveryHandler(ctx context.Context, c *app2.RequestContext, err interface{}, stack []byte) {
 	logger.Errorf("panic recovered: %v\n%s", err, stack)
 	c.JSON(consts.StatusOK, common.NewErrorResponse[any](pkg.SystemError.WithMessage(fmt.Sprintf("%v", err))))
 	c.Abort()
@@ -145,7 +151,7 @@ func InitServer(
 	cacheManager *cache.CacheManager,
 	db *gorm.DB,
 	redisClient *redis.Client,
-	userService service.IUserService,
+	userService user2.IUserService,
 	_ *NodeInitializer,
 ) *server.Hertz {
 	basePath := serverConfig.Server.ContextPath

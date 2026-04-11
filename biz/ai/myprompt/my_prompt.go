@@ -18,6 +18,7 @@ var (
 	imageCollectionPrompt     string
 	imageCollectionPlanPrompt string
 	codeQualityCheckPrompt    string
+	chatSummaryPrompt         string
 	promptOnce                sync.Once
 )
 
@@ -71,6 +72,11 @@ func LoadPrompts() error {
 		if err != nil {
 			panic(err)
 		}
+
+		chatSummaryPrompt, err = loadPromptFile("chat-summary-system-prompt.txt")
+		if err != nil {
+			panic(err)
+		}
 	})
 	return err
 }
@@ -103,6 +109,10 @@ func GetCodeQualityCheckPrompt() string {
 	return codeQualityCheckPrompt
 }
 
+func GetChatSummaryPrompt() string {
+	return chatSummaryPrompt
+}
+
 func NewMultiFileChatTemplate() (prompt.ChatTemplate, error) {
 	return newChatTemplate(GetMultiFilePrompt()), nil
 }
@@ -129,6 +139,10 @@ func NewImageCollectionPlanChatTemplate() (prompt.ChatTemplate, error) {
 
 func NewCodeQualityCheckChatTemplate() (prompt.ChatTemplate, error) {
 	return newChatTemplate(GetCodeQualityCheckPrompt()), nil
+}
+
+func NewChatSummaryChatTemplate() (prompt.ChatTemplate, error) {
+	return newChatTemplate(GetChatSummaryPrompt()), nil
 }
 
 func newChatTemplate(systemPrompt string) prompt.ChatTemplate {

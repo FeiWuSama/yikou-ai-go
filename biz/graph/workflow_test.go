@@ -15,8 +15,8 @@ import (
 	"workspace-yikou-ai-go/biz/core/saver"
 	"workspace-yikou-ai-go/biz/dal"
 	"workspace-yikou-ai-go/biz/graph/node"
+	"workspace-yikou-ai-go/biz/logic/chathistory"
 	"workspace-yikou-ai-go/biz/manager"
-	"workspace-yikou-ai-go/biz/service/chathistory"
 	"workspace-yikou-ai-go/config"
 )
 
@@ -49,7 +49,8 @@ func TestCodeGenWorkflow_ExecuteWorkflow(t *testing.T) {
 	node.InitRouterNode(chatModel)
 	redis := dal.InitRedis(initConfig)
 	db := dal.InitDB(initConfig)
-	chatHistoryService := chathistory.NewChatHistoryService(db)
+	summaryAgentFactory := agent.NewChatSummaryAgentFactory(chatModel)
+	chatHistoryService := chathistory.NewChatHistoryService(db, summaryAgentFactory)
 	toolManager, err := aitools.NewToolManager()
 	if err != nil {
 		fmt.Println(err)
@@ -78,7 +79,8 @@ func TestCodeGenWorkflow_ExecuteWorkflow2(t *testing.T) {
 	node.InitDiagramCollectorNode(cosManager)
 	node.InitLogoCollectorNode(initConfig, cosManager)
 	node.InitRouterNode(chatModel)
-	chatHistoryService := chathistory.NewChatHistoryService(db)
+	summaryAgentFactory := agent.NewChatSummaryAgentFactory(chatModel)
+	chatHistoryService := chathistory.NewChatHistoryService(db, summaryAgentFactory)
 	toolManager, err := aitools.NewToolManager()
 	if err != nil {
 		fmt.Println(err)

@@ -3,14 +3,13 @@
 package router
 
 import (
-	"time"
-	service "workspace-yikou-ai-go/biz/service/user"
-
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/hertz-contrib/swagger"
 	"github.com/redis/go-redis/v9"
 	swaggerFiles "github.com/swaggo/files"
 	"gorm.io/gorm"
+	"time"
+	service "workspace-yikou-ai-go/biz/service/user"
 
 	"workspace-yikou-ai-go/biz/cache"
 	"workspace-yikou-ai-go/biz/handler"

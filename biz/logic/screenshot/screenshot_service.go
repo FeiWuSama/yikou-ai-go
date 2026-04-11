@@ -14,10 +14,6 @@ import (
 	"workspace-yikou-ai-go/pkg/random"
 )
 
-type IScreenshotService interface {
-	GenerateAndUploadScreenshot(webUrl string) (string, error)
-}
-
 func NewScreenshotService(cosManager *manager.CosManager) *ScreenshotService {
 	return &ScreenshotService{
 		cosManager: cosManager,

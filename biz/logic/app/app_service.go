@@ -1,4 +1,4 @@
-package service
+package app
 
 import (
 	"context"
@@ -7,6 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+	"workspace-yikou-ai-go/biz/service/chathistory"
+	screenshotService "workspace-yikou-ai-go/biz/service/screenshot"
+	"workspace-yikou-ai-go/biz/service/user"
 
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/eino/schema"
@@ -21,9 +24,6 @@ import (
 	"workspace-yikou-ai-go/biz/model/api/common"
 	"workspace-yikou-ai-go/biz/model/enum"
 	"workspace-yikou-ai-go/biz/model/vo"
-	"workspace-yikou-ai-go/biz/service/chathistory"
-	screenshotService "workspace-yikou-ai-go/biz/service/screenshot"
-	user "workspace-yikou-ai-go/biz/service/user"
 	"workspace-yikou-ai-go/pkg/constants"
 	pkg "workspace-yikou-ai-go/pkg/errors"
 	"workspace-yikou-ai-go/pkg/myfile"

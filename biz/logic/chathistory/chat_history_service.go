@@ -2,8 +2,12 @@ package chathistory
 
 import (
 	"context"
+	"fmt"
+	"github.com/bytedance/gopkg/util/logger"
 	"strconv"
+	"strings"
 	"time"
+	"workspace-yikou-ai-go/biz/ai/agent"
 	"workspace-yikou-ai-go/pkg/snowflake"
 
 	"gorm.io/gorm"
@@ -18,22 +22,16 @@ import (
 	pkg "workspace-yikou-ai-go/pkg/errors"
 )
 
-type IChatHistoryService interface {
-	AddChatMessage(ctx context.Context, appId int64, message string, messageType enum.ChatHistoryMessageTypeEnum, userId int64) error
-	DeleteByAppId(ctx context.Context, appId int64) error
-	ListAppChatHistoryByPage(ctx context.Context, appId int64, pageSize int32, lastCreateTime time.Time, loginUser *vo.UserVo) (*common.PageResponse[*model.ChatHistory], error)
-	ListAllChatHistoryByPageForAdmin(ctx context.Context, pageNum int32, pageSize int32, queryRequest *chathistory.YiKouChatHistoryQueryRequest) (*common.PageResponse[*model.ChatHistory], error)
-	LoadChatHistoryToMemory(ctx context.Context, appId int64, chatMemoryHelper *store.MemoryStoreHelper, maxCount int) (int, error)
-}
-
-func NewChatHistoryService(db *gorm.DB) *ChatHistoryService {
+func NewChatHistoryService(db *gorm.DB, chatSummaryAgentFactory *agent.ChatSummaryAgentFactory) *ChatHistoryService {
 	return &ChatHistoryService{
-		db: db,
+		db:                      db,
+		chatSummaryAgentFactory: chatSummaryAgentFactory,
 	}
 }
 
 type ChatHistoryService struct {
-	db *gorm.DB
+	db                      *gorm.DB
+	chatSummaryAgentFactory *agent.ChatSummaryAgentFactory
 }
 
 func (s *ChatHistoryService) LoadChatHistoryToMemory(ctx context.Context, appId int64, chatMemoryHelper *store.MemoryStoreHelper, maxCount int) (int, error) {
@@ -152,6 +150,25 @@ func (s *ChatHistoryService) AddChatMessage(ctx context.Context, appId int64,
 	if appId <= 0 || messageType == "" || userId <= 0 || message == "" {
 		return pkg.ParamsError
 	}
+
+	// 计算轮次
+	lastMessage, err := query.Use(s.db).ChatHistory.
+		Where(query.ChatHistory.AppID.Eq(appId)).
+		Order(query.ChatHistory.CreateTime.Desc()).
+		First()
+
+	var turnNumber int32
+	if err != nil {
+		turnNumber = 0
+	} else {
+		turnNumber = lastMessage.TurnNumber
+	}
+
+	// 如果当前是用户消息，开启新的一轮
+	if messageType == enum.UserMessageType {
+		turnNumber += 1
+	}
+
 	chatMessageId, err := snowflake.GenerateSnowFlakeId()
 	if err != nil {
 		return err
@@ -162,11 +179,79 @@ func (s *ChatHistoryService) AddChatMessage(ctx context.Context, appId int64,
 		Message:     message,
 		MessageType: string(messageType),
 		UserID:      userId,
+		TurnNumber:  turnNumber,
 	})
 	if err != nil {
 		return err
 	}
+
+	// 当对话轮次达到20轮时，生成总结
+	if turnNumber >= 2 && messageType == enum.AIMessageType {
+		go s.generateSummary(context.Background(), appId, userId)
+	}
+
 	return nil
+}
+
+// generateSummary 生成对话总结
+func (s *ChatHistoryService) generateSummary(ctx context.Context, appId int64, userId int64) {
+	// 获取历史对话记录
+	historyList, err := query.Use(s.db).ChatHistory.
+		Where(query.ChatHistory.AppID.Eq(appId)).
+		Order(query.ChatHistory.CreateTime.Asc()).
+		Find()
+	if err != nil {
+		logger.Errorf("获取历史对话失败: %v\n", err)
+		return
+	}
+
+	// 构建对话历史字符串
+	var chatHistoryBuilder strings.Builder
+	for _, history := range historyList {
+		if history.MessageType == string(enum.UserMessageType) {
+			chatHistoryBuilder.WriteString(fmt.Sprintf("用户: %s\n", history.Message))
+		} else if history.MessageType == string(enum.AIMessageType) {
+			chatHistoryBuilder.WriteString(fmt.Sprintf("AI: %s\n", history.Message))
+		}
+	}
+
+	// 调用 Agent 生成总结
+	chatSummaryAgent := s.chatSummaryAgentFactory.GetChatSummaryAgent()
+	result, err := chatSummaryAgent.SummarizeChat(ctx, chatHistoryBuilder.String())
+	if err != nil {
+		logger.Errorf("生成对话总结失败: %v\n", err)
+		return
+	}
+
+	// 插入总结消息
+	summaryMessageId, err := snowflake.GenerateSnowFlakeId()
+	if err != nil {
+		logger.Errorf("生成总结消息ID失败: %v\n", err)
+		return
+	}
+
+	err = query.Use(s.db).ChatHistory.Create(&model.ChatHistory{
+		ID:          summaryMessageId,
+		AppID:       appId,
+		Message:     result.Content,
+		MessageType: string(enum.SummaryMessageType),
+		UserID:      userId,
+		TurnNumber:  0,
+	})
+	if err != nil {
+		logger.Errorf("插入总结消息失败: %v\n", err)
+		return
+	}
+
+	// 删除旧的对话历史，保留总结
+	_, err = query.Use(s.db).ChatHistory.
+		Where(query.ChatHistory.AppID.Eq(appId)).
+		Where(query.ChatHistory.MessageType.Neq(string(enum.SummaryMessageType))).
+		Delete()
+	if err != nil {
+		logger.Errorf("删除旧对话历史失败: %v\n", err)
+		return
+	}
 }
 
 func (s *ChatHistoryService) ListAllChatHistoryByPageForAdmin(ctx context.Context, pageNum int32, pageSize int32, queryRequest *chathistory.YiKouChatHistoryQueryRequest) (*common.PageResponse[*model.ChatHistory], error) {

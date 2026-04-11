@@ -8,6 +8,15 @@ import (
 	"strconv"
 	"time"
 	workflow "workspace-yikou-ai-go/biz/handler/workflow"
+	appLogic "workspace-yikou-ai-go/biz/logic/app"
+	chatHistoryLogic "workspace-yikou-ai-go/biz/logic/chathistory"
+	downloadLogic "workspace-yikou-ai-go/biz/logic/download"
+	screenLogic "workspace-yikou-ai-go/biz/logic/screenshot"
+	userLogic "workspace-yikou-ai-go/biz/logic/user"
+	"workspace-yikou-ai-go/biz/service/chathistory"
+	"workspace-yikou-ai-go/biz/service/download"
+	"workspace-yikou-ai-go/biz/service/screenshot"
+	"workspace-yikou-ai-go/biz/service/user"
 
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/hertz/pkg/app"
@@ -38,10 +47,6 @@ import (
 	"workspace-yikou-ai-go/biz/model/api/common"
 	"workspace-yikou-ai-go/biz/router"
 	application "workspace-yikou-ai-go/biz/service/app"
-	"workspace-yikou-ai-go/biz/service/chathistory"
-	"workspace-yikou-ai-go/biz/service/download"
-	"workspace-yikou-ai-go/biz/service/screenshot"
-	user "workspace-yikou-ai-go/biz/service/user"
 	"workspace-yikou-ai-go/config"
 	"workspace-yikou-ai-go/docs"
 	pkg "workspace-yikou-ai-go/pkg/errors"
@@ -67,16 +72,16 @@ var cacheSet = wire.NewSet(
 // Service依赖
 var serviceSet = wire.NewSet(
 	core.NewYiKouAiCodegenFacade,
-	application.NewAppService,
-	wire.Bind(new(application.IAppService), new(*application.AppService)),
-	user.NewUserService,
-	wire.Bind(new(user.IUserService), new(*user.UserService)),
-	chathistory.NewChatHistoryService,
-	wire.Bind(new(chathistory.IChatHistoryService), new(*chathistory.ChatHistoryService)),
-	screenshot.NewScreenshotService,
-	wire.Bind(new(screenshot.IScreenshotService), new(*screenshot.ScreenshotService)),
-	download.NewProjectDownloadService,
-	wire.Bind(new(download.IProjectDownloadService), new(*download.ProjectDownloadService)),
+	appLogic.NewAppService,
+	wire.Bind(new(application.IAppService), new(*appLogic.AppService)),
+	userLogic.NewUserService,
+	wire.Bind(new(user.IUserService), new(*userLogic.UserService)),
+	chatHistoryLogic.NewChatHistoryService,
+	wire.Bind(new(chathistory.IChatHistoryService), new(*chatHistoryLogic.ChatHistoryService)),
+	screenLogic.NewScreenshotService,
+	wire.Bind(new(screenshot.IScreenshotService), new(*screenLogic.ScreenshotService)),
+	downloadLogic.NewProjectDownloadService,
+	wire.Bind(new(download.IProjectDownloadService), new(*downloadLogic.ProjectDownloadService)),
 )
 
 // Handler依赖
@@ -173,6 +178,7 @@ func InitializeApp() (*server.Hertz, error) {
 		saver.NewCodeFileSaverExecutor,
 		agent.NewCodeGenAgentFactory,
 		agent.NewCodeGenTypeRoutingAgentFactory,
+		agent.NewChatSummaryAgentFactory,
 		aitools.NewToolManager,
 		messagehandler.NewStreamHandlerExecutor,
 		manager.NewCosManager,
