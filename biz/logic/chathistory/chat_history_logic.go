@@ -35,14 +35,25 @@ type ChatHistoryService struct {
 }
 
 func (s *ChatHistoryService) LoadChatHistoryToMemory(ctx context.Context, appId int64, chatMemoryHelper *store.MemoryStoreHelper, maxCount int) (int, error) {
-	historyList, err := query.Use(s.db).ChatHistory.
-		Where(query.ChatHistory.AppID.Eq(appId)).
+	historySummary, err := query.Use(s.db).ChatHistory.
+		Where(query.ChatHistory.AppID.Eq(appId), query.ChatHistory.MessageType.Eq(string(enum.SummaryMessageType))).
 		Order(query.ChatHistory.CreateTime.Desc()).
 		Limit(maxCount).
 		Find()
-	if err != nil {
-		return 0, err
+	var historyList []*model.ChatHistory
+	if err != nil && historySummary == nil {
+		historyList, err = query.Use(s.db).ChatHistory.
+			Where(query.ChatHistory.AppID.Eq(appId)).
+			Order(query.ChatHistory.CreateTime.Desc()).
+			Limit(maxCount).
+			Find()
+		if err != nil {
+			return 0, err
+		}
+	} else {
+		historyList = historySummary
 	}
+
 	//historyList = historyList[1:]
 
 	if len(historyList) == 0 {
@@ -95,7 +106,8 @@ func (s *ChatHistoryService) ListAppChatHistoryByPage(ctx context.Context,
 	}
 
 	// 构建查询条件
-	chatHistoryQuery := query.Use(s.db).ChatHistory.Where(query.ChatHistory.AppID.Eq(appId))
+	chatHistoryQuery := query.Use(s.db).ChatHistory.Where(query.ChatHistory.AppID.Eq(appId),
+		query.ChatHistory.MessageType.Neq(string(enum.SummaryMessageType)))
 
 	// 处理时间过滤
 	if !lastCreateTime.IsZero() {
@@ -240,16 +252,6 @@ func (s *ChatHistoryService) generateSummary(ctx context.Context, appId int64, u
 	})
 	if err != nil {
 		logger.Errorf("插入总结消息失败: %v\n", err)
-		return
-	}
-
-	// 删除旧的对话历史，保留总结
-	_, err = query.Use(s.db).ChatHistory.
-		Where(query.ChatHistory.AppID.Eq(appId)).
-		Where(query.ChatHistory.MessageType.Neq(string(enum.SummaryMessageType))).
-		Delete()
-	if err != nil {
-		logger.Errorf("删除旧对话历史失败: %v\n", err)
 		return
 	}
 }
