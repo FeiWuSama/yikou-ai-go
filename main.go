@@ -25,11 +25,7 @@ func main() {
 	err = devops.Init(ctx)
 	if err != nil {
 		logger.Errorf("[eino dev] init failed, err=%v", err)
-		return
 	}
-
-	// 执行一次工作流后，可以在eino dev插件上调试工作流
-	//graph.ExecuteWorkflow(ctx, "创建一个简单的个人主页")
 
 	go func() {
 		quit := make(chan os.Signal, 1)
@@ -40,9 +36,12 @@ func main() {
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	<-sigs
 
-	logger.Infof("[eino dev] shutting down\n")
+	go func() {
+		<-sigs
+		logger.Infof("[eino dev] shutting down\n")
+		h.Close()
+	}()
 
 	h.Spin()
 }
