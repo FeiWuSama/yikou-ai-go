@@ -2,6 +2,9 @@ server:
   port: 8123
   context-path: /api
   config-active: local
+  enable-metric: true
+  metric-port: 9091
+  metric-path: /prometheus
 
 database:
   host: 192.168.10.101

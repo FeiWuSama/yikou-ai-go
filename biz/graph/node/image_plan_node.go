@@ -9,14 +9,15 @@ import (
 	ai "workspace-yikou-ai-go/biz/ai/aimodel"
 	"workspace-yikou-ai-go/biz/ai/llm"
 	"workspace-yikou-ai-go/biz/graph/state"
+	"workspace-yikou-ai-go/biz/monitor"
 )
 
 var (
 	imagePlanAgentFactory *agent.ImageCollectionPlanAgentFactory
 )
 
-func InitImagePlanNode(chatModel *llm.BaseAiChatModel) {
-	imagePlanAgentFactory = agent.NewImageCollectionPlanAgentFactory(chatModel)
+func InitImagePlanNode(chatModel *llm.ChatModelWrapper, metricsCollector *monitor.AiModelMetricsCollector) {
+	imagePlanAgentFactory = agent.NewImageCollectionPlanAgentFactory(chatModel, metricsCollector)
 }
 
 func NewImagePlanNode() *compose.Lambda {

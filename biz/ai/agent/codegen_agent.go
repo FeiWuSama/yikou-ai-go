@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/bytedance/gopkg/util/logger"
-	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/adk"
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
@@ -12,10 +11,11 @@ import (
 	"workspace-yikou-ai-go/biz/ai/myprompt"
 	"workspace-yikou-ai-go/biz/ai/store"
 	"workspace-yikou-ai-go/biz/model/enum"
+	"workspace-yikou-ai-go/biz/monitor"
 )
 
-func NewCodeGenAgent(model *openai.ChatModel, checkpoint *store.RedisStore, memoryStore store.MemoryStore, codeGenType enum.CodeGenTypeEnum, toolManager *aitools.ToolManager) *CodeGenAgent {
-	baseAgent := NewBaseAgent(model, checkpoint, memoryStore)
+func NewCodeGenAgent(chatModel ChatModelWrapperAdaptor, checkpoint *store.RedisStore, memoryStore store.MemoryStore, codeGenType enum.CodeGenTypeEnum, toolManager *aitools.ToolManager, metricsCollector *monitor.AiModelMetricsCollector) *CodeGenAgent {
+	baseAgent := NewBaseAgent(chatModel, checkpoint, memoryStore, metricsCollector)
 	return &CodeGenAgent{
 		BaseAgent:   baseAgent,
 		agentType:   codeGenType,

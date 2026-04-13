@@ -1,21 +1,22 @@
 package agent
 
 import (
-	"github.com/cloudwego/eino-ext/components/model/openai"
-
 	"workspace-yikou-ai-go/biz/ai/llm"
+	"workspace-yikou-ai-go/biz/monitor"
 )
 
 type CodeGenTypeRoutingAgentFactory struct {
-	chatModel *llm.BaseAiChatModel
+	chatModel        *llm.ChatModelWrapper
+	metricsCollector *monitor.AiModelMetricsCollector
 }
 
-func NewCodeGenTypeRoutingAgentFactory(chatModel *llm.BaseAiChatModel) *CodeGenTypeRoutingAgentFactory {
+func NewCodeGenTypeRoutingAgentFactory(chatModel *llm.ChatModelWrapper, metricsCollector *monitor.AiModelMetricsCollector) *CodeGenTypeRoutingAgentFactory {
 	return &CodeGenTypeRoutingAgentFactory{
-		chatModel: chatModel,
+		chatModel:        chatModel,
+		metricsCollector: metricsCollector,
 	}
 }
 
 func (f *CodeGenTypeRoutingAgentFactory) GetRoutingAgent() *CodeGenTypeRoutingAgent {
-	return NewCodeGenTypeRoutingAgent((*openai.ChatModel)(f.chatModel))
+	return NewCodeGenTypeRoutingAgent(f.chatModel, f.metricsCollector)
 }

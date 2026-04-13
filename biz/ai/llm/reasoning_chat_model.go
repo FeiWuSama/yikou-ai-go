@@ -6,19 +6,35 @@ import (
 	"workspace-yikou-ai-go/config"
 )
 
-type ReasoningChatModel openai.ChatModel
+type ReasoningChatModelWrapper struct {
+	*openai.ChatModel
+	ModelName string
+}
 
-func NewReasoningChatModel(config *config.Config) *ReasoningChatModel {
+func NewReasoningChatModel(cfg *config.Config) *ReasoningChatModelWrapper {
 	ctx := context.Background()
+	modelName := cfg.AI.ReasoningChatModel.ModelName
 
 	chatModel, err := openai.NewChatModel(ctx, &openai.ChatModelConfig{
-		BaseURL: config.AI.ReasoningChatModel.BaseURL,
-		Model:   config.AI.ReasoningChatModel.ModelName,
-		APIKey:  config.AI.ReasoningChatModel.APIKey,
+		BaseURL: cfg.AI.ReasoningChatModel.BaseURL,
+		Model:   modelName,
+		APIKey:  cfg.AI.ReasoningChatModel.APIKey,
 	})
 
 	if err != nil {
 		panic(err)
 	}
-	return (*ReasoningChatModel)(chatModel)
+
+	return &ReasoningChatModelWrapper{
+		ChatModel: chatModel,
+		ModelName: modelName,
+	}
+}
+
+func (w *ReasoningChatModelWrapper) GetChatModel() *openai.ChatModel {
+	return w.ChatModel
+}
+
+func (w *ReasoningChatModelWrapper) GetModelName() string {
+	return w.ModelName
 }

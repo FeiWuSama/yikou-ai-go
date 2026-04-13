@@ -6,7 +6,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
+	"workspace-yikou-ai-go/biz/monitor"
 	"workspace-yikou-ai-go/biz/service/chathistory"
 	screenshotService "workspace-yikou-ai-go/biz/service/screenshot"
 	"workspace-yikou-ai-go/biz/service/user"
@@ -31,23 +33,6 @@ import (
 	"workspace-yikou-ai-go/pkg/random"
 	"workspace-yikou-ai-go/pkg/snowflake"
 )
-
-type IAppService interface {
-	DeployApp(ctx context.Context, appId int64, loginUser *vo.UserVo) (string, error)
-	ChatToGenCode(ctx context.Context, appId int64, message string, loginUser *vo.UserVo) (*schema.StreamReader[string], error)
-	AddApp(ctx context.Context, req *appApi.YiKouAppAddRequest, userId int64) (int64, error)
-	UpdateApp(ctx context.Context, req *appApi.YiKouAppUpdateRequest, userId int64) (bool, error)
-	DeleteApp(ctx context.Context, id int64, userId int64) (bool, error)
-	GetApp(ctx context.Context, id int64, userId int64) (*model.App, error)
-	GetAppVo(ctx context.Context, id int64, userId int64) (vo.AppVo, error)
-	GetAppVoList(ctx context.Context, appList []*model.App) ([]vo.AppVo, error)
-	ListMyApp(ctx context.Context, req *appApi.YiKouAppMyListRequest, userId int64) (*common.PageResponse[vo.AppVo], error)
-	ListGoodApp(ctx context.Context, req *appApi.YiKouAppFeaturedListRequest) (*common.PageResponse[vo.AppVo], error)
-	AdminUpdateApp(ctx context.Context, req *appApi.YiKouAppAdminUpdateRequest) (bool, error)
-	AdminDeleteApp(ctx context.Context, id int64) (bool, error)
-	AdminGetAppVo(ctx context.Context, id int64) (vo.AppVo, error)
-	AdminListApp(ctx context.Context, req *appApi.YiKouAppAdminListRequest) (*common.PageResponse[*model.App], error)
-}
 
 func NewAppService(
 	aiCodeGenFacade *core.YiKouAiCodegenFacade,
@@ -179,11 +164,15 @@ func (s *AppService) ChatToGenCode(ctx context.Context, appId int64, message str
 	if enum.CodeGenTypeTextMap[enum.CodeGenTypeEnum(app.CodeGenType)] == "" {
 		return nil, pkg.ParamsError.WithMessage("应用代码生成类型不支持")
 	}
+	monitorCtx := monitor.WithMonitorContext(ctx, &monitor.MonitorContext{
+		UserId: strconv.Itoa(int(loginUser.ID)),
+		AppId:  strconv.Itoa(int(appId)),
+	})
 	// 5. 将用户消息保存到对话记录
-	_ = s.chatHistoryService.AddChatMessage(ctx, appId, message, enum.UserMessageType, loginUser.ID)
+	_ = s.chatHistoryService.AddChatMessage(monitorCtx, appId, message, enum.UserMessageType, loginUser.ID)
 
 	// 6. 调用代码生成服务
-	streamResp, err := s.aiCodeGenFacade.GenCodeStreamAndSave(ctx, message, enum.CodeGenTypeEnum(app.CodeGenType), appId)
+	streamResp, err := s.aiCodeGenFacade.GenCodeStreamAndSave(monitorCtx, message, enum.CodeGenTypeEnum(app.CodeGenType), appId)
 	if err != nil {
 		return nil, err
 	}

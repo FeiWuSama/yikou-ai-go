@@ -9,7 +9,7 @@ import (
 	"strings"
 	"workspace-yikou-ai-go/biz/ai/agent"
 	"workspace-yikou-ai-go/biz/ai/llm"
-	"workspace-yikou-ai-go/config"
+	"workspace-yikou-ai-go/biz/monitor"
 
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/eino/compose"
@@ -25,8 +25,8 @@ type CodeQualityChecker interface {
 	CheckCodeQuality(ctx context.Context, userMessage string) (ai.QualityResult, error)
 }
 
-func InitCodeQualityCheckNode(cfg *config.Config, chatModel *llm.BaseAiChatModel) {
-	codeQualityCheckAgentFactory = agent.NewCodeQualityCheckAgentFactory(chatModel)
+func InitCodeQualityCheckNode(chatModel *llm.ChatModelWrapper, metricsCollector *monitor.AiModelMetricsCollector) {
+	codeQualityCheckAgentFactory = agent.NewCodeQualityCheckAgentFactory(chatModel, metricsCollector)
 }
 
 func NewCodeQualityCheckNode() *compose.Lambda {

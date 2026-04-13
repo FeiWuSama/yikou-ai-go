@@ -22,10 +22,13 @@ import (
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/middlewares/server/recovery"
 	"github.com/cloudwego/hertz/pkg/app/server"
+	hertzConfig "github.com/cloudwego/hertz/pkg/common/config"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 	"github.com/google/wire"
 	"github.com/hertz-contrib/cors"
+	hertzPrometheus "github.com/hertz-contrib/monitor-prometheus"
 	"github.com/hertz-contrib/swagger"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"workspace-yikou-ai-go/biz/ai"
@@ -45,6 +48,7 @@ import (
 	userHandler "workspace-yikou-ai-go/biz/handler/user"
 	"workspace-yikou-ai-go/biz/manager"
 	"workspace-yikou-ai-go/biz/model/api/common"
+	"workspace-yikou-ai-go/biz/monitor"
 	"workspace-yikou-ai-go/biz/router"
 	application "workspace-yikou-ai-go/biz/service/app"
 	"workspace-yikou-ai-go/config"
@@ -68,6 +72,16 @@ var dbSet = wire.NewSet(
 var cacheSet = wire.NewSet(
 	cache.InitCacheManager,
 )
+
+// Prometheus 监控依赖
+var metricsSet = wire.NewSet(
+	NewPrometheusRegistry,
+	monitor.NewAiModelMetricsCollector,
+)
+
+func NewPrometheusRegistry() *prometheus.Registry {
+	return prometheus.NewRegistry()
+}
 
 // Service依赖
 var serviceSet = wire.NewSet(
@@ -94,25 +108,26 @@ var handlerSet = wire.NewSet(
 )
 
 var llmSet = wire.NewSet(
-	llm.NewBaseAiChatModel, llm.NewReasoningChatModel, llm.NewChatModel)
+	llm.NewReasoningChatModel, llm.NewChatModel)
 
 type NodeInitializer struct{}
 
 func InitAllNodes(
 	cfg *config.Config,
-	chatModel *llm.BaseAiChatModel,
+	chatModel *llm.ChatModelWrapper,
 	cosManager *manager.CosManager,
 	facade *core.YiKouAiCodegenFacade,
+	metricsCollector *monitor.AiModelMetricsCollector,
 ) *NodeInitializer {
-	node.InitImagePlanNode(chatModel)
-	node.InitImageCollectorPlanNode(chatModel, cfg, cosManager)
+	node.InitImagePlanNode(chatModel, metricsCollector)
+	node.InitImageCollectorPlanNode(chatModel, cosManager, metricsCollector)
 	node.InitContentImageCollectorNode(cfg)
 	node.InitDiagramCollectorNode(cosManager)
 	node.InitLogoCollectorNode(cfg, cosManager)
-	node.InitRouterNode(chatModel)
-	node.InitCodeQualityCheckNode(cfg, chatModel)
+	node.InitRouterNode(chatModel, metricsCollector)
+	node.InitCodeQualityCheckNode(chatModel, metricsCollector)
 	node.InitCodeGeneratorNode(facade)
-	node.InitImageCollectorNode(cfg, chatModel)
+	node.InitImageCollectorNode(cfg, chatModel, metricsCollector)
 	return &NodeInitializer{}
 }
 
@@ -134,6 +149,7 @@ func InitServer(
 	db *gorm.DB,
 	redisClient *redis.Client,
 	userService user.IUserService,
+	registry *prometheus.Registry,
 	_ *NodeInitializer,
 ) *server.Hertz {
 	basePath := serverConfig.Server.ContextPath
@@ -142,10 +158,35 @@ func InitServer(
 	// 初始化swagger路径
 	swaggerPath := fmt.Sprintf("http://localhost:%d%s/swagger/doc.json", serverConfig.Server.Port, basePath)
 	url := swagger.URL(swaggerPath)
-	h := server.New(
-		server.WithHostPorts(":"+strconv.Itoa(serverConfig.Server.Port)),
+
+	// 构建服务器选项
+	serverOpts := []hertzConfig.Option{
+		server.WithHostPorts(":" + strconv.Itoa(serverConfig.Server.Port)),
 		server.WithBasePath(serverConfig.Server.ContextPath),
-	)
+	}
+
+	// Prometheus 监控指标
+	if serverConfig.Server.EnableMetric {
+		metricPath := serverConfig.Server.MetricPath
+		if metricPath == "" {
+			metricPath = "/prometheus"
+		}
+		metricPort := serverConfig.Server.MetricPort
+		if metricPort == 0 {
+			metricPort = 9090
+		}
+		// 使用 NewServerTracer 创建监控 tracer
+		// 通过 WithRegistry 选项共享 Registry，使自定义指标与 Hertz 指标在同一端点暴露
+		promTracer := hertzPrometheus.NewServerTracer(
+			":"+strconv.Itoa(metricPort),
+			metricPath,
+			hertzPrometheus.WithRegistry(registry),
+		)
+		serverOpts = append(serverOpts, server.WithTracer(promTracer))
+		logger.Infof("Prometheus 监控已启用，指标地址: http://localhost:%d%s", metricPort, metricPath)
+	}
+
+	h := server.New(serverOpts...)
 	// 全局异常处理
 	h.Use(recovery.Recovery(recovery.WithRecoveryHandler(CustomRecoveryHandler)))
 	// 处理跨域问题
@@ -168,6 +209,7 @@ func InitializeApp() (*server.Hertz, error) {
 		configSet,
 		dbSet,
 		cacheSet,
+		metricsSet,
 		serviceSet,
 		handlerSet,
 		InitServer,

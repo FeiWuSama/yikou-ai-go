@@ -1,17 +1,19 @@
 package agent
 
 import (
-	"github.com/cloudwego/eino-ext/components/model/openai"
 	"workspace-yikou-ai-go/biz/ai/llm"
+	"workspace-yikou-ai-go/biz/monitor"
 )
 
 type ImageCollectionPlanAgentFactory struct {
-	chatModel *llm.BaseAiChatModel
+	chatModel        *llm.ChatModelWrapper
+	metricsCollector *monitor.AiModelMetricsCollector
 }
 
-func NewImageCollectionPlanAgentFactory(chatModel *llm.BaseAiChatModel) *ImageCollectionPlanAgentFactory {
+func NewImageCollectionPlanAgentFactory(chatModel *llm.ChatModelWrapper, metricsCollector *monitor.AiModelMetricsCollector) *ImageCollectionPlanAgentFactory {
 	return &ImageCollectionPlanAgentFactory{
-		chatModel: chatModel,
+		chatModel:        chatModel,
+		metricsCollector: metricsCollector,
 	}
 }
 
@@ -20,7 +22,8 @@ var imageCollectionPlanAgentInstance *ImageCollectionPlanAgent
 func (f *ImageCollectionPlanAgentFactory) GetImageCollectionPlanAgent() *ImageCollectionPlanAgent {
 	if imageCollectionPlanAgentInstance == nil {
 		imageCollectionPlanAgentInstance = NewImageCollectionPlanAgent(
-			(*openai.ChatModel)(f.chatModel),
+			f.chatModel,
+			f.metricsCollector,
 		)
 	}
 	return imageCollectionPlanAgentInstance

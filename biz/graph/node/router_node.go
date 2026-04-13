@@ -4,6 +4,7 @@ import (
 	"context"
 	"workspace-yikou-ai-go/biz/ai/agent"
 	"workspace-yikou-ai-go/biz/ai/llm"
+	"workspace-yikou-ai-go/biz/monitor"
 
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/eino/compose"
@@ -15,8 +16,8 @@ var (
 	routingAgentFactory *agent.CodeGenTypeRoutingAgentFactory
 )
 
-func InitRouterNode(chatModel *llm.BaseAiChatModel) {
-	routingAgentFactory = agent.NewCodeGenTypeRoutingAgentFactory(chatModel)
+func InitRouterNode(chatModel *llm.ChatModelWrapper, metricsCollector *monitor.AiModelMetricsCollector) {
+	routingAgentFactory = agent.NewCodeGenTypeRoutingAgentFactory(chatModel, metricsCollector)
 }
 
 func NewRouterNode() *compose.Lambda {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"workspace-yikou-ai-go/biz/ai/agent"
 	"workspace-yikou-ai-go/biz/ai/llm"
+	"workspace-yikou-ai-go/biz/monitor"
 	"workspace-yikou-ai-go/config"
 
 	"github.com/bytedance/gopkg/util/logger"
@@ -15,8 +16,8 @@ var (
 	imageCollectionFactory *agent.ImageCollectionAgentFactory
 )
 
-func InitImageCollectorNode(cfg *config.Config, chatModel *llm.BaseAiChatModel) {
-	imageCollectionFactory = agent.NewImageCollectionServiceFactory(chatModel, cfg)
+func InitImageCollectorNode(cfg *config.Config, chatModel *llm.ChatModelWrapper, metricsCollector *monitor.AiModelMetricsCollector) {
+	imageCollectionFactory = agent.NewImageCollectionServiceFactory(chatModel, cfg, metricsCollector)
 }
 
 func NewImageCollectorNode() *compose.Lambda {

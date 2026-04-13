@@ -2,14 +2,14 @@ package agent
 
 import (
 	"context"
-	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/adk"
 	"workspace-yikou-ai-go/biz/ai/myprompt"
 	"workspace-yikou-ai-go/biz/model/enum"
+	"workspace-yikou-ai-go/biz/monitor"
 )
 
-func NewCodeGenTypeRoutingAgent(model *openai.ChatModel) *CodeGenTypeRoutingAgent {
-	baseAgent := NewBaseAgent(model, nil, nil)
+func NewCodeGenTypeRoutingAgent(chatModel ChatModelWrapperAdaptor, metricsCollector *monitor.AiModelMetricsCollector) *CodeGenTypeRoutingAgent {
+	baseAgent := NewBaseAgent(chatModel, nil, nil, metricsCollector)
 	return &CodeGenTypeRoutingAgent{
 		BaseAgent: baseAgent,
 	}

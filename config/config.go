@@ -30,6 +30,9 @@ type ServerConfig struct {
 	ConfigActive string `yaml:"config-active" mapstructure:"config-active"`
 	Port         int    `yaml:"port" mapstructure:"port"`
 	ContextPath  string `yaml:"context-path" mapstructure:"context-path"`
+	EnableMetric bool   `yaml:"enable-metric" mapstructure:"enable-metric"`
+	MetricPort   int    `yaml:"metric-port" mapstructure:"metric-port"`
+	MetricPath   string `yaml:"metric-path" mapstructure:"metric-path"`
 }
 
 type DatabaseConfig struct {

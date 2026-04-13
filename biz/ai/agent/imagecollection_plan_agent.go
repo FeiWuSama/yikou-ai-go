@@ -7,15 +7,15 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/adk"
 	"github.com/cloudwego/eino/components/tool"
 	ai "workspace-yikou-ai-go/biz/ai/aimodel"
 	"workspace-yikou-ai-go/biz/ai/myprompt"
+	"workspace-yikou-ai-go/biz/monitor"
 )
 
-func NewImageCollectionPlanAgent(model *openai.ChatModel) *ImageCollectionPlanAgent {
-	baseAgent := NewBaseAgent(model, nil, nil)
+func NewImageCollectionPlanAgent(chatModel ChatModelWrapperAdaptor, metricsCollector *monitor.AiModelMetricsCollector) *ImageCollectionPlanAgent {
+	baseAgent := NewBaseAgent(chatModel, nil, nil, metricsCollector)
 
 	return &ImageCollectionPlanAgent{
 		BaseAgent: baseAgent,

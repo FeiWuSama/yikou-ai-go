@@ -13,10 +13,13 @@ import (
 	app2 "github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/middlewares/server/recovery"
 	"github.com/cloudwego/hertz/pkg/app/server"
+	config2 "github.com/cloudwego/hertz/pkg/common/config"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 	"github.com/google/wire"
 	"github.com/hertz-contrib/cors"
+	prometheus2 "github.com/hertz-contrib/monitor-prometheus"
 	"github.com/hertz-contrib/swagger"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"strconv"
@@ -44,6 +47,7 @@ import (
 	"workspace-yikou-ai-go/biz/logic/user"
 	"workspace-yikou-ai-go/biz/manager"
 	"workspace-yikou-ai-go/biz/model/api/common"
+	"workspace-yikou-ai-go/biz/monitor"
 	"workspace-yikou-ai-go/biz/router"
 	"workspace-yikou-ai-go/biz/service/app"
 	chathistory3 "workspace-yikou-ai-go/biz/service/chathistory"
@@ -60,28 +64,29 @@ import (
 // 初始化所有依赖（依赖图）
 func InitializeApp() (*server.Hertz, error) {
 	configConfig := config.InitConfig()
-	chatModel := llm.NewChatModel(configConfig)
-	yiKouAiCodegenService := ai.NewYiKouAiCodegenService(chatModel)
+	chatModelWrapper := llm.NewChatModel(configConfig)
+	yiKouAiCodegenService := ai.NewYiKouAiCodegenService(chatModelWrapper)
 	codeParserExecutor := parser.NewCodeParserExecutor()
 	codeFileSaverExecutor := saver.NewCodeFileSaverExecutor()
-	baseAiChatModel := llm.NewBaseAiChatModel(configConfig)
-	reasoningChatModel := llm.NewReasoningChatModel(configConfig)
+	reasoningChatModelWrapper := llm.NewReasoningChatModel(configConfig)
 	client := dal.InitRedis(configConfig)
 	db := dal.InitDB(configConfig)
-	chatSummaryAgentFactory := agent.NewChatSummaryAgentFactory(baseAiChatModel)
+	registry := NewPrometheusRegistry()
+	aiModelMetricsCollector := monitor.NewAiModelMetricsCollector(registry)
+	chatSummaryAgentFactory := agent.NewChatSummaryAgentFactory(chatModelWrapper, aiModelMetricsCollector)
 	chatHistoryService := chathistory.NewChatHistoryService(db, chatSummaryAgentFactory)
 	toolManager, err := aitools.NewToolManager()
 	if err != nil {
 		return nil, err
 	}
-	codeGenAgentFactory := agent.NewCodeGenAgentFactory(baseAiChatModel, reasoningChatModel, client, chatHistoryService, toolManager)
+	codeGenAgentFactory := agent.NewCodeGenAgentFactory(chatModelWrapper, reasoningChatModelWrapper, client, chatHistoryService, toolManager, aiModelMetricsCollector)
 	yiKouAiCodegenFacade := core.NewYiKouAiCodegenFacade(yiKouAiCodegenService, codeParserExecutor, codeFileSaverExecutor, codeGenAgentFactory)
 	userService := user.NewUserService(db, client)
 	streamHandlerExecutor := messagehandler.NewStreamHandlerExecutor(chatHistoryService, toolManager)
 	cosClient := dal.InitCOSClient(configConfig)
 	cosManager := manager.NewCosManager(cosClient, configConfig)
 	screenshotService := screenshot.NewScreenshotService(cosManager)
-	codeGenTypeRoutingAgentFactory := agent.NewCodeGenTypeRoutingAgentFactory(baseAiChatModel)
+	codeGenTypeRoutingAgentFactory := agent.NewCodeGenTypeRoutingAgentFactory(chatModelWrapper, aiModelMetricsCollector)
 	appService := app.NewAppService(yiKouAiCodegenFacade, userService, chatHistoryService, streamHandlerExecutor, screenshotService, codeGenTypeRoutingAgentFactory, db)
 	projectDownloadService := download.NewProjectDownloadService()
 	appHandler := handler.NewAppHandler(appService, userService, chatHistoryService, projectDownloadService)
@@ -90,8 +95,8 @@ func InitializeApp() (*server.Hertz, error) {
 	staticResourceHandler := static.NewStaticResourceHandler(configConfig)
 	workflowHandler := handler3.NewWorkflowHandler()
 	cacheManager := cache.InitCacheManager(client)
-	nodeInitializer := InitAllNodes(configConfig, baseAiChatModel, cosManager, yiKouAiCodegenFacade)
-	hertz := InitServer(configConfig, appHandler, userHandler, chatHistoryHandler, staticResourceHandler, workflowHandler, cacheManager, db, client, userService, nodeInitializer)
+	nodeInitializer := InitAllNodes(configConfig, chatModelWrapper, cosManager, yiKouAiCodegenFacade, aiModelMetricsCollector)
+	hertz := InitServer(configConfig, appHandler, userHandler, chatHistoryHandler, staticResourceHandler, workflowHandler, cacheManager, db, client, userService, registry, nodeInitializer)
 	return hertz, nil
 }
 
@@ -106,31 +111,41 @@ var dbSet = wire.NewSet(dal.InitDB, dal.InitRedis, dal.InitCOSClient)
 // 缓存依赖
 var cacheSet = wire.NewSet(cache.InitCacheManager)
 
+// Prometheus 监控依赖
+var metricsSet = wire.NewSet(
+	NewPrometheusRegistry, monitor.NewAiModelMetricsCollector,
+)
+
+func NewPrometheusRegistry() *prometheus.Registry {
+	return prometheus.NewRegistry()
+}
+
 // Service依赖
 var serviceSet = wire.NewSet(core.NewYiKouAiCodegenFacade, app.NewAppService, wire.Bind(new(service.IAppService), new(*app.AppService)), user.NewUserService, wire.Bind(new(user2.IUserService), new(*user.UserService)), chathistory.NewChatHistoryService, wire.Bind(new(chathistory3.IChatHistoryService), new(*chathistory.ChatHistoryService)), screenshot.NewScreenshotService, wire.Bind(new(screenshot2.IScreenshotService), new(*screenshot.ScreenshotService)), download.NewProjectDownloadService, wire.Bind(new(download2.IProjectDownloadService), new(*download.ProjectDownloadService)))
 
 // Handler依赖
 var handlerSet = wire.NewSet(handler.NewAppHandler, handler2.NewUserHandler, chathistory2.NewChatHistoryHandler, static.NewStaticResourceHandler, handler3.NewWorkflowHandler)
 
-var llmSet = wire.NewSet(llm.NewBaseAiChatModel, llm.NewReasoningChatModel, llm.NewChatModel)
+var llmSet = wire.NewSet(llm.NewReasoningChatModel, llm.NewChatModel)
 
 type NodeInitializer struct{}
 
 func InitAllNodes(
 	cfg *config.Config,
-	chatModel *llm.BaseAiChatModel,
+	chatModel *llm.ChatModelWrapper,
 	cosManager *manager.CosManager,
 	facade *core.YiKouAiCodegenFacade,
+	metricsCollector *monitor.AiModelMetricsCollector,
 ) *NodeInitializer {
-	node.InitImagePlanNode(chatModel)
-	node.InitImageCollectorPlanNode(chatModel, cfg, cosManager)
+	node.InitImagePlanNode(chatModel, metricsCollector)
+	node.InitImageCollectorPlanNode(chatModel, cosManager, metricsCollector)
 	node.InitContentImageCollectorNode(cfg)
 	node.InitDiagramCollectorNode(cosManager)
 	node.InitLogoCollectorNode(cfg, cosManager)
-	node.InitRouterNode(chatModel)
-	node.InitCodeQualityCheckNode(cfg, chatModel)
+	node.InitRouterNode(chatModel, metricsCollector)
+	node.InitCodeQualityCheckNode(chatModel, metricsCollector)
 	node.InitCodeGeneratorNode(facade)
-	node.InitImageCollectorNode(cfg, chatModel)
+	node.InitImageCollectorNode(cfg, chatModel, metricsCollector)
 	return &NodeInitializer{}
 }
 
@@ -152,6 +167,7 @@ func InitServer(
 	db *gorm.DB,
 	redisClient *redis.Client,
 	userService user2.IUserService,
+	registry *prometheus.Registry,
 	_ *NodeInitializer,
 ) *server.Hertz {
 	basePath := serverConfig.Server.ContextPath
@@ -160,7 +176,28 @@ func InitServer(
 
 	swaggerPath := fmt.Sprintf("http://localhost:%d%s/swagger/doc.json", serverConfig.Server.Port, basePath)
 	url := swagger.URL(swaggerPath)
-	h := server.New(server.WithHostPorts(":"+strconv.Itoa(serverConfig.Server.Port)), server.WithBasePath(serverConfig.Server.ContextPath))
+
+	serverOpts := []config2.Option{server.WithHostPorts(":" + strconv.Itoa(serverConfig.Server.Port)), server.WithBasePath(serverConfig.Server.ContextPath)}
+
+	if serverConfig.Server.EnableMetric {
+		metricPath := serverConfig.Server.MetricPath
+		if metricPath == "" {
+			metricPath = "/prometheus"
+		}
+		metricPort := serverConfig.Server.MetricPort
+		if metricPort == 0 {
+			metricPort = 9090
+		}
+
+		promTracer := prometheus2.NewServerTracer(
+			":"+strconv.Itoa(metricPort),
+			metricPath, prometheus2.WithRegistry(registry),
+		)
+		serverOpts = append(serverOpts, server.WithTracer(promTracer))
+		logger.Infof("Prometheus 监控已启用，指标地址: http://localhost:%d%s", metricPort, metricPath)
+	}
+
+	h := server.New(serverOpts...)
 
 	h.Use(recovery.Recovery(recovery.WithRecoveryHandler(CustomRecoveryHandler)))
 

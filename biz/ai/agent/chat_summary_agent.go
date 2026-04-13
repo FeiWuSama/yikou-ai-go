@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"github.com/cloudwego/eino/schema"
 
-	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/adk"
 	"github.com/cloudwego/eino/components/tool"
 	"workspace-yikou-ai-go/biz/ai/myprompt"
+	"workspace-yikou-ai-go/biz/monitor"
 )
 
-func NewChatSummaryAgent(model *openai.ChatModel) *ChatSummaryAgent {
-	baseAgent := NewBaseAgent(model, nil, nil)
+func NewChatSummaryAgent(chatModel ChatModelWrapperAdaptor, metricsCollector *monitor.AiModelMetricsCollector) *ChatSummaryAgent {
+	baseAgent := NewBaseAgent(chatModel, nil, nil, metricsCollector)
 
 	return &ChatSummaryAgent{
 		BaseAgent: baseAgent,

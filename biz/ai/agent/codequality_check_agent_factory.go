@@ -1,17 +1,19 @@
 package agent
 
 import (
-	"github.com/cloudwego/eino-ext/components/model/openai"
 	"workspace-yikou-ai-go/biz/ai/llm"
+	"workspace-yikou-ai-go/biz/monitor"
 )
 
 type CodeQualityCheckAgentFactory struct {
-	chatModel *llm.BaseAiChatModel
+	chatModel        *llm.ChatModelWrapper
+	metricsCollector *monitor.AiModelMetricsCollector
 }
 
-func NewCodeQualityCheckAgentFactory(chatModel *llm.BaseAiChatModel) *CodeQualityCheckAgentFactory {
+func NewCodeQualityCheckAgentFactory(chatModel *llm.ChatModelWrapper, metricsCollector *monitor.AiModelMetricsCollector) *CodeQualityCheckAgentFactory {
 	return &CodeQualityCheckAgentFactory{
-		chatModel: chatModel,
+		chatModel:        chatModel,
+		metricsCollector: metricsCollector,
 	}
 }
 
@@ -20,7 +22,8 @@ var codeQualityCheckAgentInstance *CodeQualityCheckAgent
 func (f *CodeQualityCheckAgentFactory) GetCodeQualityCheckAgent() *CodeQualityCheckAgent {
 	if codeQualityCheckAgentInstance == nil {
 		codeQualityCheckAgentInstance = NewCodeQualityCheckAgent(
-			(*openai.ChatModel)(f.chatModel),
+			f.chatModel,
+			f.metricsCollector,
 		)
 	}
 	return codeQualityCheckAgentInstance

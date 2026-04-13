@@ -3,12 +3,12 @@ package ai
 import (
 	"context"
 	"fmt"
-	"github.com/cloudwego/eino-ext/components/model/openai"
 	"os"
 	"path/filepath"
 	pkg "workspace-yikou-ai-go/pkg/myfile"
 
 	"github.com/cloudwego/eino/schema"
+	"workspace-yikou-ai-go/biz/ai/llm"
 )
 
 type IYiKouAiCodegenService interface {
@@ -19,16 +19,15 @@ type IYiKouAiCodegenService interface {
 	GenerateVueProjectCodeStream(ctx context.Context, userMessage string) (*schema.StreamReader[*schema.Message], error)
 }
 
-func NewYiKouAiCodegenService(model *openai.ChatModel) *YiKouAiCodegenService {
+func NewYiKouAiCodegenService(model *llm.ChatModelWrapper) *YiKouAiCodegenService {
 	return &YiKouAiCodegenService{model: model}
 }
 
 type YiKouAiCodegenService struct {
-	model *openai.ChatModel
+	model *llm.ChatModelWrapper
 }
 
 func (s *YiKouAiCodegenService) GenerateVueProjectCodeStream(ctx context.Context, userMessage string) (*schema.StreamReader[*schema.Message], error) {
-	//TODO implement me
 	panic("implement me")
 }
 

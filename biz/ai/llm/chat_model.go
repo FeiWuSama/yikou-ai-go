@@ -6,40 +6,37 @@ import (
 	"workspace-yikou-ai-go/config"
 )
 
-//var CodegenAgent *openai.ChatModel
+type ChatModelWrapper struct {
+	*openai.ChatModel
+	ModelName string
+}
 
-func NewChatModel(config *config.Config) *openai.ChatModel {
+func NewChatModel(cfg *config.Config) *ChatModelWrapper {
 	ctx := context.Background()
+	modelName := cfg.AI.ChatModel.ModelName
 
 	chatModel, err := openai.NewChatModel(ctx, &openai.ChatModelConfig{
-		BaseURL: config.AI.ChatModel.BaseURL,
-		Model:   config.AI.ChatModel.ModelName,
-		APIKey:  config.AI.ChatModel.APIKey,
+		BaseURL: cfg.AI.ChatModel.BaseURL,
+		Model:   modelName,
+		APIKey:  cfg.AI.ChatModel.APIKey,
 	})
 
 	if err != nil {
 		panic(err)
 	}
-	return chatModel
-}
 
-type BaseAiChatModel openai.ChatModel
+	chatModel.GetType()
 
-func NewBaseAiChatModel(config *config.Config) *BaseAiChatModel {
-	ctx := context.Background()
-
-	chatModel, err := openai.NewChatModel(ctx, &openai.ChatModelConfig{
-		BaseURL: config.AI.ChatModel.BaseURL,
-		Model:   config.AI.ChatModel.ModelName,
-		APIKey:  config.AI.ChatModel.APIKey,
-	})
-
-	if err != nil {
-		panic(err)
+	return &ChatModelWrapper{
+		ChatModel: chatModel,
+		ModelName: modelName,
 	}
-	return (*BaseAiChatModel)(chatModel)
 }
 
-//func init() {
-//	CodegenAgent = newChatAgent()
-//}
+func (w *ChatModelWrapper) GetChatModel() *openai.ChatModel {
+	return w.ChatModel
+}
+
+func (w *ChatModelWrapper) GetModelName() string {
+	return w.ModelName
+}

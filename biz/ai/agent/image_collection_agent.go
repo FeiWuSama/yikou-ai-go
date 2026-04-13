@@ -5,21 +5,22 @@ import (
 	"fmt"
 	"workspace-yikou-ai-go/biz/ai/aitools"
 
-	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/adk"
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
 	"workspace-yikou-ai-go/biz/ai/myprompt"
+	"workspace-yikou-ai-go/biz/monitor"
 )
 
 func NewImageCollectionAgent(
-	model *openai.ChatModel,
+	chatModel ChatModelWrapperAdaptor,
 	imageSearchTool *aitools.ImageSearchTool,
 	undrawIllustrationTool *aitools.UndrawIllustrationTool,
 	mermaidDiagramTool *aitools.MermaidDiagramTool,
 	logoGeneratorTool *aitools.LogoGeneratorTool,
+	metricsCollector *monitor.AiModelMetricsCollector,
 ) *ImageCollectionAgent {
-	baseAgent := NewBaseAgent(model, nil, nil)
+	baseAgent := NewBaseAgent(chatModel, nil, nil, metricsCollector)
 
 	return &ImageCollectionAgent{
 		BaseAgent:              baseAgent,

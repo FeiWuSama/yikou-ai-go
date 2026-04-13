@@ -5,15 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/adk"
 	"github.com/cloudwego/eino/components/tool"
 	ai "workspace-yikou-ai-go/biz/ai/aimodel"
 	"workspace-yikou-ai-go/biz/ai/myprompt"
+	"workspace-yikou-ai-go/biz/monitor"
 )
 
-func NewCodeQualityCheckAgent(model *openai.ChatModel) *CodeQualityCheckAgent {
-	baseAgent := NewBaseAgent(model, nil, nil)
+func NewCodeQualityCheckAgent(chatModel ChatModelWrapperAdaptor, metricsCollector *monitor.AiModelMetricsCollector) *CodeQualityCheckAgent {
+	baseAgent := NewBaseAgent(chatModel, nil, nil, metricsCollector)
 
 	return &CodeQualityCheckAgent{
 		BaseAgent: baseAgent,

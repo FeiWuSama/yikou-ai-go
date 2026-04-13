@@ -146,16 +146,16 @@ func (m *CodeGenMiddleware) WrapModel(
 	chatModel model.BaseChatModel,
 	mc *adk.ModelContext,
 ) (model.BaseChatModel, error) {
-	return &loggingModel{
+	return &innerModel{
 		inner: chatModel,
 	}, nil
 }
 
-type loggingModel struct {
+type innerModel struct {
 	inner model.BaseChatModel
 }
 
-func (m *loggingModel) Generate(ctx context.Context, msgs []*schema.Message, opts ...model.Option) (*schema.Message, error) {
+func (m *innerModel) Generate(ctx context.Context, msgs []*schema.Message, opts ...model.Option) (*schema.Message, error) {
 	err := validateInput(msgs[len(msgs)-1].Content)
 	if err != nil {
 		return nil, err
@@ -174,7 +174,7 @@ func (m *loggingModel) Generate(ctx context.Context, msgs []*schema.Message, opt
 	return resp, nil
 }
 
-func (m *loggingModel) Stream(ctx context.Context, msgs []*schema.Message, opts ...model.Option) (*schema.StreamReader[*schema.Message], error) {
+func (m *innerModel) Stream(ctx context.Context, msgs []*schema.Message, opts ...model.Option) (*schema.StreamReader[*schema.Message], error) {
 	err := validateInput(msgs[len(msgs)-1].Content)
 	if err != nil {
 		return nil, err
@@ -188,7 +188,7 @@ func (m *loggingModel) Stream(ctx context.Context, msgs []*schema.Message, opts 
 	return m.wrapOutputStream(stream), nil
 }
 
-func (m *loggingModel) wrapOutputStream(inner *schema.StreamReader[*schema.Message]) *schema.StreamReader[*schema.Message] {
+func (m *innerModel) wrapOutputStream(inner *schema.StreamReader[*schema.Message]) *schema.StreamReader[*schema.Message] {
 	reader, writer := schema.Pipe[*schema.Message](2)
 
 	go func() {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 	"workspace-yikou-ai-go/biz/manager"
+	"workspace-yikou-ai-go/biz/monitor"
 	"workspace-yikou-ai-go/config"
 
 	"github.com/bytedance/gopkg/util/logger"
@@ -21,9 +22,8 @@ var (
 	nodeCosManager             *manager.CosManager
 )
 
-func InitImageCollectorPlanNode(chatModel *llm.BaseAiChatModel, cfg *config.Config, cosManager *manager.CosManager) {
-	imageCollectionPlanFactory = agent.NewImageCollectionPlanAgentFactory(chatModel)
-	nodeCfg = cfg
+func InitImageCollectorPlanNode(chatModel *llm.ChatModelWrapper, cosManager *manager.CosManager, metricsCollector *monitor.AiModelMetricsCollector) {
+	imageCollectionPlanFactory = agent.NewImageCollectionPlanAgentFactory(chatModel, metricsCollector)
 	nodeCosManager = cosManager
 }
 
