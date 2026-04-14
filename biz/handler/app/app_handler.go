@@ -238,7 +238,11 @@ func (a *AppHandler) DeployApp(ctx context.Context, c *app.RequestContext) {
 		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
 		return
 	}
-	deployKey, err := a.appService.DeployApp(ctx, int64(req.Id), &userVo)
+	appId, err := strconv.Atoi(req.AppId)
+	if err != nil {
+		return
+	}
+	deployKey, err := a.appService.DeployApp(ctx, int64(appId), &userVo)
 	if err != nil {
 		c.JSON(consts.StatusOK, common.NewErrorResponse[any](err))
 		return
