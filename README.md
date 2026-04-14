@@ -5,14 +5,43 @@
 [![Go Version](https://img.shields.io/badge/Go-1.24.9-blue.svg)](https://golang.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-brightgreen.svg)](https://www.docker.com)
 
-
 </div>
 
 ---
 
 ## 🚀 项目介绍
 
-**易扣AI** 是一个基于 Eino AI 框架构建的智能代码生成平台，集成了多种 AI 能力和工作流编排功能。用户可以通过自然语言描述需求，系统会自动理解并生成相应的代码、配置文件和项目结构。
+**易扣AI** 是一个基于 Go 语言开发的智能代码生成平台，采用现代化的技术栈和架构设计。对于想要入门 Go 语言的程序员来说，这是一个 绝佳的实战学习项目 ！
+![项目介绍](image/img2.png)
+
+---
+
+## 🎯 为什么选择这个项目学习 Go？
+
+### 1. 完整的全栈项目经验
+
+- 后端：Go + Hertz + GORM + Redis + MySQL + Eino
+- 前端：Vue3 + TypeScript + Ant Design Vue
+- 从零到一构建完整的企业级应用
+
+### 2. 主流技术栈覆盖
+
+| 技术领域 | 涉及技术             | 学习价值               |
+| -------- | -------------------- | ---------------------- |
+| Web框架  | Hertz (字节跳动开源) | 学习高性能HTTP服务开发 |
+| AI集成   | Eino (AI工作流框架)  | 掌握AI应用开发范式     |
+| 依赖注入 | Wire (Google开源)    | 理解依赖注入设计模式   |
+| ORM      | GORM                 | 掌握数据库操作最佳实践 |
+| 缓存     | Redis                | 学习缓存策略和会话管理 |
+| 配置管理 | Viper                | 掌握多环境配置管理     |
+
+### 3. 企业级架构设计
+
+```
+├── biz/           # 业务逻辑层 - 学习分层架构
+├── pkg/           # 公共工具包 - 学习代码复用
+└── config/        # 配置管理 - 学习工程化思维
+```
 
 ---
 
@@ -21,19 +50,21 @@
 ### 🤖 AI 代码生成
 
 - **自然语言编程**：通过对话方式描述需求，AI 自动生成代码
-- **代码优化**：自动优化代码结构和性能
+  ![AI 代码生成功能](image/img7.png)
 
 ### 🔄 工作流编排
 
 - **节点组合**：灵活组合图片收集、代码生成、质量检查等节点
 - **状态管理**：支持复杂的状态流转和条件分支
 - **实时调试**：集成 Eino DevTools，实时调试工作流
+  ![Eino DevTools](image/img8.png)
 
 ### 📦 应用管理
 
-- **应用创建**：快速创建新应用项目
 - **应用部署**：一键部署应用到云端
+  ![应用部署](image/img4.png)
 - **在线预览**：实时预览生成的应用效果
+  ![应用部署](image/img5.png)
 
 ### 💬 对话历史
 
@@ -50,6 +81,8 @@
 
 ### 🔒 安全特性
 
+- **企业级监控管理**
+  ![应用部署](image/img1.png)
 - **限流保护**：防止 API 滥用，保护系统稳定性
 - **内容审核**：自动审核生成内容，过滤敏感信息
 - **权限控制**：基于用户的权限管理体系
@@ -57,39 +90,7 @@
 
 ---
 
-## 🏗️ 技术架构
-
-### 后端技术栈
-
-| 技术 | 版本 | 说明 |
-|------|------|------|
-| [Go](https://golang.org/) | 1.24.9 | 核心开发语言 |
-| [Hertz](https://github.com/cloudwego/hertz) | 0.10.3 | HTTP 框架 |
-| [Eino](https://github.com/cloudwego/eino) | 0.8.2 | AI 工作流框架 |
-| [Wire](https://github.com/google/wire) | 0.7.0 | 依赖注入 |
-| [GORM](https://gorm.io/) | 1.31.1 | ORM 框架 |
-| [Redis](https://redis.io/) | 7.0 | 缓存和会话存储 |
-| [MySQL](https://www.mysql.com/) | 8.0 | 关系型数据库 |
-| [Viper](https://github.com/spf13/viper) | 1.19.0 | 配置管理 |
-
-### 前端技术栈
-
-| 技术 | 版本 | 说明 |
-|------|------|------|
-| [Vue 3](https://vuejs.org/) | Latest | 前端框架 |
-| [Ant Design Vue](https://antdv.com/) | Latest | UI 组件库 |
-| [Vite](https://vitejs.dev/) | Latest | 构建工具 |
-| [TypeScript](https://www.typescriptlang.org/) | Latest | 类型支持 |
-
-### AI 能力
-
-| 服务 | 说明     |
-|------|--------|
-| [DeepSeek V3.2](https://www.deepseek.com/) | 基本对话模型 |
-| [阿里云 DashScope](https://dashscope.aliyun.com/) | 图片生成服务 |
-| [Pexels API](https://www.pexels.com/api/) | 图片搜索服务 |
-
-### 架构图
+### 项目架构图
 
 ![架构图](image/yikouai-construction.drawio.png)
 
@@ -146,7 +147,7 @@ redis:
 ai:
   chat-model:
     api-key: your_deepseek_api_key
-    
+  
 dashscope:
   api-key: your_dashscope_api_key
 ```
@@ -302,17 +303,17 @@ cos:
 
 ### 主要 API 端点
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | /api/app/add | 创建应用 |
-| POST | /api/app/update | 更新应用 |
-| POST | /api/app/delete | 删除应用 |
-| GET | /api/app/get | 获取应用详情 |
-| POST | /api/app/list | 获取应用列表 |
-| POST | /api/app/deploy | 部署应用 |
-| GET | /api/app/chat/gen/code | AI 对话生成代码 |
-| POST | /api/workflow/execute | 执行工作流 |
-| GET | /api/chatHistory/app/:appId | 获取聊天历史 |
+| 方法 | 路径                        | 说明            |
+| ---- | --------------------------- | --------------- |
+| POST | /api/app/add                | 创建应用        |
+| POST | /api/app/update             | 更新应用        |
+| POST | /api/app/delete             | 删除应用        |
+| GET  | /api/app/get                | 获取应用详情    |
+| POST | /api/app/list               | 获取应用列表    |
+| POST | /api/app/deploy             | 部署应用        |
+| GET  | /api/app/chat/gen/code      | AI 对话生成代码 |
+| POST | /api/workflow/execute       | 执行工作流      |
+| GET  | /api/chatHistory/app/:appId | 获取聊天历史    |
 
 ---
 
@@ -328,7 +329,7 @@ cos:
 
 ## 📞 联系方式
 
-- 个人Github主页: https://github.com/FeiWuSama/yikou-ai-go
+- 个人Github主页: https://github.com/FeiWuSama
 - 邮箱: 1825578184@qq.com
 
 ---
