@@ -12,7 +12,7 @@ const TableNameApp = "app"
 
 // App 应用
 type App struct {
-	ID           int64     `gorm:"column:id;primaryKey;autoIncrement:true;comment:id" json:"id"`                        // id
+	ID           int64     `gorm:"column:id;primaryKey;autoIncrement:true;comment:id" json:"id,string"`                 // id
 	AppName      string    `gorm:"column:appName;comment:应用名称" json:"appName"`                                          // 应用名称
 	Cover        string    `gorm:"column:cover;comment:应用封面" json:"cover"`                                              // 应用封面
 	InitPrompt   string    `gorm:"column:initPrompt;comment:应用初始化的 prompt" json:"initPrompt"`                           // 应用初始化的 prompt

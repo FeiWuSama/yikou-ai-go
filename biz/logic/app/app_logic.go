@@ -582,11 +582,14 @@ func (s *AppService) ListGoodApp(ctx context.Context, req *appApi.YiKouAppFeatur
 }
 
 func (s *AppService) AdminUpdateApp(ctx context.Context, req *appApi.YiKouAppAdminUpdateRequest) (bool, error) {
-	if req.Id == 0 {
+	if req.Id == "" {
 		return false, pkg.ParamsError.WithMessage("应用ID不能为空")
 	}
-
-	_, err := query.Use(s.db).App.Where(query.App.ID.Eq(int64(req.Id))).First()
+	appId, err := strconv.Atoi(req.Id)
+	if err != nil {
+		return false, err
+	}
+	_, err = query.Use(s.db).App.Where(query.App.ID.Eq(int64(appId))).First()
 	if err != nil {
 		return false, err
 	}
@@ -600,7 +603,7 @@ func (s *AppService) AdminUpdateApp(ctx context.Context, req *appApi.YiKouAppAdm
 	}
 	updateMap["priority"] = req.Priority
 
-	_, err = query.Use(s.db).App.Where(query.App.ID.Eq(int64(req.Id))).Updates(updateMap)
+	_, err = query.Use(s.db).App.Where(query.App.ID.Eq(int64(appId))).Updates(updateMap)
 	if err != nil {
 		return false, err
 	}
@@ -654,8 +657,12 @@ func (s *AppService) AdminListApp(ctx context.Context, req *appApi.YiKouAppAdmin
 
 	queryBuilder := query.Use(s.db).App.Where(query.App.IsDelete.Eq(0))
 
-	if req.ID != 0 {
-		queryBuilder = queryBuilder.Where(query.App.ID.Eq(req.ID))
+	if req.ID != "" {
+		appId, err := strconv.Atoi(req.ID)
+		if err != nil {
+			return nil, err
+		}
+		queryBuilder = queryBuilder.Where(query.App.ID.Eq(int64(appId)))
 	}
 	if req.AppName != "" {
 		queryBuilder = queryBuilder.Where(query.App.AppName.Like("%" + req.AppName + "%"))

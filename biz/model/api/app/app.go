@@ -43,7 +43,7 @@ type YiKouAppFeaturedListRequest struct {
 type YiKouAppFeaturedListResponse common.BaseResponse[common.PageResponse[vo.AppVo]]
 
 type YiKouAppAdminUpdateRequest struct {
-	common.DeleteRequest
+	Id       string `json:"id"`
 	AppName  string `json:"appName"`
 	Cover    string `json:"cover"`
 	Priority int32  `json:"priority"`
@@ -57,7 +57,7 @@ type YiKouAppAdminGetResponse common.BaseResponse[vo.AppVo]
 
 type YiKouAppAdminListRequest struct {
 	common.PageRequest
-	ID           int64  `json:"id"`
+	ID           string `json:"id"`
 	AppName      string `json:"appName"`
 	Cover        string `json:"cover"`
 	InitPrompt   string `json:"initPrompt"`
