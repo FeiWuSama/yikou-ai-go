@@ -17,12 +17,12 @@
             应用详情
           </a-button>
           <a-button type="primary" @click="doDeploy" :loading="deployLoading">
-            {{
-              deployLoading
-                ? '部署中...'
-                : appInfo.deployKey !== null && appInfo.deployKey != ''
-                  ? '取消部署'
-                  : '部署'
+            {{ 
+              deployLoading 
+                ? '部署中...' 
+                : appInfo.deployKey !== null && appInfo.deployKey != '' 
+                  ? '取消部署' 
+                  : '部署' 
             }}
           </a-button>
           <a-button
@@ -60,7 +60,6 @@
         <div
           class="messages-container"
           ref="messagesContainerRef"
-          :style="{ height: messagesContainerHeight + 'px' }"
         >
           <div class="load-more-container" v-if="hasMoreMessages && messages.length > 0">
             <a-button
@@ -236,7 +235,7 @@ const messagesContainerRef = ref<HTMLDivElement | null>(null)
 
 // SSE流相关
 let eventSource: EventSource | null = null
-const messagesContainerHeight = ref(500)
+const messagesContainerHeight = ref(0)
 
 // 部署相关
 const deployLoading = ref(false)
@@ -693,74 +692,37 @@ const downloadCode = async () => {
     const link = document.createElement('a')
     link.href = downloadUrl
     link.download = fileName
+    document.body.appendChild(link)
     link.click()
-    // 清理
+    document.body.removeChild(link)
     URL.revokeObjectURL(downloadUrl)
-    message.success('代码下载成功')
+    message.success('下载成功')
   } catch (error) {
-    console.error('下载失败：', error)
     message.error('下载失败，请重试')
   } finally {
     downloading.value = false
   }
 }
 
+// 页面加载时请求数据
+onMounted(() => {
+  fetchAppInfo()
+})
+
 // 应用详情相关
 const appDetailVisible = ref(false)
 
-const router = useRouter()
-
-// 显示应用详情
 const showAppDetail = () => {
   appDetailVisible.value = true
 }
-// 编辑应用
+
 const editApp = () => {
-  if (appInfo.value?.id) {
-    router.push(`/app/edit/${appInfo.value.id}`)
-  }
+  // 编辑应用逻辑
 }
 
-// 删除应用
-const deleteApp = async () => {
-  if (!appInfo.value?.id) return
-
-  try {
-    const res = await deleteAppApi({ id: appInfo.value.id })
-    if (res.data.code === 0) {
-      message.success('删除成功')
-      appDetailVisible.value = false
-      router.push('/')
-    } else {
-      message.error('删除失败：' + res.data.message)
-    }
-  } catch (error) {
-    console.error('删除失败：', error)
-    message.error('删除失败')
-  }
+const deleteApp = () => {
+  // 删除应用逻辑
 }
-
-//iframe加载完成
-const onIframeLoad = () => {
-  const iframe = document.querySelector('.preview-frame') as HTMLIFrameElement
-  if (iframe) {
-    visualEditor.init(iframe)
-    visualEditor.onIframeLoad()
-  }
-}
-
-// 页面加载时获取应用信息和用户信息
-onMounted(async () => {
-  // 获取用户信息
-  await loginUserStore.fetchLoginUser()
-  // 获取应用信息
-  await fetchAppInfo()
-  onIframeLoad()
-  //监听iframe消息
-  window.addEventListener('message', (event) => {
-    visualEditor.handleIframeMessage(event)
-  })
-})
 </script>
 
 <style scoped>
@@ -771,6 +733,7 @@ onMounted(async () => {
   margin: 20px auto;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
 .header {
@@ -803,6 +766,8 @@ onMounted(async () => {
 
 .main-layout {
   flex: 1;
+  display: flex;
+  overflow: hidden;
 }
 
 .buttons {
@@ -814,7 +779,8 @@ onMounted(async () => {
 .chat-container {
   display: flex;
   flex-direction: column;
-  height: calc(90vh - 66px - 40px);
+  flex: 1;
+  min-width: 0;
 }
 
 .messages-container {
@@ -822,7 +788,7 @@ onMounted(async () => {
   overflow-y: auto;
   padding: 20px;
   background: #f5f5f5;
-  border-radius: 8px;
+  min-height: 0;
 }
 
 .load-more-container {
@@ -963,31 +929,77 @@ onMounted(async () => {
 .preview-container {
   background: #fff;
   border-left: 1px solid #e8e8e8;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0 8px 8px 0;
+  flex: 1.5;
+  min-width: 0;
 }
 
 :deep(.ant-layout-sider-children) {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 60vw;
-}
-
-.preview-frame {
+  flex-direction: column;
   width: 100%;
   height: 100%;
 }
 
+.preview-frame {
+  flex: 1;
+  width: 100%;
+  border: none;
+}
+
 .loading-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   padding: 20px;
 }
 
 .empty-preview {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   color: #999;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  #appChatPage {
+    height: 90vh;
+    margin: 10px;
+  }
+  
+  .main-layout {
+    flex-direction: column;
+  }
+  
+  .preview-container {
+    border-left: none;
+    border-top: 1px solid #e8e8e8;
+    flex: 1;
+  }
+  
+  .chat-container {
+    flex: 1;
+  }
+  
+  .header-content {
+    flex-direction: column;
+    height: auto;
+    padding: 10px 0;
+    gap: 10px;
+  }
+  
+  .buttons {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .content {
+    max-width: 90%;
+  }
 }
 </style>

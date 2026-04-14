@@ -136,7 +136,8 @@ const handleViewWork = (appData: API.AppVO) => {
 
 <style scoped>
 .app-card {
-  width: 350px;
+  flex: 0 0 350px;
+  max-width: 100%;
   margin: 10px;
   position: relative;
   border-radius: 8px;
