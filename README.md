@@ -231,9 +231,10 @@ yikou-ai-go/
 │   └── snowflake/         # 雪花算法
 ├── sql/                   # SQL 脚本
 ├── wire/                  # 依赖注入
+├── grafana/               # Grafana看板配置
 ├── yikou-ai-feiwu-front/  # 前端项目
 ├── Dockerfile             # Docker 构建文件
-├── docker-compose.yml     # Docker Compose 配置
+├── prometheus.yml         # Prometheus启动配置文件
 ├── go.mod                 # Go 模块定义
 ├── go.sum                 # Go 依赖锁定
 └── main.go                # 应用入口
