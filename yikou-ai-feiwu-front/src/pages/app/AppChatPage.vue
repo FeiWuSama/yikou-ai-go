@@ -167,6 +167,7 @@
           :src="previewUrl"
           class="preview-frame"
           frameborder="0"
+          @load="onIframeLoad"
         ></iframe>
         <div v-else class="empty-preview">
           <p>暂无预览内容</p>
@@ -191,7 +192,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, nextTick, computed } from 'vue'
+import { onMounted, onUnmounted, ref, nextTick, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -268,6 +269,9 @@ const visualEditor = new VisualEditor({
   },
 })
 
+// 绑定消息处理函数（保持同一引用以便移除监听器）
+const handleIframeMessage = visualEditor.handleIframeMessage.bind(visualEditor)
+
 // 输入框禁用状态
 const isInputDisabled = computed(() => {
   // 如果应用信息还未加载，不禁用
@@ -284,7 +288,6 @@ const isInputDisabled = computed(() => {
 
 // 可视化编辑相关函数
 const toggleEditMode = () => {
-  debugger
   // 检查 iframe 是否已经加载
   const iframe = document.querySelector('.preview-frame') as HTMLIFrameElement
   if (!iframe) {
@@ -296,6 +299,8 @@ const toggleEditMode = () => {
     message.warning('请等待页面加载完成')
     return
   }
+  // 初始化 visualEditor 的 iframe 引用
+  visualEditor.init(iframe)
   const newEditMode = visualEditor.toggleEditMode()
   isEditMode.value = newEditMode
 }
@@ -303,6 +308,15 @@ const toggleEditMode = () => {
 const clearSelectedElement = () => {
   selectedElementInfo.value = null
   visualEditor.clearSelection()
+}
+
+// iframe 加载完成回调
+const onIframeLoad = () => {
+  const iframe = document.querySelector('.preview-frame') as HTMLIFrameElement
+  if (iframe) {
+    visualEditor.init(iframe)
+    visualEditor.onIframeLoad()
+  }
 }
 
 // 获取应用信息
@@ -707,6 +721,14 @@ const downloadCode = async () => {
 // 页面加载时请求数据
 onMounted(() => {
   fetchAppInfo()
+  // 监听来自 iframe 的消息
+  window.addEventListener('message', handleIframeMessage)
+})
+
+// 页面卸载时清理
+onUnmounted(() => {
+  // 移除消息监听器
+  window.removeEventListener('message', handleIframeMessage)
 })
 
 // 应用详情相关
