@@ -20,6 +20,39 @@ func NewUserServiceImpl(userService userService.IUserService) *UserServiceImpl {
 	return &UserServiceImpl{userService: userService}
 }
 
+// GetUserVo implements the UserServiceImpl interface.
+func (s *UserServiceImpl) GetUserVo(ctx context.Context, req *kitex_gen.GetUserVORequest) (resp *kitex_gen.GetUserVOResponse, err error) {
+	// 1. 检查请求中的用户信息
+	if req.User == nil {
+		return &kitex_gen.GetUserVOResponse{UserVo: nil}, nil
+	}
+
+	// 2. 调用服务层获取用户VO
+	userVo, err := s.userService.GetUserVo(ctx, req.User.Id)
+	if err != nil {
+		return &kitex_gen.GetUserVOResponse{UserVo: nil}, nil
+	}
+
+	// 3. 转换为Proto UserVO
+	protoUserVO := &kitex_gen.UserVO{
+		Id:          userVo.ID,
+		UserAccount: userVo.UserAccount,
+		UserName:    userVo.UserName,
+		UserAvatar:  userVo.UserAvatar,
+		UserProfile: userVo.UserProfile,
+		UserRole:    userVo.UserRole,
+		CreateTime:  userVo.CreateTime.Unix(),
+		UpdateTime:  userVo.UpdateTime.Unix(),
+	}
+
+	// 4. 准备响应
+	resp = &kitex_gen.GetUserVOResponse{
+		UserVo: protoUserVO,
+	}
+
+	return resp, nil
+}
+
 // ListByIds implements the UserServiceImpl interface.
 func (s *UserServiceImpl) ListByIds(ctx context.Context, req *kitex_gen.ListByIdsRequest) (resp *kitex_gen.ListByIdsResponse, err error) {
 	// 1. 准备响应
@@ -87,41 +120,7 @@ func (s *UserServiceImpl) GetById(ctx context.Context, req *kitex_gen.GetByIdReq
 	return resp, nil
 }
 
-// GetUserVO implements the UserServiceImpl interface.
-func (s *UserServiceImpl) GetUserVO(ctx context.Context, req *kitex_gen.GetUserVORequest) (resp *kitex_gen.GetUserVOResponse, err error) {
-	// 1. 从Proto User转换为服务层需要的模型
-	protoUser := req.User
-	if protoUser == nil {
-		return &kitex_gen.GetUserVOResponse{UserVo: nil}, nil
-	}
-
-	// 2. 调用服务层获取UserVO
-	userVo, err := s.userService.GetUserVo(ctx, protoUser.Id)
-	if err != nil {
-		return &kitex_gen.GetUserVOResponse{UserVo: nil}, nil
-	}
-
-	// 3. 转换为Proto UserVO
-	protoUserVO := &kitex_gen.UserVO{
-		Id:          userVo.ID,
-		UserAccount: userVo.UserAccount,
-		UserName:    userVo.UserName,
-		UserAvatar:  userVo.UserAvatar,
-		UserProfile: userVo.UserProfile,
-		UserRole:    userVo.UserRole,
-		CreateTime:  userVo.CreateTime.Unix(),
-		UpdateTime:  userVo.UpdateTime.Unix(),
-	}
-
-	// 4. 准备响应
-	resp = &kitex_gen.GetUserVOResponse{
-		UserVo: protoUserVO,
-	}
-
-	return resp, nil
-}
-
-func GetUserVo(ctx context.Context, c *app.RequestContext) *vo.UserVo {
+func GetLoginUser(ctx context.Context, c *app.RequestContext) *vo.UserVo {
 	// 1. 获取sessionId
 	sessionId := c.Request.Header.Cookie(constants.UserLoginState)
 	if sessionId == nil {

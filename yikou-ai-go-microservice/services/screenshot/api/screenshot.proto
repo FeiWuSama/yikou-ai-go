@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package yikou.user;
+
+option go_package = "yikou-ai-go-microservice/services/screenshot/kitex_gen";
+
+message GenerateAndUploadScreenshotRequest{
+  string WebUrl = 1;
+}
+
+message GenerateAndUploadScreenshotResponse{
+  string saveUrl = 1;
+}
+
+service ScreenshotService {
+  rpc GenerateAndUploadScreenshot(GenerateAndUploadScreenshotRequest) returns (GenerateAndUploadScreenshotResponse);
+}
+

@@ -2,16 +2,15 @@ package screenshot
 
 import (
 	"fmt"
+	"github.com/bytedance/gopkg/util/logger"
 	"os"
 	"path/filepath"
 	"time"
 	pkg "yikou-ai-go-microservice/pkg/errors"
+	"yikou-ai-go-microservice/pkg/manager"
 	"yikou-ai-go-microservice/pkg/myfile"
 	"yikou-ai-go-microservice/pkg/myutils"
 	"yikou-ai-go-microservice/pkg/random"
-	"yikou-ai-go-microservice/services/screenshot/manager"
-
-	"github.com/bytedance/gopkg/util/logger"
 )
 
 func NewScreenshotService(cosManager *manager.CosManager) *ScreenshotService {

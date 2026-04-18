@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/cloudwego/hertz/pkg/app/server"
 	kServer "github.com/cloudwego/kitex/server"
+	"github.com/tencentyun/cos-go-sdk-v5"
 	"log"
 	"net"
 	"net/http"
@@ -12,13 +13,11 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"yikou-ai-go-microservice/pkg/manager"
 	"yikou-ai-go-microservice/services/screenshot/config"
 	"yikou-ai-go-microservice/services/screenshot/handler"
 	screenshot "yikou-ai-go-microservice/services/screenshot/kitex_gen/screenshotservice"
 	logic "yikou-ai-go-microservice/services/screenshot/logic"
-	"yikou-ai-go-microservice/services/screenshot/manager"
-
-	"github.com/tencentyun/cos-go-sdk-v5"
 )
 
 func main() {

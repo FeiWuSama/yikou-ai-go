@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package yikou.user;
+
+option go_package = "yikou-ai-go-microservice/services/user/kitex_gen";
+
+// 用户信息（对应 GORM Model）
+message User {
+  int64 id = 1;                    // id
+  string user_account = 2;         // 账号
+  string user_password = 3;        // 密码
+  string user_name = 4;            // 用户昵称
+  string user_avatar = 5;          // 用户头像
+  string user_profile = 6;         // 用户简介
+  string user_role = 7;            // 用户角色：user/admin
+  int64 edit_time = 8;             // 编辑时间（时间戳）
+  int64 create_time = 9;           // 创建时间（时间戳）
+  int64 update_time = 10;          // 更新时间（时间戳）
+  int32 is_delete = 11;            // 是否删除
+}
+
+// 用户视图对象（对应 UserVO）
+message UserVO {
+  int64 id = 1;                    // id
+  string user_account = 2;         // 账号
+  string user_name = 3;            // 用户昵称
+  string user_avatar = 4;          // 用户头像
+  string user_profile = 5;         // 用户简介
+  string user_role = 6;            // 用户角色
+  int64 create_time = 7;           // 创建时间（时间戳）
+  int64 update_time = 8;           // 更新时间（时间戳）
+}
+
+// 根据ID列表查询用户请求
+message ListByIdsRequest {
+  repeated int64 ids = 1;
+}
+
+// 根据ID列表查询用户响应
+message ListByIdsResponse {
+  repeated User users = 1;
+}
+
+// 根据ID查询用户请求
+message GetByIdRequest {
+  int64 id = 1;
+}
+
+// 根据ID查询用户响应
+message GetByIdResponse {
+  User user = 1;
+}
+
+// 获取用户视图对象请求
+message GetUserVORequest {
+  User user = 1;
+}
+
+// 获取用户视图对象响应
+message GetUserVOResponse {
+  UserVO user_vo = 1;
+}
+
+// 用户服务接口
+service UserService {
+  // 根据ID列表批量查询用户
+  rpc ListByIds(ListByIdsRequest) returns (ListByIdsResponse);
+
+  // 根据ID查询单个用户
+  rpc GetById(GetByIdRequest) returns (GetByIdResponse);
+
+  rpc GetUserVo(GetUserVORequest) returns (GetUserVOResponse);
+}
