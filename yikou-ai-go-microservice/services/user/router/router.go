@@ -6,8 +6,8 @@ import (
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
+	"yikou-ai-go-microservice/pkg/commonmiddleware"
 	"yikou-ai-go-microservice/services/user/handler"
-	"yikou-ai-go-microservice/services/user/middleware"
 	"yikou-ai-go-microservice/services/user/model/enum"
 )
 
