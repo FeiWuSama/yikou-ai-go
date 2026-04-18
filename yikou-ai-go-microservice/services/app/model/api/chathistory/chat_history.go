@@ -3,6 +3,7 @@ package chathistory
 import (
 	"time"
 	common "yikou-ai-go-microservice/pkg/commonapi"
+	"yikou-ai-go-microservice/services/app/dal/model"
 )
 
 type YiKouChatHistoryQueryRequest struct {
