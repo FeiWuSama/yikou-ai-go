@@ -1,0 +1,77 @@
+package app
+
+import (
+	common "yikou-ai-go-microservice/pkg/commonapi"
+	model "yikou-ai-go-microservice/services/app/dal/query"
+	"yikou-ai-go-microservice/services/app/model/vo"
+)
+
+type YiKouAppAddRequest struct {
+	InitPrompt string `json:"initPrompt"`
+}
+
+type YiKouAppAddResponse common.BaseResponse[string]
+
+type YiKouAppUpdateRequest struct {
+	common.DeleteRequest
+	AppName string `json:"appName"`
+}
+
+type YiKouAppUpdateResponse common.BaseResponse[bool]
+
+type YiKouAppDeleteResponse common.BaseResponse[bool]
+
+type YiKouAppGetResponse common.BaseResponse[model.App]
+
+type YiKouAppGetVoResponse common.BaseResponse[vo.AppVo]
+
+type YiKouAppMyListRequest struct {
+	common.PageRequest
+	AppName string `json:"appName"`
+}
+
+type YiKouAppMyListResponse common.BaseResponse[common.PageResponse[vo.AppVo]]
+
+type YiKouAppFeaturedListRequest struct {
+	common.PageRequest
+	AppName     string `json:"appName"`
+	CodeGenType string `json:"codeGenType"`
+	InitPrompt  string `json:"initPrompt"`
+	Priority    int32  `json:"priority"`
+}
+
+type YiKouAppFeaturedListResponse common.BaseResponse[common.PageResponse[vo.AppVo]]
+
+type YiKouAppAdminUpdateRequest struct {
+	Id       string `json:"id"`
+	AppName  string `json:"appName"`
+	Cover    string `json:"cover"`
+	Priority int32  `json:"priority"`
+}
+
+type YiKouAppAdminUpdateResponse common.BaseResponse[bool]
+
+type YiKouAppAdminDeleteResponse common.BaseResponse[bool]
+
+type YiKouAppAdminGetResponse common.BaseResponse[vo.AppVo]
+
+type YiKouAppAdminListRequest struct {
+	common.PageRequest
+	ID           string `json:"id"`
+	AppName      string `json:"appName"`
+	Cover        string `json:"cover"`
+	InitPrompt   string `json:"initPrompt"`
+	CodeGenType  string `json:"codeGenType"`
+	DeployKey    string `json:"deployKey"`
+	DeployedTime string `json:"deployedTime"`
+	Priority     int32  `json:"priority"`
+	UserID       int64  `json:"userId"`
+}
+
+type YiKouAppAdminListResponse common.BaseResponse[common.PageResponse[model.App]]
+
+type YiKouAppDeployRequest struct {
+	AppId string `json:"appId"`
+}
+
+type YiKouAppDeployResponse common.BaseResponse[string]

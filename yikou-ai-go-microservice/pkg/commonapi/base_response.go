@@ -1,0 +1,44 @@
+package common
+
+import (
+	"errors"
+	pkg "yikou-ai-go-microservice/pkg/errors"
+)
+
+type BaseResponse[T any] struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    T      `json:"data"`
+}
+
+func NewSuccessResponse[T any](data T) *BaseResponse[T] {
+	return &BaseResponse[T]{
+		Code:    pkg.SuccessErrCode,
+		Message: pkg.Success.Message,
+		Data:    data,
+	}
+}
+
+func NewErrorResponse[T any](err error) *BaseResponse[T] {
+	newError := pkg.ErrorNo{}
+	if errors.As(err, &newError) {
+		return &BaseResponse[T]{
+			Code:    newError.Code,
+			Message: newError.Message,
+		}
+	} else {
+		newError = pkg.ConvertError(err)
+		return &BaseResponse[T]{
+			Code:    newError.Code,
+			Message: newError.Message,
+		}
+	}
+}
+
+func NewResponse[T any](code int, message string, data T) *BaseResponse[T] {
+	return &BaseResponse[T]{
+		Code:    code,
+		Message: message,
+		Data:    data,
+	}
+}

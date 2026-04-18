@@ -1,0 +1,8 @@
+go 1.24
+
+use (
+	services/user
+	services/screenshot
+	services/app
+	pkg
+)
