@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"time"
 	common "yikou-ai-go-microservice/pkg/commonapi"
-	"yikou-ai-go-microservice/pkg/commonenum"
+	enum "yikou-ai-go-microservice/pkg/commonenum"
 	"yikou-ai-go-microservice/pkg/constants"
 	pkg "yikou-ai-go-microservice/pkg/errors"
 	"yikou-ai-go-microservice/pkg/snowflake"
