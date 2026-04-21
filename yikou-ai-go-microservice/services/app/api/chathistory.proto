@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package yikou.chathistory;
+
+option go_package = "yikou-ai-go-microservice/services/app/kitex_gen/chathistory";
+
+message LoadChatHistoryToMemoryRequest{
+  int64 appId = 1;
+  int32 limit = 2;
+}
+
+message LoadChatHistoryToMemoryResponse{
+  bool success = 1;
+}
+
+service ChatHistoryService{
+  rpc LoadChatHistoryToMemory(LoadChatHistoryToMemoryRequest) returns (LoadChatHistoryToMemoryResponse);
+}

@@ -1,4 +1,4 @@
-package enum
+package commonenum
 
 // UserRoleEnum 用户角色枚举
 type UserRoleEnum string

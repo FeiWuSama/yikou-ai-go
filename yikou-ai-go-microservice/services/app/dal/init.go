@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"time"
-	"yikou-ai-go-microservice/services/user/config"
+	"yikou-ai-go-microservice/services/app/config"
 	"yikou-ai-go-microservice/services/user/dal/query"
 
 	"github.com/redis/go-redis/v9"

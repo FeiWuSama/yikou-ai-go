@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package yikou.app;
+
+option go_package = "yikou-ai-go-microservice/services/app/kitex_gen/app";
+
+message GetAppInfoRequest{
+  int64 appId = 1;
+}
+
+message GetAppInfoResponse{
+  int64 id = 1;
+  string appName = 2;
+  string description = 3;
+  int64 createTime = 4;
+}
+
+service AppService{
+  rpc GetAppInfo(GetAppInfoRequest) returns (GetAppInfoResponse);
+}

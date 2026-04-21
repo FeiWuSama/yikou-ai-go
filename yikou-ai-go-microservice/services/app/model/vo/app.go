@@ -1,6 +1,9 @@
 package vo
 
-import "time"
+import (
+	"time"
+	"yikou-ai-go-microservice/services/user/model/vo"
+)
 
 type AppVo struct {
 	ID           int64     `json:"id,string"`
@@ -12,18 +15,7 @@ type AppVo struct {
 	DeployedTime time.Time `json:"deployedTime"`
 	Priority     int32     `json:"priority"`
 	UserID       int64     `json:"userId,string"`
-	User         UserVo    `json:"user"`
+	User         vo.UserVo `json:"user"`
 	CreateTime   time.Time `json:"createTime"`
 	UpdateTime   time.Time `json:"updateTime"`
-}
-
-type UserVo struct {
-	ID          int64     `json:"id,string"`
-	UserAccount string    `json:"userAccount"`
-	UserName    string    `json:"userName"`
-	UserAvatar  string    `json:"userAvatar"`
-	UserProfile string    `json:"userProfile"`
-	UserRole    string    `json:"userRole"`
-	CreateTime  time.Time `json:"createTime"`
-	UpdateTime  time.Time `json:"updateTime"`
 }

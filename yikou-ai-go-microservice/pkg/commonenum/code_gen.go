@@ -1,4 +1,4 @@
-package enum
+package commonenum
 
 type CodeGenTypeEnum string
 

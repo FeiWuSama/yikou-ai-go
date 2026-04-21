@@ -1,0 +1,758 @@
+package app
+
+import (
+	"context"
+	"fmt"
+	"github.com/cloudwego/kitex/client"
+	"io"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+	common "yikou-ai-go-microservice/pkg/commonapi"
+	"yikou-ai-go-microservice/pkg/commonenum"
+	"yikou-ai-go-microservice/pkg/constants"
+	pkg "yikou-ai-go-microservice/pkg/errors"
+	"yikou-ai-go-microservice/pkg/myfile"
+	"yikou-ai-go-microservice/pkg/random"
+	"yikou-ai-go-microservice/pkg/snowflake"
+	aiApi "yikou-ai-go-microservice/services/ai/kitex_gen"
+	"yikou-ai-go-microservice/services/ai/kitex_gen/aiservice"
+	"yikou-ai-go-microservice/services/app/core"
+	"yikou-ai-go-microservice/services/app/core/builder"
+	"yikou-ai-go-microservice/services/app/core/messagehandler"
+	"yikou-ai-go-microservice/services/app/dal/model"
+	"yikou-ai-go-microservice/services/app/dal/query"
+	"yikou-ai-go-microservice/services/app/model/api/app"
+	"yikou-ai-go-microservice/services/app/model/enum"
+	"yikou-ai-go-microservice/services/app/model/vo"
+	"yikou-ai-go-microservice/services/app/service/chathistory"
+	screenshotApi "yikou-ai-go-microservice/services/screenshot/kitex_gen"
+	screenshotService "yikou-ai-go-microservice/services/screenshot/kitex_gen/screenshotservice"
+	userApi "yikou-ai-go-microservice/services/user/kitex_gen"
+	userService "yikou-ai-go-microservice/services/user/kitex_gen/userservice"
+	uservo "yikou-ai-go-microservice/services/user/model/vo"
+
+	"github.com/bytedance/gopkg/util/logger"
+	"github.com/cloudwego/eino/schema"
+	"gorm.io/gorm"
+)
+
+func NewAppService(aiCodeGenFacade *core.YiKouAiCodegenFacade, chatHistoryService chathistory.IChatHistoryService, streamHandlerExecutor *messagehandler.StreamHandlerExecutor, db *gorm.DB) *AppService {
+	return &AppService{
+		aiCodeGenFacade:       aiCodeGenFacade,
+		userService:           userService.MustNewClient("user-service", client.WithHostPorts("127.0.0.1:9090")),
+		chatHistoryService:    chatHistoryService,
+		streamHandlerExecutor: streamHandlerExecutor,
+		screenshotService:     screenshotService.MustNewClient("screenshot", client.WithHostPorts("127.0.0.1:9091")),
+		aiClient:              aiservice.MustNewClient("ai-service", client.WithHostPorts("127.0.0.1:9093")),
+		db:                    db,
+	}
+}
+
+type AppService struct {
+	aiCodeGenFacade       *core.YiKouAiCodegenFacade
+	userService           userService.Client
+	chatHistoryService    chathistory.IChatHistoryService
+	streamHandlerExecutor *messagehandler.StreamHandlerExecutor
+	screenshotService     screenshotService.Client
+	aiClient              aiservice.Client
+	db                    *gorm.DB
+}
+
+func (s *AppService) DeployApp(ctx context.Context, appId int64, loginUser *uservo.UserVo) (string, error) {
+	// 1. 校验参数
+	if loginUser == nil || appId == 0 || appId < 0 {
+		return "", pkg.ParamsError
+	}
+	// 2. 校验应用是否存在
+	app, err := query.Use(s.db).App.Where(query.App.ID.Eq(appId), query.App.IsDelete.Eq(0)).First()
+	if err != nil {
+		return "", pkg.ParamsError.WithMessage("应用不存在")
+	}
+	// 3. 校验用户是否有该应用部署权限
+	if app.UserID != loginUser.ID {
+		return "", pkg.NotAuthError.WithMessage("无权部署该应用")
+	}
+	// 4. 校验应用是否已被部署
+	deployKey := app.DeployKey
+	if deployKey == "" {
+		deployKey = random.RandString(6)
+	}
+	// 5. 构建源目录路径
+	sourceDirName := fmt.Sprintf("%s_%d", app.CodeGenType, appId)
+	codeOutputRoot, err := myfile.GetCodeOutputRoot()
+	if err != nil {
+		return "", err
+	}
+	sourceDirPath := filepath.Join(codeOutputRoot, sourceDirName)
+
+	// 6. 检查源目录是否存在
+	sourceDirInfo, err := os.Stat(sourceDirPath)
+	if err != nil || !sourceDirInfo.IsDir() {
+		return "", pkg.SystemError.WithMessage("应用代码不存在，请先生成代码")
+	}
+
+	// 7. Vue 项目特殊处理：执行构建
+	codeGenType := commonenum.CodeGenTypeEnum(app.CodeGenType)
+	deploySourcePath := sourceDirPath
+	if codeGenType == commonenum.VueCodeGen {
+		if !builder.BuildProject(sourceDirPath) {
+			return "", pkg.SystemError.WithMessage("Vue 项目构建失败，请检查代码和依赖")
+		}
+		distDirPath := filepath.Join(sourceDirPath, "dist")
+		if _, err := os.Stat(distDirPath); os.IsNotExist(err) {
+			return "", pkg.SystemError.WithMessage("Vue 项目构建完成但未生成 dist 目录")
+		}
+		deploySourcePath = distDirPath
+		logger.Infof("Vue 项目构建成功，将部署 dist 目录: %s", distDirPath)
+	}
+
+	// 8. 复制文件到部署目录
+	codeDeployRoot, err := myfile.GetCodeDeployRoot()
+	if err != nil {
+		return "", err
+	}
+	deployDirPath := filepath.Join(codeDeployRoot, deployKey)
+	if err := myfile.CopyDir(deploySourcePath, deployDirPath); err != nil {
+		return "", pkg.SystemError.WithMessage("部署应用失败:" + err.Error())
+	}
+
+	// 9. 更新应用的deployKey
+	appUpdate := &model.App{
+		DeployKey:    deployKey,
+		DeployedTime: time.Now(),
+	}
+	_, err = query.Use(s.db).App.
+		Where(query.App.ID.Eq(appId), query.App.IsDelete.Eq(0)).
+		Updates(appUpdate)
+	if err != nil {
+		return "", pkg.SystemError.WithMessage("部署应用失败:" + err.Error())
+	}
+
+	// 10. 构建应用访问 URL
+	appDeployUrl := fmt.Sprintf("%s/%s/", constants.CodeDeployHost, deployKey)
+
+	// 11. 异步生成截图并更新应用封面
+	go s.generateAppScreenshotAsync(appId, appDeployUrl)
+
+	return appDeployUrl, nil
+}
+
+func (s *AppService) ChatToGenCode(ctx context.Context, appId int64, message string, loginUser *uservo.UserVo) (*schema.StreamReader[string], error) {
+	// 1. 校验参数
+	if message == "" {
+		return nil, pkg.ParamsError.WithMessage("消息不能为空")
+	}
+	if appId == 0 || appId < 0 {
+		return nil, pkg.ParamsError.WithMessage("应用ID不能为空")
+	}
+	// 2. 校验应用是否存在
+	app, err := query.Use(s.db).App.Where(query.App.ID.Eq(appId), query.App.IsDelete.Eq(0)).First()
+	if err != nil {
+		return nil, err
+	}
+	// 3. 校验用户是否有权限使用该应用
+	if app.UserID != loginUser.ID {
+		return nil, pkg.NotAuthError.WithMessage("无权使用该应用")
+	}
+	// 4. 获取代码生成类型
+	if commonenum.CodeGenTypeTextMap[commonenum.CodeGenTypeEnum(app.CodeGenType)] == "" {
+		return nil, pkg.ParamsError.WithMessage("应用代码生成类型不支持")
+	}
+	// 5. 将用户消息保存到对话记录
+	_ = s.chatHistoryService.AddChatMessage(ctx, appId, message, enum.UserMessageType, loginUser.ID)
+
+	// 6. 调用代码生成服务
+	streamResp, err := s.aiCodeGenFacade.GenCodeStreamAndSave(ctx, message, commonenum.CodeGenTypeEnum(app.CodeGenType), appId)
+	if err != nil {
+		return nil, err
+	}
+	return s.processStreamMessage(appId, commonenum.CodeGenTypeEnum(app.CodeGenType), loginUser.ID, streamResp), nil
+}
+
+func (s *AppService) processStreamMessage(appId int64, codeGenType commonenum.CodeGenTypeEnum, userId int64, stream *schema.StreamReader[*schema.Message]) *schema.StreamReader[string] {
+	reader, writer := schema.Pipe[string](2)
+
+	handler := s.streamHandlerExecutor.CreateHandler(appId, userId, codeGenType)
+
+	go func() {
+		defer writer.Close()
+
+		msgChan := make(chan *schema.Message)
+		errChan := make(chan error)
+
+		go func() {
+			for {
+				msg, err := stream.Recv()
+				if err != nil {
+					errChan <- err
+					return
+				}
+				msgChan <- msg
+			}
+		}()
+
+		heartbeat := time.NewTicker(10 * time.Second)
+		defer heartbeat.Stop()
+
+		for {
+			select {
+			case <-heartbeat.C:
+				writer.Send("heartBeat", nil)
+
+			case err := <-errChan:
+				if err == io.EOF {
+					go s.executeNpmInstall(appId, codeGenType)
+					return
+				}
+				writer.Send("", err)
+				return
+
+			case msg := <-msgChan:
+				if msg == nil {
+					continue
+				}
+				processedChunk := handler.Handle(msg.Content)
+				if processedChunk != "" {
+					writer.Send(processedChunk, nil)
+				}
+			}
+		}
+	}()
+
+	return reader
+}
+
+func (s *AppService) executeNpmInstall(appId int64, codeGenType commonenum.CodeGenTypeEnum) {
+	if codeGenType != commonenum.VueCodeGen {
+		return
+	}
+
+	codeOutputRoot, _ := myfile.GetCodeOutputRoot()
+	projectPath := filepath.Join(codeOutputRoot, fmt.Sprintf("vue_project_%d", appId))
+
+	if !builder.ExecuteNpmInstall(projectPath) {
+		logger.Errorf("异步构建 Vue 项目时发生异常")
+	}
+}
+
+func (s *AppService) generateAppScreenshotAsync(appId int64, appDeployUrl string) {
+	coverUrl, err := s.screenshotService.GenerateAndUploadScreenshot(context.Background(),
+		&screenshotApi.GenerateAndUploadScreenshotRequest{WebUrl: appDeployUrl})
+	if err != nil {
+		logger.Errorf("生成应用截图失败: %v", err)
+		return
+	}
+
+	_, err = query.Use(s.db).App.
+		Where(query.App.ID.Eq(appId), query.App.IsDelete.Eq(0)).
+		Update(query.App.Cover, coverUrl.SaveUrl)
+	if err != nil {
+		logger.Errorf("更新应用封面失败: %v", err)
+		return
+	}
+
+	logger.Infof("应用截图生成并更新成功: appId=%d, coverUrl=%s", appId, coverUrl.SaveUrl)
+}
+
+func (s *AppService) AddApp(ctx context.Context, req *app.YiKouAppAddRequest, userId int64) (int64, error) {
+	if req.InitPrompt == "" {
+		return 0, pkg.ParamsError.WithMessage("初始化prompt不能为空")
+	}
+
+	appName := req.InitPrompt
+	count := 0
+	for i := range appName {
+		if count >= 12 {
+			appName = appName[:i]
+			break
+		}
+		count++
+	}
+
+	appId, err := snowflake.GenerateSnowFlakeId()
+	if err != nil {
+		return 0, err
+	}
+
+	codeGenTypeResp, err := s.aiClient.RouteCodeGenType(ctx, &aiApi.RouteCodeGenTypeRequest{UserContent: req.InitPrompt})
+	if err != nil {
+		logger.Errorf("路由代码生成类型失败: %v, 使用默认类型", err)
+		codeGenTypeResp.CodeGenType = aiApi.CodeGenType_HTML
+	}
+
+	newApp := &model.App{
+		ID:          appId,
+		AppName:     appName,
+		InitPrompt:  req.InitPrompt,
+		UserID:      userId,
+		CodeGenType: codeGenTypeResp.CodeGenType.String(),
+		Priority:    0,
+	}
+	err = query.Use(s.db).App.
+		Select(query.App.ID, query.App.AppName, query.App.InitPrompt, query.App.UserID, query.App.Priority, query.App.CodeGenType).
+		Create(newApp)
+	if err != nil {
+		return 0, err
+	}
+
+	logger.Infof("应用创建成功，ID: %d, 类型: %s", appId, codeGenTypeResp.GetCodeGenType().String())
+	return newApp.ID, nil
+}
+
+func (s *AppService) UpdateApp(ctx context.Context, req *app.YiKouAppUpdateRequest, userId int64) (bool, error) {
+	if req.Id == 0 {
+		return false, pkg.ParamsError.WithMessage("应用ID不能为空")
+	}
+
+	app, err := query.Use(s.db).App.Where(query.App.ID.Eq(int64(req.Id))).First()
+	if err != nil {
+		return false, err
+	}
+
+	if app.UserID != userId {
+		return false, pkg.ParamsError.WithMessage("无权修改该应用")
+	}
+
+	updateMap := make(map[string]interface{})
+	if req.AppName != "" {
+		updateMap["appName"] = req.AppName
+	}
+
+	_, err = query.Use(s.db).App.Where(query.App.ID.Eq(int64(req.Id))).Updates(updateMap)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (s *AppService) DeleteApp(ctx context.Context, id int64, userId int64) (bool, error) {
+	app, err := query.Use(s.db).App.Where(query.App.ID.Eq(id)).First()
+	if err != nil {
+		return false, err
+	}
+
+	if app.UserID != userId {
+		return false, pkg.ParamsError.WithMessage("无权删除该应用")
+	}
+
+	// 删除应用的对话记录
+	err = s.chatHistoryService.DeleteByAppId(ctx, id)
+	if err != nil {
+		logger.Errorf("删除应用关联对话记录失败:%v", err.Error())
+	}
+	// 逻辑删除应用
+	_, err = query.Use(s.db).App.Where(query.App.ID.Eq(id)).Update(query.App.IsDelete, 1)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (s *AppService) GetApp(ctx context.Context, id int64, userId int64) (*model.App, error) {
+	app, err := query.Use(s.db).App.Where(query.App.ID.Eq(id)).First()
+	if err != nil {
+		return nil, err
+	}
+
+	if app.UserID != userId {
+		return nil, pkg.ParamsError.WithMessage("无权查看该应用")
+	}
+	return app, nil
+}
+
+func (s *AppService) GetAppVo(ctx context.Context, id int64, userId int64) (vo.AppVo, error) {
+	app, err := s.GetApp(ctx, id, userId)
+	if err != nil {
+		return vo.AppVo{}, err
+	}
+
+	// 获取用户信息
+	userResp, err := s.userService.GetById(ctx, &userApi.GetByIdRequest{Id: app.UserID})
+	if err != nil {
+		return vo.AppVo{}, err
+	}
+	userVOResponse, err := s.userService.GetUserVo(ctx, &userApi.GetUserVORequest{User: userResp.User})
+	if err != nil {
+		return vo.AppVo{}, err
+	}
+	userVo := userVOResponse.UserVo
+
+	appVo := vo.AppVo{
+		ID:           app.ID,
+		AppName:      app.AppName,
+		Cover:        app.Cover,
+		InitPrompt:   app.InitPrompt,
+		CodeGenType:  app.CodeGenType,
+		DeployKey:    app.DeployKey,
+		DeployedTime: app.DeployedTime,
+		Priority:     app.Priority,
+		UserID:       app.UserID,
+		User: uservo.UserVo{
+			ID:          userVo.Id,
+			UserAccount: userVo.UserAccount,
+			UserName:    userVo.UserName,
+			UserAvatar:  userVo.UserAvatar,
+			UserProfile: userVo.UserProfile,
+			UserRole:    userVo.UserRole,
+			CreateTime:  time.Unix(int64(userVo.CreateTime), 0),
+			UpdateTime:  time.Unix(int64(userVo.UpdateTime), 0),
+		},
+		CreateTime: app.CreateTime,
+		UpdateTime: app.UpdateTime,
+	}
+	return appVo, nil
+}
+
+func (s *AppService) GetAppVoList(ctx context.Context, appList []*model.App) ([]vo.AppVo, error) {
+	// 批量获取用户信息（去重）
+	userIdSet := make(map[int64]bool)
+	for _, app := range appList {
+		userIdSet[app.UserID] = true
+	}
+
+	// 转换为切片
+	userIdList := make([]int64, 0, len(userIdSet))
+	for userId := range userIdSet {
+		userIdList = append(userIdList, userId)
+	}
+
+	// 获取所有用户信息
+	listByIdsResponse, err := s.userService.ListByIds(ctx, &userApi.ListByIdsRequest{
+		Ids: userIdList,
+	})
+	if err != nil {
+		return nil, err
+	}
+	userVoMap := make(map[int64]uservo.UserVo)
+	for _, dbUser := range listByIdsResponse.Users {
+		userVoResp, err := s.userService.GetUserVo(ctx, &userApi.GetUserVORequest{User: dbUser})
+		if err != nil {
+			return nil, err
+		}
+		userVo := userVoResp.UserVo
+		userVoMap[dbUser.Id] = uservo.UserVo{
+			ID:          userVo.Id,
+			UserAccount: userVo.UserAccount,
+			UserName:    userVo.UserName,
+			UserAvatar:  userVo.UserAvatar,
+			UserProfile: userVo.UserProfile,
+			UserRole:    userVo.UserRole,
+			CreateTime:  time.Unix(dbUser.CreateTime, 0),
+			UpdateTime:  time.Unix(dbUser.UpdateTime, 0),
+		}
+	}
+
+	// 转换为AppVo列表
+	var appVoList []vo.AppVo
+	for _, app := range appList {
+		appVo := vo.AppVo{
+			ID:           app.ID,
+			AppName:      app.AppName,
+			Cover:        app.Cover,
+			InitPrompt:   app.InitPrompt,
+			CodeGenType:  app.CodeGenType,
+			DeployKey:    app.DeployKey,
+			DeployedTime: app.DeployedTime,
+			Priority:     app.Priority,
+			UserID:       app.UserID,
+			User:         userVoMap[app.UserID],
+			CreateTime:   app.CreateTime,
+			UpdateTime:   app.UpdateTime,
+		}
+		appVoList = append(appVoList, appVo)
+	}
+
+	return appVoList, nil
+}
+
+func (s *AppService) ListMyApp(ctx context.Context, req *app.YiKouAppMyListRequest, userId int64) (*common.PageResponse[vo.AppVo], error) {
+	if req.PageNum <= 0 {
+		req.PageNum = 1
+	}
+	if req.PageSize <= 0 {
+		req.PageSize = 20
+	}
+	if req.PageSize > 20 {
+		req.PageSize = 20
+	}
+
+	queryBuilder := query.Use(s.db).App.Where(query.App.IsDelete.Eq(0), query.App.UserID.Eq(userId))
+
+	if req.AppName != "" {
+		queryBuilder = queryBuilder.Where(query.App.AppName.Like("%" + req.AppName + "%"))
+	}
+
+	totalCount, err := queryBuilder.Count()
+	if err != nil {
+		return nil, err
+	}
+
+	totalPage := int((totalCount + int64(req.PageSize) - 1) / int64(req.PageSize))
+	offset := (req.PageNum - 1) * req.PageSize
+
+	if req.SortField != "" {
+		if orderExpr, ok := query.App.GetFieldByName(req.SortField); ok {
+			if req.SortOrder == "desc" {
+				queryBuilder = queryBuilder.Order(orderExpr.Desc())
+			} else {
+				queryBuilder = queryBuilder.Order(orderExpr)
+			}
+		} else {
+			queryBuilder = queryBuilder.Order(query.App.CreateTime.Desc())
+		}
+	} else {
+		queryBuilder = queryBuilder.Order(query.App.CreateTime.Desc())
+	}
+
+	appList, err := queryBuilder.Offset(offset).Limit(req.PageSize).Find()
+	if err != nil {
+		return nil, err
+	}
+
+	// 转换为AppVo列表
+	appVoList, err := s.GetAppVoList(ctx, appList)
+	if err != nil {
+		return nil, err
+	}
+
+	// 构建分页响应
+	pageResponse := &common.PageResponse[vo.AppVo]{
+		Records:            appVoList,
+		PageNum:            req.PageNum,
+		PageSize:           req.PageSize,
+		TotalPage:          totalPage,
+		TotalRow:           int(totalCount),
+		OptimizeCountQuery: false,
+	}
+
+	return pageResponse, nil
+}
+
+func (s *AppService) ListGoodApp(ctx context.Context, req *app.YiKouAppFeaturedListRequest) (*common.PageResponse[vo.AppVo], error) {
+	if req.PageNum <= 0 {
+		req.PageNum = 1
+	}
+	if req.PageSize <= 0 {
+		req.PageSize = 20
+	}
+	if req.PageSize > 20 {
+		req.PageSize = 20
+	}
+
+	queryBuilder := query.Use(s.db).App.Where(query.App.IsDelete.Eq(0), query.App.Priority.Gt(0))
+
+	if req.AppName != "" {
+		queryBuilder = queryBuilder.Where(query.App.AppName.Like("%" + req.AppName + "%"))
+	}
+	if req.CodeGenType != "" {
+		queryBuilder = queryBuilder.Where(query.App.CodeGenType.Eq(req.CodeGenType))
+	}
+	if req.InitPrompt != "" {
+		queryBuilder = queryBuilder.Where(query.App.InitPrompt.Like("%" + req.InitPrompt + "%"))
+	}
+	if req.Priority != 0 {
+		queryBuilder = queryBuilder.Where(query.App.Priority.Eq(req.Priority))
+	}
+
+	totalCount, err := queryBuilder.Count()
+	if err != nil {
+		return nil, err
+	}
+
+	totalPage := int((totalCount + int64(req.PageSize) - 1) / int64(req.PageSize))
+	offset := (req.PageNum - 1) * req.PageSize
+
+	if req.SortField != "" {
+		if orderExpr, ok := query.App.GetFieldByName(req.SortField); ok {
+			if req.SortOrder == "desc" {
+				queryBuilder = queryBuilder.Order(orderExpr.Desc())
+			} else {
+				queryBuilder = queryBuilder.Order(orderExpr)
+			}
+		} else {
+			queryBuilder = queryBuilder.Order(query.App.Priority.Desc(), query.App.CreateTime.Desc())
+		}
+	} else {
+		queryBuilder = queryBuilder.Order(query.App.Priority.Desc(), query.App.CreateTime.Desc())
+	}
+
+	appList, err := queryBuilder.Offset(offset).Limit(req.PageSize).Find()
+	if err != nil {
+		return nil, err
+	}
+
+	appVoList, err := s.GetAppVoList(ctx, appList)
+	if err != nil {
+		return nil, err
+	}
+
+	pageResponse := &common.PageResponse[vo.AppVo]{
+		Records:   appVoList,
+		PageNum:   req.PageNum,
+		PageSize:  req.PageSize,
+		TotalPage: totalPage,
+		TotalRow:  int(totalCount),
+	}
+
+	return pageResponse, nil
+}
+
+func (s *AppService) AdminUpdateApp(ctx context.Context, req *app.YiKouAppAdminUpdateRequest) (bool, error) {
+	if req.Id == "" {
+		return false, pkg.ParamsError.WithMessage("应用ID不能为空")
+	}
+	appId, err := strconv.Atoi(req.Id)
+	if err != nil {
+		return false, err
+	}
+	_, err = query.Use(s.db).App.Where(query.App.ID.Eq(int64(appId))).First()
+	if err != nil {
+		return false, err
+	}
+
+	updateMap := make(map[string]interface{})
+	if req.AppName != "" {
+		updateMap["appName"] = req.AppName
+	}
+	if req.Cover != "" {
+		updateMap["cover"] = req.Cover
+	}
+	updateMap["priority"] = req.Priority
+
+	_, err = query.Use(s.db).App.Where(query.App.ID.Eq(int64(appId))).Updates(updateMap)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (s *AppService) AdminDeleteApp(ctx context.Context, id int64) (bool, error) {
+	_, err := query.Use(s.db).App.Where(query.App.ID.Eq(id)).Update(query.App.IsDelete, 1)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (s *AppService) AdminGetAppVo(ctx context.Context, id int64) (vo.AppVo, error) {
+	app, err := query.Use(s.db).App.Where(query.App.ID.Eq(id)).First()
+	if err != nil {
+		return vo.AppVo{}, err
+	}
+
+	// 获取用户信息
+	userResp, err := s.userService.GetById(ctx, &userApi.GetByIdRequest{Id: app.UserID})
+	if err != nil {
+		return vo.AppVo{}, err
+	}
+	userVOResponse, err := s.userService.GetUserVo(ctx, &userApi.GetUserVORequest{User: userResp.User})
+	if err != nil {
+		return vo.AppVo{}, err
+	}
+	userVo := userVOResponse.UserVo
+
+	appVo := vo.AppVo{
+		ID:           app.ID,
+		AppName:      app.AppName,
+		Cover:        app.Cover,
+		InitPrompt:   app.InitPrompt,
+		CodeGenType:  app.CodeGenType,
+		DeployKey:    app.DeployKey,
+		DeployedTime: app.DeployedTime,
+		Priority:     app.Priority,
+		UserID:       app.UserID,
+		User: uservo.UserVo{
+			ID:          userVo.Id,
+			UserAccount: userVo.UserAccount,
+			UserName:    userVo.UserName,
+			UserAvatar:  userVo.UserAvatar,
+			UserProfile: userVo.UserProfile,
+			UserRole:    userVo.UserRole,
+			CreateTime:  time.Unix(int64(userVo.CreateTime), 0),
+			UpdateTime:  time.Unix(int64(userVo.UpdateTime), 0),
+		},
+		CreateTime: app.CreateTime,
+		UpdateTime: app.UpdateTime,
+	}
+	return appVo, nil
+}
+
+func (s *AppService) AdminListApp(ctx context.Context, req *app.YiKouAppAdminListRequest) (*common.PageResponse[*model.App], error) {
+	if req.PageNum <= 0 {
+		req.PageNum = 1
+	}
+	if req.PageSize <= 0 {
+		req.PageSize = 10
+	}
+
+	queryBuilder := query.Use(s.db).App.Where(query.App.IsDelete.Eq(0))
+
+	if req.ID != "" {
+		appId, err := strconv.Atoi(req.ID)
+		if err != nil {
+			return nil, err
+		}
+		queryBuilder = queryBuilder.Where(query.App.ID.Eq(int64(appId)))
+	}
+	if req.AppName != "" {
+		queryBuilder = queryBuilder.Where(query.App.AppName.Like("%" + req.AppName + "%"))
+	}
+	if req.Cover != "" {
+		queryBuilder = queryBuilder.Where(query.App.Cover.Like("%" + req.Cover + "%"))
+	}
+	if req.InitPrompt != "" {
+		queryBuilder = queryBuilder.Where(query.App.InitPrompt.Like("%" + req.InitPrompt + "%"))
+	}
+	if req.CodeGenType != "" {
+		queryBuilder = queryBuilder.Where(query.App.CodeGenType.Eq(req.CodeGenType))
+	}
+	if req.DeployKey != "" {
+		queryBuilder = queryBuilder.Where(query.App.DeployKey.Like("%" + req.DeployKey + "%"))
+	}
+	if req.Priority != 0 {
+		queryBuilder = queryBuilder.Where(query.App.Priority.Eq(req.Priority))
+	}
+	if req.UserID != 0 {
+		queryBuilder = queryBuilder.Where(query.App.UserID.Eq(req.UserID))
+	}
+
+	totalCount, err := queryBuilder.Count()
+	if err != nil {
+		return nil, err
+	}
+
+	totalPage := int((totalCount + int64(req.PageSize) - 1) / int64(req.PageSize))
+	offset := (req.PageNum - 1) * req.PageSize
+
+	if req.SortField != "" {
+		if orderExpr, ok := query.App.GetFieldByName(req.SortField); ok {
+			if req.SortOrder == "desc" {
+				queryBuilder = queryBuilder.Order(orderExpr.Desc())
+			} else {
+				queryBuilder = queryBuilder.Order(orderExpr)
+			}
+		} else {
+			queryBuilder = queryBuilder.Order(query.App.CreateTime.Desc())
+		}
+	} else {
+		queryBuilder = queryBuilder.Order(query.App.CreateTime.Desc())
+	}
+
+	appList, err := queryBuilder.Offset(offset).Limit(req.PageSize).Find()
+	if err != nil {
+		return nil, err
+	}
+
+	pageResponse := &common.PageResponse[*model.App]{
+		Records:            appList,
+		PageNum:            req.PageNum,
+		PageSize:           req.PageSize,
+		TotalPage:          totalPage,
+		TotalRow:           int(totalCount),
+		OptimizeCountQuery: false,
+	}
+
+	return pageResponse, nil
+}

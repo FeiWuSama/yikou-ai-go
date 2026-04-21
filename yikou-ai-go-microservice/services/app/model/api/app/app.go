@@ -2,7 +2,8 @@ package app
 
 import (
 	common "yikou-ai-go-microservice/pkg/commonapi"
-	model "yikou-ai-go-microservice/services/app/dal/query"
+	"yikou-ai-go-microservice/services/app/dal/model"
+
 	"yikou-ai-go-microservice/services/app/model/vo"
 )
 

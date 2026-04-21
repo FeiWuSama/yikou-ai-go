@@ -4,11 +4,12 @@ import (
 	"context"
 	screenshot "yikou-ai-go-microservice/services/screenshot/kitex_gen"
 	screenshotService "yikou-ai-go-microservice/services/screenshot/logic"
+	service "yikou-ai-go-microservice/services/screenshot/service"
 )
 
 // ScreenshotServiceImpl implements the last service interface defined in the IDL.
 type ScreenshotServiceImpl struct {
-	screenshotService *screenshotService.ScreenshotService
+	screenshotService service.IScreenshotService
 }
 
 func NewScreenshotServiceImpl(screenshotService *screenshotService.ScreenshotService) *ScreenshotServiceImpl {

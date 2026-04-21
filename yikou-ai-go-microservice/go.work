@@ -4,5 +4,6 @@ use (
 	services/user
 	services/screenshot
 	services/app
+	services/ai
 	pkg
 )

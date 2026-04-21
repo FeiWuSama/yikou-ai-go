@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package yikou.ai;
+
+option go_package = "yikou-ai-go-microservice/services/ai/kitex_gen";
+
+// 代码生成类型枚举
+enum CodeGenType {
+  HTML = 0;
+  MULTI_FILE = 1;
+  VUE_PROJECT = 2;
+}
+
+// 代码质量检查结果
+message QualityResult {
+  bool is_valid = 1;
+  repeated string errors = 2;
+  repeated string suggestions = 3;
+}
+
+// 消息内容
+message Message {
+  string role = 1;
+  string content = 2;
+}
+
+// ========== 代码生成相关 ==========
+
+message GenerateHtmlCodeRequest {
+  string user_message = 1;
+}
+
+message GenerateHtmlCodeResponse {
+  Message message = 1;
+}
+
+message GenerateMultiFileCodeRequest {
+  string user_message = 1;
+}
+
+message GenerateMultiFileCodeResponse {
+  Message message = 1;
+}
+
+message GenerateHtmlCodeStreamRequest {
+  string user_message = 1;
+}
+
+message GenerateHtmlCodeStreamResponse {
+  Message message = 1;
+}
+
+message GenerateMultiFileCodeStreamRequest {
+  string user_message = 1;
+}
+
+message GenerateMultiFileCodeStreamResponse {
+  Message message = 1;
+}
+
+message GenerateVueProjectCodeStreamRequest {
+  string user_message = 1;
+}
+
+message GenerateVueProjectCodeStreamResponse {
+  Message message = 1;
+}
+
+// ========== 代码生成类型路由相关 ==========
+
+message RouteCodeGenTypeRequest {
+  string user_content = 1;
+}
+
+message RouteCodeGenTypeResponse {
+  CodeGenType code_gen_type = 1;
+}
+
+// ========== 聊天摘要相关 ==========
+
+message SummarizeChatRequest {
+  string chat_history = 1;
+}
+
+message SummarizeChatResponse {
+  Message message = 1;
+}
+
+// ========== 代码质量检查相关 ==========
+
+message CheckCodeQualityRequest {
+  string user_message = 1;
+}
+
+message CheckCodeQualityResponse {
+  QualityResult quality_result = 1;
+}
+
+// ========== AI 服务 ==========
+
+service AiService {
+  // 代码生成
+  rpc GenerateHtmlCode(GenerateHtmlCodeRequest) returns (GenerateHtmlCodeResponse);
+  rpc GenerateMultiFileCode(GenerateMultiFileCodeRequest) returns (GenerateMultiFileCodeResponse);
+  
+  // 流式代码生成
+  rpc GenerateHtmlCodeStream(GenerateHtmlCodeStreamRequest) returns (stream GenerateHtmlCodeStreamResponse);
+  rpc GenerateMultiFileCodeStream(GenerateMultiFileCodeStreamRequest) returns (stream GenerateMultiFileCodeStreamResponse);
+  rpc GenerateVueProjectCodeStream(GenerateVueProjectCodeStreamRequest) returns (stream GenerateVueProjectCodeStreamResponse);
+  
+  // 代码生成类型路由
+  rpc RouteCodeGenType(RouteCodeGenTypeRequest) returns (RouteCodeGenTypeResponse);
+  
+  // 聊天摘要
+  rpc SummarizeChat(SummarizeChatRequest) returns (SummarizeChatResponse);
+  
+  // 代码质量检查
+  rpc CheckCodeQuality(CheckCodeQualityRequest) returns (CheckCodeQualityResponse);
+}
