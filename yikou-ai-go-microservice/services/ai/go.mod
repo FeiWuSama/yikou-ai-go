@@ -7,6 +7,9 @@ require (
 	github.com/cloudwego/eino v0.8.10
 	github.com/cloudwego/eino-ext/components/model/openai v0.1.13
 	github.com/cloudwego/hertz v0.10.4
+	github.com/cloudwego/kitex v0.16.1
+	github.com/hertz-contrib/registry/nacos v0.0.0-20250319055937-8a220332e808
+	github.com/nacos-group/nacos-sdk-go v1.1.5
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/spf13/viper v1.21.0

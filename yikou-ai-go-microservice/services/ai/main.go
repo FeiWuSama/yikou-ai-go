@@ -4,7 +4,13 @@ import (
 	"context"
 	"fmt"
 	"github.com/cloudwego/hertz/pkg/app/server"
+	"github.com/cloudwego/hertz/pkg/app/server/registry"
+	"github.com/cloudwego/hertz/pkg/common/utils"
 	kServer "github.com/cloudwego/kitex/server"
+	"github.com/hertz-contrib/registry/nacos"
+	"github.com/nacos-group/nacos-sdk-go/clients"
+	"github.com/nacos-group/nacos-sdk-go/common/constant"
+	"github.com/nacos-group/nacos-sdk-go/vo"
 	"github.com/redis/go-redis/v9"
 	"log"
 	"net"
@@ -29,6 +35,42 @@ func main() {
 
 	// 初始化配置
 	cfg := config.InitConfig()
+
+	// 配置 Nacos 客户端
+	clientConfig := constant.ClientConfig{
+		NamespaceId:         "public",
+		TimeoutMs:           5000,
+		NotLoadCacheAtStart: true,
+		LogDir:              "/tmp/nacos/log",
+		CacheDir:            "/tmp/nacos/cache",
+		LogLevel:            "info",
+		Username:            "nacos",
+		Password:            "nacos",
+	}
+
+	// 配置 Nacos 服务器
+	serverConfigs := []constant.ServerConfig{
+		{
+			IpAddr:      "localhost",
+			ContextPath: "/nacos",
+			Port:        8848,
+			Scheme:      "http",
+		},
+	}
+
+	// 创建 Nacos 命名客户端
+	nacosClient, err := clients.NewNamingClient(
+		vo.NacosClientParam{
+			ClientConfig:  &clientConfig,
+			ServerConfigs: serverConfigs,
+		},
+	)
+	if err != nil {
+		log.Fatalf("创建 Nacos 客户端失败: %v", err)
+	}
+
+	// 创建 Nacos 注册器
+	nacosRegistry := nacos.NewNacosRegistry(nacosClient)
 
 	// 初始化 Redis 客户端
 	redisClient := redis.NewClient(&redis.Options{
@@ -80,8 +122,17 @@ func main() {
 		}
 	}()
 
-	// 启动 Hertz HTTP Server
-	hertzServer := server.Default(server.WithHostPorts(":8083"))
+	// 启动 Hertz HTTP Server 并注册到 Nacos
+	hertzServer := server.Default(
+		server.WithHostPorts(":8083"),
+		server.WithRegistry(nacosRegistry, &registry.Info{
+			ServiceName: "ai-service",
+			Addr:        utils.NewNetAddr("tcp", "localhost:8083"),
+			Weight:      10,
+			Tags:        map[string]string{"env": "dev", "version": "1.0.0"},
+		}),
+	)
+
 	// 注册路由...
 	go func() {
 		fmt.Println("AI Service Hertz Server starting on :8083...")

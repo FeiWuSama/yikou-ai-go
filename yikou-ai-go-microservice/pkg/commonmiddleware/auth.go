@@ -7,7 +7,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"net/url"
-	"yikou-ai-go-microservice/pkg/commonenum"
+	enum "yikou-ai-go-microservice/pkg/commonenum"
 	"yikou-ai-go-microservice/pkg/constants"
 	pkg "yikou-ai-go-microservice/pkg/errors"
 	"yikou-ai-go-microservice/services/user/dal/model"
