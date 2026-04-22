@@ -24,6 +24,18 @@ type Config struct {
 	COS       COSConfig       `yaml:"cos" mapstructure:"cos"`
 	Pexels    PexelsConfig    `yaml:"pexels" mapstructure:"pexels"`
 	DashScope DashScopeConfig `yaml:"dashscope" mapstructure:"dashscope"`
+	Nacos     NacosConfig     `yaml:"nacos" mapstructure:"nacos"`
+}
+
+type NacosConfig struct {
+	Host        string `yaml:"host" mapstructure:"host"`
+	Port        int    `yaml:"port" mapstructure:"port"`
+	NamespaceId string `yaml:"namespace-id" mapstructure:"namespace-id"`
+	Username    string `yaml:"username" mapstructure:"username"`
+	Password    string `yaml:"password" mapstructure:"password"`
+	LogDir      string `yaml:"log-dir" mapstructure:"log-dir"`
+	CacheDir    string `yaml:"cache-dir" mapstructure:"cache-dir"`
+	LogLevel    string `yaml:"log-level" mapstructure:"log-level"`
 }
 
 type ServerConfig struct {
@@ -162,6 +174,7 @@ func InitConfig() *Config {
 				mergeConfig(&config.COS, &overrideConfig.COS)
 				mergeConfig(&config.Pexels, &overrideConfig.Pexels)
 				mergeConfig(&config.DashScope, &overrideConfig.DashScope)
+				mergeConfig(&config.Nacos, &overrideConfig.Nacos)
 			}
 		}
 	}

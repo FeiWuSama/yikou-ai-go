@@ -39,22 +39,22 @@ func main() {
 
 	// 配置 Nacos 客户端
 	clientConfig := constant.ClientConfig{
-		NamespaceId:         "public",
+		NamespaceId:         cfg.Nacos.NamespaceId,
 		TimeoutMs:           5000,
 		NotLoadCacheAtStart: true,
-		LogDir:              "/tmp/nacos/log",
-		CacheDir:            "/tmp/nacos/cache",
-		LogLevel:            "info",
-		Username:            "nacos",
-		Password:            "nacos",
+		LogDir:              cfg.Nacos.LogDir,
+		CacheDir:            cfg.Nacos.CacheDir,
+		LogLevel:            cfg.Nacos.LogLevel,
+		Username:            cfg.Nacos.Username,
+		Password:            cfg.Nacos.Password,
 	}
 
 	// 配置 Nacos 服务器
 	serverConfigs := []constant.ServerConfig{
 		{
-			IpAddr:      "localhost",
+			IpAddr:      cfg.Nacos.Host,
 			ContextPath: "/nacos",
-			Port:        8848,
+			Port:        uint64(cfg.Nacos.Port),
 			Scheme:      "http",
 		},
 	}
