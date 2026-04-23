@@ -66,16 +66,5 @@ nacos:
   cache-dir: /tmp/nacos/cache
   log-level: info
 
-# Nacos 服务注册配置
-nacos:
-  host: localhost
-  port: 8848
-  namespace-id: public
-  username: nacos
-  password: nacos
-  log-dir: /tmp/nacos/log
-  cache-dir: /tmp/nacos/cache
-  log-level: info
-
 
 
