@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-	"yikou-ai-go-microservice/services/screenshot/logic/download"
+	"yikou-ai-go-microservice/services/app/logic/download"
 
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/cloudwego/hertz/pkg/app/server/registry"
