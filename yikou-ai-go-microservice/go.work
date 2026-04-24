@@ -6,4 +6,5 @@ use (
 	services/app
 	services/ai
 	pkg
+	services/gateway
 )

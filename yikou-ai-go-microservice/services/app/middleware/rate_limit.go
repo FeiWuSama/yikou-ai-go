@@ -3,13 +3,18 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"time"
+
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 	"github.com/cloudwego/hertz/pkg/protocol/sse"
 	"github.com/redis/go-redis/v9"
-	"time"
+
+	"yikou-ai-go-microservice/pkg/constants"
 	pkg "yikou-ai-go-microservice/pkg/errors"
-	user "yikou-ai-go-microservice/services/user/service"
+	"yikou-ai-go-microservice/services/user/kitex_gen"
+	"yikou-ai-go-microservice/services/user/kitex_gen/userservice"
 )
 
 type RateLimitType int
@@ -41,9 +46,9 @@ type RateLimitConfig struct {
 	Message      string
 }
 
-func RateLimitMiddleware(redisClient *redis.Client, userService user.IUserService, config RateLimitConfig) app.HandlerFunc {
+func RateLimitMiddleware(redisClient *redis.Client, userRpcClient userservice.Client, config RateLimitConfig) app.HandlerFunc {
 	return func(ctx context.Context, c *app.RequestContext) {
-		key := generateKey(ctx, c, userService, config)
+		key := generateKey(ctx, c, userRpcClient, config)
 
 		allowed, err := checkRateLimit(ctx, redisClient, key, config.Rate, config.RateInterval)
 		if err != nil {
@@ -89,7 +94,7 @@ func RateLimitMiddleware(redisClient *redis.Client, userService user.IUserServic
 	}
 }
 
-func generateKey(ctx context.Context, c *app.RequestContext, userService user.IUserService, config RateLimitConfig) string {
+func generateKey(ctx context.Context, c *app.RequestContext, userRpcClient userservice.Client, config RateLimitConfig) string {
 	keyBuilder := fmt.Sprintf("rate_limit:")
 
 	if config.Key != "" {
@@ -100,11 +105,21 @@ func generateKey(ctx context.Context, c *app.RequestContext, userService user.IU
 	case RateLimitTypeAPI:
 		keyBuilder += fmt.Sprintf("api:%s", c.Request.URI().Path())
 	case RateLimitTypeUSER:
-		loginUserVo, err := userService.GetLoginUserVo(ctx, c)
+		sessionId := c.Request.Header.Cookie(constants.UserLoginState)
+		if sessionId == nil {
+			return ""
+		}
+		decodedSessionId, err := url.QueryUnescape(string(sessionId))
 		if err != nil {
 			return ""
 		}
-		keyBuilder += fmt.Sprintf("user:%v", loginUserVo.ID)
+		resp, err := userRpcClient.GetLoginUserBySessionId(ctx, &kitex_gen.GetLoginUserBySessionIdRequest{
+			SessionId: decodedSessionId,
+		})
+		if err != nil || resp.UserVo == nil {
+			return ""
+		}
+		keyBuilder += fmt.Sprintf("user:%v", resp.UserVo.Id)
 	case RateLimitTypeIP:
 		keyBuilder += fmt.Sprintf("ip:%s", getClientIP(c))
 	default:

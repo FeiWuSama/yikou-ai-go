@@ -2,12 +2,7 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
-	"github.com/cloudwego/hertz/pkg/app"
-	"net/url"
-	"yikou-ai-go-microservice/pkg/constants"
 	"yikou-ai-go-microservice/services/user/kitex_gen"
-	"yikou-ai-go-microservice/services/user/model/vo"
 	userService "yikou-ai-go-microservice/services/user/service"
 )
 
@@ -120,22 +115,26 @@ func (s *UserServiceImpl) GetById(ctx context.Context, req *kitex_gen.GetByIdReq
 	return resp, nil
 }
 
-func GetLoginUser(ctx context.Context, c *app.RequestContext) *vo.UserVo {
-	// 1. 获取sessionId
-	sessionId := c.Request.Header.Cookie(constants.UserLoginState)
-	if sessionId == nil {
-		return &vo.UserVo{}
+func (s *UserServiceImpl) GetLoginUserBySessionId(ctx context.Context, req *kitex_gen.GetLoginUserBySessionIdRequest) (resp *kitex_gen.GetLoginUserBySessionIdResponse, err error) {
+	if req.SessionId == "" {
+		return &kitex_gen.GetLoginUserBySessionIdResponse{UserVo: nil}, nil
 	}
-	// 2. URL解码sessionId
-	userVoStr, err := url.QueryUnescape(string(sessionId))
+
+	userVo, err := s.userService.GetLoginUserVoBySessionId(ctx, req.SessionId)
 	if err != nil {
-		return &vo.UserVo{}
+		return &kitex_gen.GetLoginUserBySessionIdResponse{UserVo: nil}, nil
 	}
-	userVo := &vo.UserVo{}
-	// 3. 解码
-	err = json.Unmarshal([]byte(userVoStr), userVo)
-	if err != nil {
-		return nil
+
+	protoUserVO := &kitex_gen.UserVO{
+		Id:          userVo.ID,
+		UserAccount: userVo.UserAccount,
+		UserName:    userVo.UserName,
+		UserAvatar:  userVo.UserAvatar,
+		UserProfile: userVo.UserProfile,
+		UserRole:    userVo.UserRole,
+		CreateTime:  userVo.CreateTime.Unix(),
+		UpdateTime:  userVo.UpdateTime.Unix(),
 	}
-	return userVo
+
+	return &kitex_gen.GetLoginUserBySessionIdResponse{UserVo: protoUserVO}, nil
 }

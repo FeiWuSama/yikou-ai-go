@@ -288,8 +288,51 @@ func (x *GetUserVOResponse) GetUserVo() *UserVO {
 	return nil
 }
 
+type GetLoginUserBySessionIdRequest struct {
+	SessionId string `protobuf:"bytes,1,opt,name=session_id" json:"session_id,omitempty"`
+}
+
+func (x *GetLoginUserBySessionIdRequest) Reset() { *x = GetLoginUserBySessionIdRequest{} }
+
+func (x *GetLoginUserBySessionIdRequest) Marshal(in []byte) ([]byte, error) {
+	return prutal.MarshalAppend(in, x)
+}
+
+func (x *GetLoginUserBySessionIdRequest) Unmarshal(in []byte) error {
+	return prutal.Unmarshal(in, x)
+}
+
+func (x *GetLoginUserBySessionIdRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+type GetLoginUserBySessionIdResponse struct {
+	UserVo *UserVO `protobuf:"bytes,1,opt,name=user_vo" json:"user_vo,omitempty"`
+}
+
+func (x *GetLoginUserBySessionIdResponse) Reset() { *x = GetLoginUserBySessionIdResponse{} }
+
+func (x *GetLoginUserBySessionIdResponse) Marshal(in []byte) ([]byte, error) {
+	return prutal.MarshalAppend(in, x)
+}
+
+func (x *GetLoginUserBySessionIdResponse) Unmarshal(in []byte) error {
+	return prutal.Unmarshal(in, x)
+}
+
+func (x *GetLoginUserBySessionIdResponse) GetUserVo() *UserVO {
+	if x != nil {
+		return x.UserVo
+	}
+	return nil
+}
+
 type UserService interface {
 	ListByIds(ctx context.Context, req *ListByIdsRequest) (res *ListByIdsResponse, err error)
 	GetById(ctx context.Context, req *GetByIdRequest) (res *GetByIdResponse, err error)
 	GetUserVo(ctx context.Context, req *GetUserVORequest) (res *GetUserVOResponse, err error)
+	GetLoginUserBySessionId(ctx context.Context, req *GetLoginUserBySessionIdRequest) (res *GetLoginUserBySessionIdResponse, err error)
 }

@@ -140,6 +140,45 @@ func (s *UserService) GetLoginUserVo(ctx context.Context, c *app.RequestContext)
 	return loginUserVo, nil
 }
 
+func (s *UserService) GetLoginUserVoBySessionId(ctx context.Context, sessionId string) (vo.UserVo, error) {
+	if sessionId == "" {
+		return vo.UserVo{}, pkg.ParamsError.WithMessage("sessionId不能为空")
+	}
+
+	decodedSessionId, err := url.QueryUnescape(sessionId)
+	if err != nil {
+		return vo.UserVo{}, pkg.ParamsError.WithMessage("sessionId解码失败")
+	}
+
+	userJson, err := s.redisClient.Get(ctx, decodedSessionId).Result()
+	if err != nil {
+		return vo.UserVo{}, pkg.ParamsError.WithMessage("登录已过期，请重新登录")
+	}
+
+	var user model.User
+	err = json.Unmarshal([]byte(userJson), &user)
+	if err != nil {
+		return vo.UserVo{}, pkg.SystemError.WithMessage("用户信息解析失败")
+	}
+
+	_, err = query.Use(s.db).User.Where(query.User.ID.Eq(user.ID), query.User.IsDelete.Eq(0)).First()
+	if err != nil {
+		return vo.UserVo{}, pkg.NotAuthError.WithMessage("用户不存在或已被删除")
+	}
+
+	loginUserVo := vo.UserVo{
+		ID:          user.ID,
+		UserAccount: user.UserAccount,
+		UserName:    user.UserName,
+		UserAvatar:  user.UserAvatar,
+		UserProfile: user.UserProfile,
+		UserRole:    user.UserRole,
+		CreateTime:  user.CreateTime,
+		UpdateTime:  user.UpdateTime,
+	}
+	return loginUserVo, nil
+}
+
 // AddUser 新增用户
 func (s *UserService) AddUser(ctx context.Context, req *api.YiKouUserAddRequest) (int64, error) {
 	// 1. 校验参数

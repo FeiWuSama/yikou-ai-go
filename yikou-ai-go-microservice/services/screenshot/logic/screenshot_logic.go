@@ -1,4 +1,4 @@
-package screenshot
+package logic
 
 import (
 	"fmt"

@@ -36,6 +36,13 @@ var serviceMethods = map[string]kitex.MethodInfo{
 		false,
 		kitex.WithStreamingMode(kitex.StreamingUnary),
 	),
+	"GetLoginUserBySessionId": kitex.NewMethodInfo(
+		getLoginUserBySessionIdHandler,
+		newGetLoginUserBySessionIdArgs,
+		newGetLoginUserBySessionIdResult,
+		false,
+		kitex.WithStreamingMode(kitex.StreamingUnary),
+	),
 }
 
 var (
@@ -435,6 +442,118 @@ func (p *GetUserVoResult) GetResult() interface{} {
 	return p.Success
 }
 
+func getLoginUserBySessionIdHandler(ctx context.Context, handler interface{}, arg, result interface{}) error {
+	switch s := arg.(type) {
+	case *streaming.Args:
+		st := s.Stream
+		req := new(kitex_gen.GetLoginUserBySessionIdRequest)
+		if err := st.RecvMsg(req); err != nil {
+			return err
+		}
+		resp, err := handler.(kitex_gen.UserService).GetLoginUserBySessionId(ctx, req)
+		if err != nil {
+			return err
+		}
+		return st.SendMsg(resp)
+	case *GetLoginUserBySessionIdArgs:
+		success, err := handler.(kitex_gen.UserService).GetLoginUserBySessionId(ctx, s.Req)
+		if err != nil {
+			return err
+		}
+		realResult := result.(*GetLoginUserBySessionIdResult)
+		realResult.Success = success
+		return nil
+	default:
+		return errInvalidMessageType
+	}
+}
+
+func newGetLoginUserBySessionIdArgs() interface{} {
+	return &GetLoginUserBySessionIdArgs{}
+}
+
+func newGetLoginUserBySessionIdResult() interface{} {
+	return &GetLoginUserBySessionIdResult{}
+}
+
+type GetLoginUserBySessionIdArgs struct {
+	Req *kitex_gen.GetLoginUserBySessionIdRequest
+}
+
+func (p *GetLoginUserBySessionIdArgs) Marshal(out []byte) ([]byte, error) {
+	if !p.IsSetReq() {
+		return out, nil
+	}
+	return proto.Marshal(p.Req)
+}
+
+func (p *GetLoginUserBySessionIdArgs) Unmarshal(in []byte) error {
+	msg := new(kitex_gen.GetLoginUserBySessionIdRequest)
+	if err := proto.Unmarshal(in, msg); err != nil {
+		return err
+	}
+	p.Req = msg
+	return nil
+}
+
+var GetLoginUserBySessionIdArgs_Req_DEFAULT *kitex_gen.GetLoginUserBySessionIdRequest
+
+func (p *GetLoginUserBySessionIdArgs) GetReq() *kitex_gen.GetLoginUserBySessionIdRequest {
+	if !p.IsSetReq() {
+		return GetLoginUserBySessionIdArgs_Req_DEFAULT
+	}
+	return p.Req
+}
+
+func (p *GetLoginUserBySessionIdArgs) IsSetReq() bool {
+	return p.Req != nil
+}
+
+func (p *GetLoginUserBySessionIdArgs) GetFirstArgument() interface{} {
+	return p.Req
+}
+
+type GetLoginUserBySessionIdResult struct {
+	Success *kitex_gen.GetLoginUserBySessionIdResponse
+}
+
+var GetLoginUserBySessionIdResult_Success_DEFAULT *kitex_gen.GetLoginUserBySessionIdResponse
+
+func (p *GetLoginUserBySessionIdResult) Marshal(out []byte) ([]byte, error) {
+	if !p.IsSetSuccess() {
+		return out, nil
+	}
+	return proto.Marshal(p.Success)
+}
+
+func (p *GetLoginUserBySessionIdResult) Unmarshal(in []byte) error {
+	msg := new(kitex_gen.GetLoginUserBySessionIdResponse)
+	if err := proto.Unmarshal(in, msg); err != nil {
+		return err
+	}
+	p.Success = msg
+	return nil
+}
+
+func (p *GetLoginUserBySessionIdResult) GetSuccess() *kitex_gen.GetLoginUserBySessionIdResponse {
+	if !p.IsSetSuccess() {
+		return GetLoginUserBySessionIdResult_Success_DEFAULT
+	}
+	return p.Success
+}
+
+func (p *GetLoginUserBySessionIdResult) SetSuccess(x interface{}) {
+	p.Success = x.(*kitex_gen.GetLoginUserBySessionIdResponse)
+}
+
+func (p *GetLoginUserBySessionIdResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *GetLoginUserBySessionIdResult) GetResult() interface{} {
+	return p.Success
+}
+
 type kClient struct {
 	c client.Client
 }
@@ -470,6 +589,16 @@ func (p *kClient) GetUserVo(ctx context.Context, Req *kitex_gen.GetUserVORequest
 	_args.Req = Req
 	var _result GetUserVoResult
 	if err = p.c.Call(ctx, "GetUserVo", &_args, &_result); err != nil {
+		return
+	}
+	return _result.GetSuccess(), nil
+}
+
+func (p *kClient) GetLoginUserBySessionId(ctx context.Context, Req *kitex_gen.GetLoginUserBySessionIdRequest) (r *kitex_gen.GetLoginUserBySessionIdResponse, err error) {
+	var _args GetLoginUserBySessionIdArgs
+	_args.Req = Req
+	var _result GetLoginUserBySessionIdResult
+	if err = p.c.Call(ctx, "GetLoginUserBySessionId", &_args, &_result); err != nil {
 		return
 	}
 	return _result.GetSuccess(), nil

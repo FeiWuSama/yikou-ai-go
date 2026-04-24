@@ -21,14 +21,13 @@ func CustomizedRegister(r *server.Hertz, db *gorm.DB, redisClient *redis.Client,
 		userRoute.GET("/get/vo", userHandler.GetUserVo)
 
 		// 需要登录的接口
-		userRoute.GET("/get/login", middleware.AuthMiddleware(enum.UserRole, db, redisClient), userHandler.GetLoginUser)
-		userRoute.POST("/logout", middleware.AuthMiddleware(enum.UserRole, db, redisClient), userHandler.Logout)
+		userRoute.GET("/get/login", commonmiddleware.AuthMiddleware(enum.UserRole, db, redisClient), userHandler.GetLoginUser)
+		userRoute.POST("/logout", commonmiddleware.AuthMiddleware(enum.UserRole, db, redisClient), userHandler.Logout)
 
-		// 需要管理员权限的接口
-		userRoute.POST("/add", middleware.AuthMiddleware(enum.AdminRole, db, redisClient), userHandler.AddUser)
-		userRoute.GET("/get", middleware.AuthMiddleware(enum.AdminRole, db, redisClient), userHandler.GetUser)
-		userRoute.POST("/delete", middleware.AuthMiddleware(enum.AdminRole, db, redisClient), userHandler.DeleteUser)
-		userRoute.POST("/update", middleware.AuthMiddleware(enum.AdminRole, db, redisClient), userHandler.UpdateUser)
-		userRoute.POST("/list/page/vo", middleware.AuthMiddleware(enum.AdminRole, db, redisClient), userHandler.ListUserVoByPage)
+		userRoute.POST("/add", commonmiddleware.AuthMiddleware(enum.AdminRole, db, redisClient), userHandler.AddUser)
+		userRoute.GET("/get", commonmiddleware.AuthMiddleware(enum.AdminRole, db, redisClient), userHandler.GetUser)
+		userRoute.POST("/delete", commonmiddleware.AuthMiddleware(enum.AdminRole, db, redisClient), userHandler.DeleteUser)
+		userRoute.POST("/update", commonmiddleware.AuthMiddleware(enum.AdminRole, db, redisClient), userHandler.UpdateUser)
+		userRoute.POST("/list/page/vo", commonmiddleware.AuthMiddleware(enum.AdminRole, db, redisClient), userHandler.ListUserVoByPage)
 	}
 }

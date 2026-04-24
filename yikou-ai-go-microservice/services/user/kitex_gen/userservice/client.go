@@ -14,6 +14,7 @@ type Client interface {
 	ListByIds(ctx context.Context, Req *kitex_gen.ListByIdsRequest, callOptions ...callopt.Option) (r *kitex_gen.ListByIdsResponse, err error)
 	GetById(ctx context.Context, Req *kitex_gen.GetByIdRequest, callOptions ...callopt.Option) (r *kitex_gen.GetByIdResponse, err error)
 	GetUserVo(ctx context.Context, Req *kitex_gen.GetUserVORequest, callOptions ...callopt.Option) (r *kitex_gen.GetUserVOResponse, err error)
+	GetLoginUserBySessionId(ctx context.Context, Req *kitex_gen.GetLoginUserBySessionIdRequest, callOptions ...callopt.Option) (r *kitex_gen.GetLoginUserBySessionIdResponse, err error)
 }
 
 // NewClient creates a client for the service defined in IDL.
@@ -58,4 +59,9 @@ func (p *kUserServiceClient) GetById(ctx context.Context, Req *kitex_gen.GetById
 func (p *kUserServiceClient) GetUserVo(ctx context.Context, Req *kitex_gen.GetUserVORequest, callOptions ...callopt.Option) (r *kitex_gen.GetUserVOResponse, err error) {
 	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
 	return p.kClient.GetUserVo(ctx, Req)
+}
+
+func (p *kUserServiceClient) GetLoginUserBySessionId(ctx context.Context, Req *kitex_gen.GetLoginUserBySessionIdRequest, callOptions ...callopt.Option) (r *kitex_gen.GetLoginUserBySessionIdResponse, err error) {
+	ctx = client.NewCtxWithCallOptions(ctx, callOptions)
+	return p.kClient.GetLoginUserBySessionId(ctx, Req)
 }

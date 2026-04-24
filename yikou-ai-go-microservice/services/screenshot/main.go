@@ -24,7 +24,7 @@ import (
 	"yikou-ai-go-microservice/services/screenshot/config"
 	"yikou-ai-go-microservice/services/screenshot/handler"
 	screenshot "yikou-ai-go-microservice/services/screenshot/kitex_gen/screenshotservice"
-	logic "yikou-ai-go-microservice/services/screenshot/logic"
+	"yikou-ai-go-microservice/services/screenshot/logic"
 )
 
 func main() {

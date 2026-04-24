@@ -61,6 +61,16 @@ message GetUserVOResponse {
   UserVO user_vo = 1;
 }
 
+// 通过 SessionId 获取登录用户请求
+message GetLoginUserBySessionIdRequest {
+  string session_id = 1;
+}
+
+// 通过 SessionId 获取登录用户响应
+message GetLoginUserBySessionIdResponse {
+  UserVO user_vo = 1;
+}
+
 // 用户服务接口
 service UserService {
   // 根据ID列表批量查询用户
@@ -70,4 +80,7 @@ service UserService {
   rpc GetById(GetByIdRequest) returns (GetByIdResponse);
 
   rpc GetUserVo(GetUserVORequest) returns (GetUserVOResponse);
+
+  // 通过 SessionId 获取登录用户信息
+  rpc GetLoginUserBySessionId(GetLoginUserBySessionIdRequest) returns (GetLoginUserBySessionIdResponse);
 }
