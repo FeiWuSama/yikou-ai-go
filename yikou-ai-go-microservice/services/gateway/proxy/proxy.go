@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -216,9 +217,10 @@ func (rp *ReverseProxy) proxyRequest(ctx context.Context, c *app.RequestContext,
 	}
 
 	// 4. 创建转发请求
+	// 使用 c.Request.Body() 获取原始请求体字节，确保请求体被正确传递
 	var body io.Reader
-	if c.Request.Body() != nil {
-		body = c.Request.BodyStream()
+	if len(c.Request.Body()) > 0 {
+		body = bytes.NewReader(c.Request.Body())
 	}
 
 	req, err := http.NewRequestWithContext(ctx, string(c.Method()), targetURL, body)
