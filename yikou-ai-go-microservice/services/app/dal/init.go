@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"time"
 	"yikou-ai-go-microservice/services/app/config"
-	"yikou-ai-go-microservice/services/user/dal/query"
+	"yikou-ai-go-microservice/services/app/dal/query"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/tencentyun/cos-go-sdk-v5"
