@@ -26,7 +26,7 @@ import (
 	"yikou-ai-go-microservice/services/ai/config"
 	kitex_gen "yikou-ai-go-microservice/services/ai/kitex_gen/aiservice"
 	"yikou-ai-go-microservice/services/ai/llm"
-	
+	"yikou-ai-go-microservice/services/app/kitex_gen/chathistory/chathistoryservice"
 )
 
 func main() {
@@ -102,7 +102,7 @@ func main() {
 	if chatHistoryRpcAddr == "" {
 		chatHistoryRpcAddr = "127.0.0.1:9092"
 	}
-	chatHistoryRpcClient := chatHistoryService.MustNewClient("chathistory-service", client.WithHostPorts(chatHistoryRpcAddr))
+	chatHistoryRpcClient := chathistoryservice.MustNewClient("chathistory-service", client.WithHostPorts(chatHistoryRpcAddr))
 
 	// 初始化 Agent Factory
 	codeGenAgentFactory := agent.NewCodeGenAgentFactory(chatModel, reasoningChatModel, redisClient, toolManager, chatHistoryRpcClient)
