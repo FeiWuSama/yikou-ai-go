@@ -14,33 +14,67 @@
 **易扣AI** 是一个基于 Go 语言开发的智能代码生成平台，采用现代化的技术栈和架构设计。对于想要入门 Go 语言的程序员来说，这是一个 绝佳的实战学习项目 ！
 ![项目介绍](image/img2.png)
 
+### 📦 架构版本
+
+本项目提供两种架构版本，满足不同场景需求：
+
+| 版本 | 目录 | 适用场景 | 特点 |
+|------|------|----------|------|
+| 单体架构 | `/` (根目录) | 快速开发、学习入门、小规模应用 | 部署简单、调试方便、资源占用少 |
+| 微服务架构 | `/yikou-ai-go-microservice` | 企业级生产、高并发、团队协作 | 服务解耦、独立部署、易于扩展 |
+
 ---
 
 ## 🎯 为什么选择这个项目学习 Go？
 
 ### 1. 完整的全栈项目经验
 
+**单体架构版本：**
 - 后端：Go + Hertz + GORM + Redis + MySQL + Eino
 - 前端：Vue3 + TypeScript + Ant Design Vue
 - 从零到一构建完整的企业级应用
 
+**微服务架构版本：**
+- 后端：Go + Kitex + Hertz + GORM + Redis + MySQL + Eino + Nacos
+- 服务网关：统一入口、路由转发
+- 服务治理：服务注册发现、RPC 通信
+
 ### 2. 主流技术栈覆盖
 
-| 技术领域 | 涉及技术             | 学习价值               |
-| -------- | -------------------- | ---------------------- |
-| Web框架  | Hertz (字节跳动开源) | 学习高性能HTTP服务开发 |
-| AI集成   | Eino (AI工作流框架)  | 掌握AI应用开发范式     |
-| 依赖注入 | Wire (Google开源)    | 理解依赖注入设计模式   |
-| ORM      | GORM                 | 掌握数据库操作最佳实践 |
-| 缓存     | Redis                | 学习缓存策略和会话管理 |
-| 配置管理 | Viper                | 掌握多环境配置管理     |
+| 技术领域 | 单体架构技术 | 微服务架构技术 | 学习价值 |
+| -------- | ------------ | -------------- | -------- |
+| Web框架 | Hertz (字节跳动开源) | Hertz + Kitex | 学习高性能HTTP服务和RPC服务开发 |
+| AI集成 | Eino (AI工作流框架) | Eino (AI工作流框架) | 掌握AI应用开发范式 |
+| 依赖注入 | Wire (Google开源) | Wire (Google开源) | 理解依赖注入设计模式 |
+| ORM | GORM | GORM | 掌握数据库操作最佳实践 |
+| 缓存 | Redis | Redis | 学习缓存策略和会话管理 |
+| 配置管理 | Viper | Viper | 掌握多环境配置管理 |
+| 服务发现 | - | Nacos | 学习微服务注册与发现 |
+| RPC框架 | - | Kitex | 掌握高性能RPC通信 |
+| 容器化 | Docker | Docker Compose | 学习容器编排和部署 |
 
 ### 3. 企业级架构设计
 
+**单体架构：**
 ```
 ├── biz/           # 业务逻辑层 - 学习分层架构
 ├── pkg/           # 公共工具包 - 学习代码复用
 └── config/        # 配置管理 - 学习工程化思维
+```
+
+**微服务架构：**
+```
+├── services/              # 微服务集合
+│   ├── gateway/          # API网关服务
+│   ├── user/             # 用户服务
+│   ├── app/              # 应用服务
+│   ├── ai/               # AI服务
+│   └── screenshot/       # 截图服务
+├── pkg/                  # 公共工具包
+│   ├── commonmiddleware/ # 公共中间件
+│   ├── commonenum/       # 公共枚举
+│   └── errors/           # 统一错误处理
+└── idl/                  # 接口定义语言 (IDL)
 ```
 
 ---
@@ -90,9 +124,103 @@
 
 ---
 
+## 🏗️ 项目架构
+
 ### 项目架构图
 
 ![架构图](image/yikouai-construction.drawio.png)
+
+### 微服务架构图
+
+```mermaid
+graph TB
+    subgraph "前端层"
+        FE[前端应用<br/>Vue3 + TypeScript]
+    end
+
+    subgraph "网关层"
+        GW[Gateway 网关<br/>Port: 8142<br/>路由转发]
+    end
+
+    subgraph "服务层"
+        USR[User Service<br/>用户服务<br/>Port: 8881]
+        APP[App Service<br/>应用服务<br/>Port: 8882]
+        AI[AI Service<br/>AI服务<br/>Port: 8883]
+        SS[Screenshot Service<br/>截图服务<br/>Port: 8884]
+    end
+
+    subgraph "基础设施层"
+        NACOS[Nacos 注册中心<br/>服务发现]
+        MYSQL[(MySQL<br/>数据库)]
+        REDIS[(Redis<br/>缓存)]
+        AIMODEL[AI Models<br/>DeepSeek]
+    end
+
+    FE -->|HTTP| GW
+    GW -->|路由转发| USR
+    GW -->|路由转发| APP
+    GW -->|路由转发| AI
+
+    USR -->|RPC| APP
+    APP -->|RPC| USR
+    APP -->|RPC| AI
+    APP -->|RPC| SS
+
+    USR --> NACOS
+    APP --> NACOS
+    AI --> NACOS
+    SS --> NACOS
+
+    USR --> MYSQL
+    USR --> REDIS
+    APP --> MYSQL
+    APP --> REDIS
+    AI --> AIMODEL
+
+    style FE fill:#e1f5fe
+    style GW fill:#fff3e0
+    style USR fill:#f3e5f5
+    style APP fill:#e8f5e9
+    style AI fill:#fce4ec
+    style SS fill:#fff8e1
+    style NACOS fill:#e3f2fd
+    style MYSQL fill:#efebe9
+    style REDIS fill:#ffebee
+    style AIMODEL fill:#f3e5f5
+```
+
+### 微服务说明
+
+| 服务名称 | 端口   | 职责 | 技术栈 |
+|----------|------|------|--------|
+| Gateway | 8142 | API网关、路由转发、负载均衡、认证鉴权 | Hertz |
+| User | 8881 | 用户管理、登录认证、会话管理 | Kitex + Hertz + GORM |
+| App | 8882 | 应用管理、代码生成、部署服务 | Kitex + Hertz + GORM |
+| AI | 8883 | AI对话、工作流编排、代码生成 | Kitex + Hertz + Eino |
+| Screenshot | 8884 | 网页截图、图片处理 | Kitex + Chromedp |
+
+### 服务间通信
+
+```mermaid
+graph LR
+    GW[Gateway 网关]
+
+    subgraph "服务调用关系"
+        GW -->|认证鉴权| USR[User Service]
+        GW -->|应用管理| APP[App Service]
+        GW -->|AI对话| AI[AI Service]
+
+        APP -->|获取用户信息| USR
+        APP -->|AI对话| AI
+        APP -->|网页截图| SS[Screenshot Service]
+    end
+
+    style GW fill:#fff3e0
+    style USR fill:#f3e5f5
+    style APP fill:#e8f5e9
+    style AI fill:#fce4ec
+    style SS fill:#fff8e1
+```
 
 ---
 
@@ -105,6 +233,11 @@
 - MySQL 8.0+
 - Redis 7.0+
 - Docker & Docker Compose（可选）
+- Nacos 2.x（微服务版本需要）
+
+---
+
+## 📦 单体架构 - 快速开始
 
 ### 本地开发
 
@@ -176,9 +309,7 @@ npm run dev
 
 访问 http://localhost:5173 即可操作。
 
----
-
-## 🐳 Docker 部署 （后端）
+### Docker 部署
 
 ```bash
 # 构建镜像
@@ -193,7 +324,111 @@ docker run -d \
 
 ---
 
+## 🔧 微服务架构 - 快速开始
+
+### 本地开发
+
+#### 1. 克隆项目
+
+```bash
+git clone https://github.com/your-username/yikou-ai-go.git
+cd yikou-ai-go/yikou-ai-go-microservice
+```
+
+#### 2. 启动基础设施
+
+```bash
+# 启动 Nacos、MySQL、 Redis
+docker-compose up -d nacos mysql redis
+
+# 等待服务启动完成（约30秒）
+# 访问 Nacos 控制台: http://localhost:8848/nacos (账号密码: nacos/nacos)
+```
+
+#### 3. 初始化数据库
+
+```bash
+# 导入表结构
+mysql -h 127.0.0.1 -P 3306 -u root -p < init/sql/init.sql
+```
+
+#### 4. 配置文件
+
+各服务配置文件位于 `services/{service}/config/config.yml`：
+
+```yaml
+# 示例：用户服务配置
+database:
+  host: localhost
+  port: 3306
+  username: root
+  password: your_password
+  dbname: yikou_ai
+
+redis:
+  host: localhost
+  port: 6379
+
+nacos:
+  server_addr: 127.0.0.1:8848
+  namespace: public
+  group: DEFAULT_GROUP
+```
+
+#### 5. 启动微服务
+
+```bash
+# 方式一：依次启动各服务（开发调试）
+# 终端1 - 启动用户服务
+cd services/user && go run main.go
+
+# 终端2 - 启动应用服务
+cd services/app && go run main.go
+
+# 终端3 - 启动AI服务
+cd services/ai && go run main.go
+
+# 终端4 - 启动截图服务
+cd services/screenshot && go run main.go
+
+# 终端5 - 启动网关
+cd services/gateway && go run main.go
+
+# 方式二：使用 Docker Compose 一键启动（生产部署）
+docker-compose up -d
+```
+
+#### 6. 启动前端
+
+```bash
+cd yikou-ai-feiwu-front
+npm install
+npm run dev
+```
+
+访问 http://localhost:5173 即可操作。
+
+### Docker Compose 部署（微服务）
+
+```bash
+# 一键启动所有服务
+docker-compose up -d
+
+# 查看服务状态
+docker-compose ps
+
+# 查看日志
+docker-compose logs -f gateway
+
+# 停止所有服务
+docker-compose down
+```
+
+---
+
 ## 📁 项目结构
+
+### 单体架构项目结构
 
 ```
 yikou-ai-go/
@@ -239,6 +474,64 @@ yikou-ai-go/
 ├── go.mod                 # Go 模块定义
 ├── go.sum                 # Go 依赖锁定
 └── main.go                # 应用入口
+```
+
+### 微服务架构项目结构
+
+```
+yikou-ai-go-microservice/
+├── services/                      # 微服务集合
+│   ├── gateway/                  # API 网关服务
+│   │   ├── config/               # 网关配置
+│   │   ├── proxy/                # 反向代理逻辑
+│   │   └── main.go               # 网关入口
+│   │
+│   ├── user/                     # 用户服务
+│   │   ├── config/               # 用户服务配置
+│   │   ├── handler/              # HTTP 处理器
+│   │   ├── logic/                # 业务逻辑
+│   │   ├── dal/                  # 数据访问层
+│   │   ├── middleware/           # 服务内中间件
+│   │   ├── router/               # 路由定义
+│   │   ├── kitex_gen/            # Kitex 生成代码
+│   │   └── main.go               # 服务入口
+│   │
+│   ├── app/                      # 应用服务
+│   │   ├── config/               # 应用服务配置
+│   │   ├── handler/              # HTTP 处理器
+│   │   ├── logic/                # 业务逻辑
+│   │   ├── dal/                  # 数据访问层
+│   │   ├── middleware/           # 服务内中间件
+│   │   ├── router/               # 路由定义
+│   │   ├── kitex_gen/            # Kitex 生成代码
+│   │   └── main.go               # 服务入口
+│   │
+│   ├── ai/                       # AI 服务
+│   │   ├── config/               # AI 服务配置
+│   │   ├── handler/              # HTTP 处理器
+│   │   ├── agent/                # AI Agent 实现
+│   │   ├── graph/                # 工作流图定义
+│   │   ├── kitex_gen/            # Kitex 生成代码
+│   │   └── main.go               # 服务入口
+│   │
+│   └── screenshot/               # 截图服务
+│       ├── config/               # 截图服务配置
+│       ├── handler/              # HTTP 处理器
+│       ├── kitex_gen/            # Kitex 生成代码
+│       └── main.go               # 服务入口
+│
+├── pkg/                          # 公共工具包
+│   ├── commonmiddleware/         # 公共中间件 (认证、限流等)
+│   ├── commonenum/               # 公共枚举定义
+│   ├── constants/                # 常量定义
+│   ├── errors/                   # 统一错误处理
+│   └── utils/                    # 工具函数
+│
+├── init/                         # 初始化脚本
+│   └── sql/                      # 数据库初始化脚本
+│
+├── docker-compose.yml            # Docker Compose 配置
+└── go.mod                        # Go 模块定义
 ```
 
 ---
@@ -293,9 +586,29 @@ cos:
   bucket: your_bucket
 ```
 
+### 微服务额外配置
+
+```yaml
+# Nacos 服务发现配置
+nacos:
+  server_addr: 127.0.0.1:8848
+  namespace: public
+  group: DEFAULT_GROUP
+  service_name: user-service
+
+# RPC 服务配置
+rpc:
+  user_service: 127.0.0.1:8881
+  app_service: 127.0.0.1:8882
+  ai_service: 127.0.0.1:8883
+  screenshot_service: 127.0.0.1:8884
+```
+
 ---
 
 ## 📚 API 文档
+
+### 单体架构
 
 启动服务后，访问以下地址查看 API 文档：
 
@@ -303,17 +616,21 @@ cos:
 
 ### 主要 API 端点
 
-| 方法 | 路径                        | 说明            |
-| ---- | --------------------------- | --------------- |
-| POST | /api/app/add                | 创建应用        |
-| POST | /api/app/update             | 更新应用        |
-| POST | /api/app/delete             | 删除应用        |
-| GET  | /api/app/get                | 获取应用详情    |
-| POST | /api/app/list               | 获取应用列表    |
-| POST | /api/app/deploy             | 部署应用        |
-| GET  | /api/app/chat/gen/code      | AI 对话生成代码 |
-| POST | /api/workflow/execute       | 执行工作流      |
-| GET  | /api/chatHistory/app/:appId | 获取聊天历史    |
+| 方法 | 路径                        | 说明            | 服务 |
+| ---- | --------------------------- | --------------- | ---- |
+| POST | /api/user/register          | 用户注册        | User |
+| POST | /api/user/login             | 用户登录        | User |
+| GET  | /api/user/get/login         | 获取登录用户    | User |
+| POST | /api/user/logout            | 用户登出        | User |
+| POST | /api/app/add                | 创建应用        | App |
+| POST | /api/app/update             | 更新应用        | App |
+| POST | /api/app/delete             | 删除应用        | App |
+| GET  | /api/app/get                | 获取应用详情    | App |
+| POST | /api/app/list               | 获取应用列表    | App |
+| POST | /api/app/deploy             | 部署应用        | App |
+| GET  | /api/app/chat/gen/code      | AI 对话生成代码 | App |
+| POST | /api/workflow/execute       | 执行工作流      | AI |
+| GET  | /api/chatHistory/app/:appId | 获取聊天历史    | App |
 
 ---
 
@@ -321,9 +638,10 @@ cos:
 
 感谢以下开源项目和组织：
 
-- [CloudWeGo](https://www.cloudwego.io/) - 提供强大的 Hertz 和 Eino 框架
+- [CloudWeGo](https://www.cloudwego.io/) - 提供强大的 Hertz、Kitex 和 Eino 框架
 - [Ant Design](https://ant.design/) - 提供精美的 UI 组件库
 - [Vue.js](https://vuejs.org/) - 提供优秀的前端框架
+- [Nacos](https://nacos.io/) - 提供服务发现和配置管理
 
 ---
 
