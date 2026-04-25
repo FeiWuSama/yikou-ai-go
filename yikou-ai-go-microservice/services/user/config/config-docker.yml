@@ -1,0 +1,27 @@
+server:
+  port: 8080
+  context-path: /api
+  config-active: docker
+
+database:
+  host: mysql
+  port: 3306
+  username: root
+  password: ${MYSQL_ROOT_PASSWORD:-root123456}
+  dbname: yikou_ai
+
+redis:
+  host: redis
+  port: 6379
+  password: ""
+  db: 0
+
+nacos:
+  host: nacos
+  port: 8848
+  namespace-id: public
+  username: nacos
+  password: nacos
+  log-dir: /tmp/nacos/log
+  cache-dir: /tmp/nacos/cache
+  log-level: info

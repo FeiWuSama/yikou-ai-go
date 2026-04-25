@@ -1,0 +1,206 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: yikou-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123456}
+      MYSQL_DATABASE: yikou_ai
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init/sql:/docker-entrypoint-initdb.d
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    networks:
+      - yikou-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: yikou-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - yikou-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nacos:
+    image: nacos/nacos-server:v2.2.3
+    container_name: yikou-nacos
+    restart: always
+    environment:
+      MODE: standalone
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: mysql
+      MYSQL_SERVICE_PORT: 3306
+      MYSQL_SERVICE_DB_NAME: nacos
+      MYSQL_SERVICE_USER: root
+      MYSQL_SERVICE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123456}
+      NACOS_AUTH_ENABLE: "false"
+      JVM_XMS: 512m
+      JVM_XMX: 512m
+      JVM_XMN: 256m
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+      - "9849:9849"
+    volumes:
+      - nacos_data:/home/nacos/logs
+    networks:
+      - yikou-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/v1/console/health/readiness"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  user-service:
+    build:
+      context: ./services/user
+      dockerfile: Dockerfile
+    container_name: yikou-user-service
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    volumes:
+      - ./services/user/config/config-docker.yml:/app/config/config-docker.yml
+    networks:
+      - yikou-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+
+  screenshot-service:
+    build:
+      context: ./services/screenshot
+      dockerfile: Dockerfile
+    container_name: yikou-screenshot-service
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - "8081:8081"
+      - "9091:9091"
+    volumes:
+      - ./services/screenshot/config/config-docker.yml:/app/config/config-docker.yml
+    networks:
+      - yikou-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+
+  app-service:
+    build:
+      context: ./services/app
+      dockerfile: Dockerfile
+    container_name: yikou-app-service
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - "8082:8082"
+      - "9092:9092"
+    volumes:
+      - ./services/app/config/config-docker.yml:/app/config/config-docker.yml
+    networks:
+      - yikou-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      ai-service:
+        condition: service_started
+      screenshot-service:
+        condition: service_started
+
+  ai-service:
+    build:
+      context: ./services/ai
+      dockerfile: Dockerfile
+    container_name: yikou-ai-service
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - "8083:8083"
+      - "9093:9093"
+    volumes:
+      - ./services/ai/config/config-docker.yml:/app/config/config-docker.yml
+    networks:
+      - yikou-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+
+  gateway:
+    build:
+      context: ./services/gateway
+      dockerfile: Dockerfile
+    container_name: yikou-gateway
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./services/gateway/config/config-docker.yml:/app/config/config-docker.yml
+    networks:
+      - yikou-network
+    depends_on:
+      nacos:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      app-service:
+        condition: service_started
+      ai-service:
+        condition: service_started
+      screenshot-service:
+        condition: service_started
+
+networks:
+  yikou-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:
+  nacos_data:
