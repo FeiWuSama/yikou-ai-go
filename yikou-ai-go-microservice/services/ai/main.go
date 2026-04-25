@@ -6,6 +6,7 @@ import (
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/cloudwego/hertz/pkg/app/server/registry"
 	"github.com/cloudwego/hertz/pkg/common/utils"
+	"github.com/cloudwego/kitex/client"
 	kServer "github.com/cloudwego/kitex/server"
 	"github.com/hertz-contrib/registry/nacos"
 	"github.com/nacos-group/nacos-sdk-go/clients"
@@ -25,6 +26,7 @@ import (
 	"yikou-ai-go-microservice/services/ai/config"
 	kitex_gen "yikou-ai-go-microservice/services/ai/kitex_gen/aiservice"
 	"yikou-ai-go-microservice/services/ai/llm"
+	
 )
 
 func main() {
@@ -95,8 +97,15 @@ func main() {
 		log.Fatalf("初始化 ToolManager 失败: %v", err)
 	}
 
+	// 初始化 ChatHistory RPC 客户端
+	chatHistoryRpcAddr := cfg.RPC.ChatHistoryService
+	if chatHistoryRpcAddr == "" {
+		chatHistoryRpcAddr = "127.0.0.1:9092"
+	}
+	chatHistoryRpcClient := chatHistoryService.MustNewClient("chathistory-service", client.WithHostPorts(chatHistoryRpcAddr))
+
 	// 初始化 Agent Factory
-	codeGenAgentFactory := agent.NewCodeGenAgentFactory(chatModel, reasoningChatModel, redisClient, toolManager)
+	codeGenAgentFactory := agent.NewCodeGenAgentFactory(chatModel, reasoningChatModel, redisClient, toolManager, chatHistoryRpcClient)
 	chatSummaryAgentFactory := agent.NewChatSummaryAgentFactory(chatModel)
 	codeQualityCheckAgentFactory := agent.NewCodeQualityCheckAgentFactory(chatModel)
 	codeGenTypeRoutingFactory := agent.NewCodeGenTypeRoutingAgentFactory(chatModel)

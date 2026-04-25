@@ -66,4 +66,8 @@ nacos:
   cache-dir: /tmp/nacos/cache
   log-level: info
 
+# RPC 服务地址配置
+rpc:
+  chat-history-service: 127.0.0.1:9092
+
 

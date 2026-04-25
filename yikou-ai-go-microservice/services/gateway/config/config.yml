@@ -29,3 +29,9 @@ proxy:
     - path: /api/ai
       service: ai-service
       strip-prefix: /api
+    - path: /api/chatHistory
+      service: app-service
+      strip-prefix: /api
+    - path: /api/static
+      service: app-service
+      strip-prefix: /api

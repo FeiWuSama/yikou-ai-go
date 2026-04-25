@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/cloudwego/kitex/client"
 	"io"
 	"strings"
 	enum "yikou-ai-go-microservice/pkg/commonenum"
@@ -25,9 +24,9 @@ type YiKouAiCodegenFacade struct {
 	aiService             aiservice.Client
 }
 
-func NewYiKouAiCodegenFacade(codeParserExecutor *parser.CodeParserExecutor, codeFileSaverExecutor *saver.CodeFileSaverExecutor) *YiKouAiCodegenFacade {
+func NewYiKouAiCodegenFacade(codeParserExecutor *parser.CodeParserExecutor, codeFileSaverExecutor *saver.CodeFileSaverExecutor, aiRpcClient aiservice.Client) *YiKouAiCodegenFacade {
 	return &YiKouAiCodegenFacade{
-		aiService:             aiservice.MustNewClient("ai-service", client.WithHostPorts("127.0.0.1:9093")),
+		aiService:             aiRpcClient,
 		codeParserExecutor:    codeParserExecutor,
 		codeFileSaverExecutor: codeFileSaverExecutor,
 	}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/bytedance/gopkg/util/logger"
-	"github.com/cloudwego/kitex/client"
 	"strconv"
 	"strings"
 	"time"
@@ -24,10 +23,10 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewChatHistoryService(db *gorm.DB) *ChatHistoryService {
+func NewChatHistoryService(db *gorm.DB, aiRpcClient aiservice.Client) *ChatHistoryService {
 	return &ChatHistoryService{
 		db:       db,
-		aiClient: aiservice.MustNewClient("ai-service", client.WithHostPorts("127.0.0.1:9093")),
+		aiClient: aiRpcClient,
 	}
 }
 

@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/cloudwego/kitex/client"
 	"io"
 	"os"
 	"path/filepath"
@@ -38,14 +37,22 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewAppService(aiCodeGenFacade *core.YiKouAiCodegenFacade, chatHistoryService chathistory.IChatHistoryService, streamHandlerExecutor *messagehandler.StreamHandlerExecutor, db *gorm.DB) *AppService {
+func NewAppService(
+	aiCodeGenFacade *core.YiKouAiCodegenFacade,
+	chatHistoryService chathistory.IChatHistoryService,
+	streamHandlerExecutor *messagehandler.StreamHandlerExecutor,
+	db *gorm.DB,
+	userRpcClient userService.Client,
+	screenshotRpcClient screenshotService.Client,
+	aiRpcClient aiservice.Client,
+) *AppService {
 	return &AppService{
 		aiCodeGenFacade:       aiCodeGenFacade,
-		userService:           userService.MustNewClient("user-service", client.WithHostPorts("127.0.0.1:9090")),
+		userService:           userRpcClient,
 		chatHistoryService:    chatHistoryService,
 		streamHandlerExecutor: streamHandlerExecutor,
-		screenshotService:     screenshotService.MustNewClient("screenshot", client.WithHostPorts("127.0.0.1:9091")),
-		aiClient:              aiservice.MustNewClient("ai-service", client.WithHostPorts("127.0.0.1:9093")),
+		screenshotService:     screenshotRpcClient,
+		aiClient:              aiRpcClient,
 		db:                    db,
 	}
 }

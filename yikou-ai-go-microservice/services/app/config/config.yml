@@ -66,5 +66,11 @@ nacos:
   cache-dir: /tmp/nacos/cache
   log-level: info
 
+# RPC 服务地址配置
+rpc:
+  user-service: 127.0.0.1:9090
+  screenshot-service: 127.0.0.1:9091
+  ai-service: 127.0.0.1:9093
+
 
 

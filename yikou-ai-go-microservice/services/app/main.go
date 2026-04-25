@@ -23,6 +23,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
+	"yikou-ai-go-microservice/services/ai/kitex_gen/aiservice"
 	"yikou-ai-go-microservice/services/app/cache"
 	"yikou-ai-go-microservice/services/app/config"
 	"yikou-ai-go-microservice/services/app/core"
@@ -35,6 +36,7 @@ import (
 	appLogic "yikou-ai-go-microservice/services/app/logic/app"
 	chatHistoryLogic "yikou-ai-go-microservice/services/app/logic/chathistory"
 	"yikou-ai-go-microservice/services/app/router"
+	"yikou-ai-go-microservice/services/screenshot/kitex_gen/screenshotservice"
 	"yikou-ai-go-microservice/services/user/kitex_gen/userservice"
 )
 
@@ -80,7 +82,13 @@ func main() {
 
 	nacosRegistry := nacos.NewNacosRegistry(nacosClient)
 
-	chatHistorySvc := chatHistoryLogic.NewChatHistoryService(db)
+	aiRpcAddr := cfg.RPC.AIService
+	if aiRpcAddr == "" {
+		aiRpcAddr = "127.0.0.1:9093"
+	}
+	aiRpcClient := aiservice.MustNewClient("ai-service", client.WithHostPorts(aiRpcAddr))
+
+	chatHistorySvc := chatHistoryLogic.NewChatHistoryService(db, aiRpcClient)
 	chatHistoryRpcHandler := handler.NewChatHistoryServiceImpl(chatHistorySvc, redisClient, db)
 
 	kitexServer := kServer.NewServer(kServer.WithServiceAddr(addr))
@@ -105,7 +113,7 @@ func main() {
 		}),
 	)
 
-	initHertzRoutes(hertzServer, db, redisClient, cfg)
+	initHertzRoutes(hertzServer, db, redisClient, cfg, aiRpcClient)
 
 	go func() {
 		fmt.Println("App Service Hertz Server starting on :8082...")
@@ -126,24 +134,36 @@ func main() {
 	fmt.Println("App Service stopped")
 }
 
-func initHertzRoutes(h *server.Hertz, db *gorm.DB, redisClient *redis.Client, cfg *config.Config) {
+func initHertzRoutes(h *server.Hertz, db *gorm.DB, redisClient *redis.Client, cfg *config.Config, aiRpcClient aiservice.Client) {
 	cacheManager := cache.InitCacheManager(redisClient)
 
-	userRpcClient := userservice.MustNewClient("user-service", client.WithHostPorts("127.0.0.1:9090"))
+	userRpcAddr := cfg.RPC.UserService
+	if userRpcAddr == "" {
+		userRpcAddr = "127.0.0.1:9090"
+	}
+	userRpcClient := userservice.MustNewClient("user-service", client.WithHostPorts(userRpcAddr))
 
-	chatHistorySvc := chatHistoryLogic.NewChatHistoryService(db)
+	screenshotRpcAddr := cfg.RPC.ScreenshotService
+	if screenshotRpcAddr == "" {
+		screenshotRpcAddr = "127.0.0.1:9091"
+	}
+	screenshotRpcClient := screenshotservice.MustNewClient("screenshot", client.WithHostPorts(screenshotRpcAddr))
+
+	chatHistorySvc := chatHistoryLogic.NewChatHistoryService(db, aiRpcClient)
 
 	codeParserExecutor := parser.NewCodeParserExecutor()
 	codeFileSaverExecutor := saver.NewCodeFileSaverExecutor()
-	aiCodeGenFacade := core.NewYiKouAiCodegenFacade(codeParserExecutor, codeFileSaverExecutor)
+	aiCodeGenFacade := core.NewYiKouAiCodegenFacade(codeParserExecutor, codeFileSaverExecutor, aiRpcClient)
 
 	streamHandlerExecutor := messagehandler.NewStreamHandlerExecutor(chatHistorySvc, nil)
 
-	appSvc := appLogic.NewAppService(aiCodeGenFacade, chatHistorySvc, streamHandlerExecutor, db)
+	appSvc := appLogic.NewAppService(aiCodeGenFacade, chatHistorySvc, streamHandlerExecutor, db, userRpcClient, screenshotRpcClient, aiRpcClient)
 
 	projectDownloadSvc := download.NewProjectDownloadService()
 
 	appHandler := handler.NewAppHandler(appSvc, userRpcClient, chatHistorySvc, projectDownloadSvc)
+	staticHandler := handler.NewStaticResourceHandler(cfg)
+	chatHistoryHandler := handler.NewChatHistoryHandler(chatHistorySvc, userRpcClient)
 
-	router.CustomizedRegister(h, db, redisClient, cacheManager, userRpcClient, appHandler)
+	router.CustomizedRegister(h, db, redisClient, cacheManager, userRpcClient, appHandler, staticHandler, chatHistoryHandler)
 }

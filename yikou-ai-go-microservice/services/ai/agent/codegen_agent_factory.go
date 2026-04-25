@@ -3,7 +3,6 @@ package agent
 import (
 	"context"
 	"github.com/bytedance/gopkg/util/logger"
-	"github.com/cloudwego/kitex/client"
 	"github.com/patrickmn/go-cache"
 	"github.com/redis/go-redis/v9"
 	"strconv"
@@ -34,18 +33,21 @@ type CodeGenAgentFactory struct {
 	toolManager                 *aitools.ToolManager
 }
 
-func NewCodeGenAgentFactory(chatModel *llm.ChatModelWrapper, reasoningStreamingChatModel *llm.ReasoningChatModelWrapper,
-	redisClient *redis.Client, toolManager *aitools.ToolManager) *CodeGenAgentFactory {
+func NewCodeGenAgentFactory(
+	chatModel *llm.ChatModelWrapper,
+	reasoningStreamingChatModel *llm.ReasoningChatModelWrapper,
+	redisClient *redis.Client,
+	toolManager *aitools.ToolManager,
+	chatHistoryRpcClient chatHistoryService.Client,
+) *CodeGenAgentFactory {
 	serviceCache.OnEvicted(func(k string, v interface{}) {
 		logger.Debugf("AI服务实例被移除，缓冲键: %v", k)
 	})
-	chatHistoryClient := chatHistoryService.MustNewClient("chathistory-service",
-		client.WithHostPorts("127.0.0.1:9092"))
 	return &CodeGenAgentFactory{
 		chatModel:                   chatModel,
 		reasoningStreamingChatModel: reasoningStreamingChatModel,
 		redisClient:                 redisClient,
-		chatHistoryService:          chatHistoryClient,
+		chatHistoryService:          chatHistoryRpcClient,
 		toolManager:                 toolManager,
 	}
 }

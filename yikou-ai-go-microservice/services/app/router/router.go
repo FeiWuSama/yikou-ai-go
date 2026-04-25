@@ -22,6 +22,8 @@ func CustomizedRegister(
 	cacheManager *cache.CacheManager,
 	userRpcClient userservice.Client,
 	appHandler *handler.AppHandler,
+	staticHandler *handler.StaticResourceHandler,
+	chatHistoryHandler *handler.ChatHistoryHandler,
 ) {
 	appRoute := r.Group("/app")
 	{
@@ -36,32 +38,32 @@ func CustomizedRegister(
 		)
 
 		appRoute.GET("/get/vo",
-			commonmiddleware.AuthMiddleware(enum.UserRole, db, redisClient),
+			commonmiddleware.AuthMiddleware(enum.UserRole, userRpcClient),
 			appHandler.GetAppVo,
 		)
 
 		appRoute.POST("/my/list/page/vo",
-			commonmiddleware.AuthMiddleware(enum.UserRole, db, redisClient),
+			commonmiddleware.AuthMiddleware(enum.UserRole, userRpcClient),
 			appHandler.ListMyApp,
 		)
 
 		appRoute.POST("/add",
-			commonmiddleware.AuthMiddleware(enum.UserRole, db, redisClient),
+			commonmiddleware.AuthMiddleware(enum.UserRole, userRpcClient),
 			appHandler.AddApp,
 		)
 
 		appRoute.POST("/update",
-			commonmiddleware.AuthMiddleware(enum.UserRole, db, redisClient),
+			commonmiddleware.AuthMiddleware(enum.UserRole, userRpcClient),
 			appHandler.UpdateApp,
 		)
 
 		appRoute.POST("/delete",
-			commonmiddleware.AuthMiddleware(enum.UserRole, db, redisClient),
+			commonmiddleware.AuthMiddleware(enum.UserRole, userRpcClient),
 			appHandler.DeleteApp,
 		)
 
 		appRoute.GET("/chat/gen/code",
-			commonmiddleware.AuthMiddleware(enum.UserRole, db, redisClient),
+			commonmiddleware.AuthMiddleware(enum.UserRole, userRpcClient),
 			middleware.RateLimitMiddleware(redisClient, userRpcClient, middleware.RateLimitConfig{
 				Rate:         5,
 				RateInterval: 60,
@@ -72,38 +74,54 @@ func CustomizedRegister(
 		)
 
 		appRoute.POST("/chat/gen/stop",
-			commonmiddleware.AuthMiddleware(enum.UserRole, db, redisClient),
+			commonmiddleware.AuthMiddleware(enum.UserRole, userRpcClient),
 			appHandler.StopStream,
 		)
 
 		appRoute.POST("/deploy",
-			commonmiddleware.AuthMiddleware(enum.UserRole, db, redisClient),
+			commonmiddleware.AuthMiddleware(enum.UserRole, userRpcClient),
 			appHandler.DeployApp,
 		)
 
 		appRoute.GET("/download/:appId",
-			commonmiddleware.AuthMiddleware(enum.UserRole, db, redisClient),
+			commonmiddleware.AuthMiddleware(enum.UserRole, userRpcClient),
 			appHandler.DownloadAppCode,
 		)
 
 		appRoute.POST("/admin/update",
-			commonmiddleware.AuthMiddleware(enum.AdminRole, db, redisClient),
+			commonmiddleware.AuthMiddleware(enum.AdminRole, userRpcClient),
 			appHandler.AdminUpdateApp,
 		)
 
 		appRoute.POST("/admin/delete",
-			commonmiddleware.AuthMiddleware(enum.AdminRole, db, redisClient),
+			commonmiddleware.AuthMiddleware(enum.AdminRole, userRpcClient),
 			appHandler.AdminDeleteApp,
 		)
 
 		appRoute.GET("/admin/get/vo",
-			commonmiddleware.AuthMiddleware(enum.AdminRole, db, redisClient),
+			commonmiddleware.AuthMiddleware(enum.AdminRole, userRpcClient),
 			appHandler.AdminGetAppVo,
 		)
 
 		appRoute.POST("/admin/list/page/vo",
-			commonmiddleware.AuthMiddleware(enum.AdminRole, db, redisClient),
+			commonmiddleware.AuthMiddleware(enum.AdminRole, userRpcClient),
 			appHandler.AdminListApp,
 		)
+	}
+
+	staticRoute := r.Group("/static")
+	{
+		staticRoute.GET("/:deployKey/*filepath", staticHandler.ServeStaticResource)
+	}
+
+	// 聊天历史路由
+	chatHistoryRoute := r.Group("/chatHistory")
+	{
+		// 需要管理员权限的接口
+		chatHistoryRoute.POST("/admin/list/page/vo", commonmiddleware.AuthMiddleware(enum.AdminRole, userRpcClient),
+			chatHistoryHandler.ListAllChatHistoryByPageForAdmin)
+
+		chatHistoryRoute.GET("/app/:appId", commonmiddleware.AuthMiddleware(enum.UserRole, userRpcClient),
+			chatHistoryHandler.ListAppChatHistory)
 	}
 }

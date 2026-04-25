@@ -25,6 +25,11 @@ type Config struct {
 	Pexels    PexelsConfig    `yaml:"pexels" mapstructure:"pexels"`
 	DashScope DashScopeConfig `yaml:"dashscope" mapstructure:"dashscope"`
 	Nacos     NacosConfig     `yaml:"nacos" mapstructure:"nacos"`
+	RPC       RPCConfig       `yaml:"rpc" mapstructure:"rpc"`
+}
+
+type RPCConfig struct {
+	ChatHistoryService string `yaml:"chat-history-service" mapstructure:"chat-history-service"`
 }
 
 type NacosConfig struct {
@@ -175,6 +180,7 @@ func InitConfig() *Config {
 				mergeConfig(&config.Pexels, &overrideConfig.Pexels)
 				mergeConfig(&config.DashScope, &overrideConfig.DashScope)
 				mergeConfig(&config.Nacos, &overrideConfig.Nacos)
+				mergeConfig(&config.RPC, &overrideConfig.RPC)
 			}
 		}
 	}
