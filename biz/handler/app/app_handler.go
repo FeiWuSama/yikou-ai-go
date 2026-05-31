@@ -159,7 +159,9 @@ func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
 			_ = w.WriteEvent(lastEventID, "done", []byte{1})
 			return
 		}
-		aiResponseBuilder.WriteString(chunk)
+		if chunk != "heartBeat" {
+			aiResponseBuilder.WriteString(chunk)
+		}
 
 		wrapper := &map[string]string{
 			"d": chunk,

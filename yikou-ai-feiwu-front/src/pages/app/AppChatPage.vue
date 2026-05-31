@@ -17,12 +17,12 @@
             应用详情
           </a-button>
           <a-button type="primary" @click="doDeploy" :loading="deployLoading">
-            {{ 
-              deployLoading 
-                ? '部署中...' 
-                : appInfo.deployKey !== null && appInfo.deployKey != '' 
-                  ? '取消部署' 
-                  : '部署' 
+            {{
+              deployLoading
+                ? '部署中...'
+                : appInfo.deployKey !== null && appInfo.deployKey != ''
+                  ? '取消部署'
+                  : '部署'
             }}
           </a-button>
           <a-button
@@ -515,7 +515,7 @@ const sendSSEMessage = async (content: string, aiMsgIndex: number) => {
         console.warn('JSON解析失败，使用原始数据:', error)
         processedData = event.data
       }
-
+      
       // 过滤心跳包内容
       if (processedData === 'heartBeat') {
         return
@@ -993,33 +993,33 @@ const deleteApp = () => {
     height: 90vh;
     margin: 10px;
   }
-  
+
   .main-layout {
     flex-direction: column;
   }
-  
+
   .preview-container {
     border-left: none;
     border-top: 1px solid #e8e8e8;
     flex: 1;
   }
-  
+
   .chat-container {
     flex: 1;
   }
-  
+
   .header-content {
     flex-direction: column;
     height: auto;
     padding: 10px 0;
     gap: 10px;
   }
-  
+
   .buttons {
     flex-wrap: wrap;
     justify-content: center;
   }
-  
+
   .content {
     max-width: 90%;
   }
