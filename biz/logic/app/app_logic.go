@@ -211,7 +211,7 @@ func (s *AppService) processStreamMessage(appId int64, codeGenType enum.CodeGenT
 
 			case err := <-errChan:
 				if err == io.EOF {
-					go s.executeNpmInstall(appId, codeGenType)
+					go s.executeProjectBuild(appId, codeGenType)
 					return
 				}
 				writer.Send("", err)
@@ -232,7 +232,7 @@ func (s *AppService) processStreamMessage(appId int64, codeGenType enum.CodeGenT
 	return reader
 }
 
-func (s *AppService) executeNpmInstall(appId int64, codeGenType enum.CodeGenTypeEnum) {
+func (s *AppService) executeProjectBuild(appId int64, codeGenType enum.CodeGenTypeEnum) {
 	if codeGenType != enum.VueCodeGen {
 		return
 	}
@@ -240,7 +240,7 @@ func (s *AppService) executeNpmInstall(appId int64, codeGenType enum.CodeGenType
 	codeOutputRoot, _ := myfile.GetCodeOutputRoot()
 	projectPath := filepath.Join(codeOutputRoot, fmt.Sprintf("vue_project_%d", appId))
 
-	if !builder.ExecuteNpmInstall(projectPath) {
+	if !builder.BuildProject(projectPath) {
 		logger.Errorf("异步构建 Vue 项目时发生异常")
 	}
 }
