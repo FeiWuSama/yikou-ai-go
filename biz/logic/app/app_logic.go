@@ -211,7 +211,7 @@ func (s *AppService) processStreamMessage(appId int64, codeGenType enum.CodeGenT
 
 			case err := <-errChan:
 				if err == io.EOF {
-					go s.executeProjectBuild(appId, codeGenType)
+					s.executeProjectBuild(appId, codeGenType)
 					return
 				}
 				writer.Send("", err)
