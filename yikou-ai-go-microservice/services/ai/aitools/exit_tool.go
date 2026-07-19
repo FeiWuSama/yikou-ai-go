@@ -2,7 +2,6 @@ package aitools
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/cloudwego/eino/components/tool/utils"
@@ -15,7 +14,7 @@ type ExitTool struct {
 }
 
 func (t *ExitTool) GenerateToolExecutedResult(arguments string) string {
-	return "\n\n[执行结束]\n\n"
+	return "\n\n<div class=\"tool-history tool-done\"><span class=\"tool-name\">退出工具调用</span><span class=\"tool-status\">完成</span></div>\n\n"
 }
 
 func CreateExitTool() (*ExitTool, error) {
@@ -46,5 +45,5 @@ func (t *ExitTool) GetToolInfo() ToolInfo {
 }
 
 func (t *ExitTool) GenerateToolRequestResponse() string {
-	return fmt.Sprintf("\n\n[选择工具] %s\n\n", t.displayName)
+	return "\n\n<div class=\"tool-history tool-pending\"><span class=\"tool-name\">退出工具调用</span><span class=\"tool-status\">执行中...</span></div>\n\n"
 }

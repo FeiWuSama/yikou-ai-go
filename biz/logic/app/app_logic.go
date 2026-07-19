@@ -176,10 +176,10 @@ func (s *AppService) ChatToGenCode(ctx context.Context, appId int64, message str
 	if err != nil {
 		return nil, err
 	}
-	return s.processStreamMessage(appId, enum.CodeGenTypeEnum(app.CodeGenType), loginUser.ID, streamResp), nil
+	return s.processStreamMessage(ctx, appId, enum.CodeGenTypeEnum(app.CodeGenType), loginUser.ID, streamResp), nil
 }
 
-func (s *AppService) processStreamMessage(appId int64, codeGenType enum.CodeGenTypeEnum, userId int64, stream *schema.StreamReader[*schema.Message]) *schema.StreamReader[string] {
+func (s *AppService) processStreamMessage(ctx context.Context, appId int64, codeGenType enum.CodeGenTypeEnum, userId int64, stream *schema.StreamReader[*schema.Message]) *schema.StreamReader[string] {
 	reader, writer := schema.Pipe[string](2)
 
 	handler := s.streamHandlerExecutor.CreateHandler(appId, userId, codeGenType)
@@ -208,12 +208,21 @@ func (s *AppService) processStreamMessage(appId int64, codeGenType enum.CodeGenT
 			select {
 			case <-heartbeat.C:
 				writer.Send("heartBeat", nil)
-
 			case err := <-errChan:
+				// 无论流是否正常结束，都保存已有的聊天历史
+				chatHistory := handler.GetChatHistory()
+				if chatHistory != "" {
+					if saveErr := s.chatHistoryService.AddChatMessage(ctx, appId, chatHistory, enum.AIMessageType, userId); saveErr != nil {
+						logger.Errorf("保存AI聊天消息失败: %v", saveErr)
+					}
+				}
+
 				if err == io.EOF {
+					// 流正常结束，执行项目构建
 					s.executeProjectBuild(appId, codeGenType)
 					return
 				}
+				// 流异常结束，返回错误
 				writer.Send("", err)
 				return
 

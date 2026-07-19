@@ -25,11 +25,11 @@ type FileModifyTool struct {
 func (t *FileModifyTool) GenerateToolExecutedResult(arguments string) string {
 	var params FileModifyToolParams
 	if err := json.Unmarshal([]byte(arguments), &params); err != nil {
-		return fmt.Sprintf("\n\n[工具调用] %s\n参数解析失败\n\n", t.displayName)
+		return fmt.Sprintf("\n\n<div class=\"tool-history tool-done\"><span class=\"tool-name\">%s</span><span class=\"tool-path\">参数解析失败</span><span class=\"tool-status\">完成</span></div>\n\n", t.displayName)
 	}
 
-	return fmt.Sprintf("\n\n[工具调用] %s %s\n\n替换前:\n```\n%s\n```\n\n替换后:\n```\n%s\n```\n\n",
-		t.displayName, params.RelativeFilePath, params.OldContent, params.NewContent)
+	return fmt.Sprintf("\n\n<div class=\"tool-history tool-done\"><span class=\"tool-name\">%s</span><span class=\"tool-path\">%s</span><span class=\"tool-status\">完成</span></div>\n\n",
+		t.displayName, params.RelativeFilePath)
 }
 
 func CreateFileModifyTool() (*FileModifyTool, error) {

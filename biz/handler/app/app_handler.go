@@ -5,20 +5,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/bytedance/gopkg/util/logger"
-	"github.com/cloudwego/hertz/pkg/app"
-	"github.com/cloudwego/hertz/pkg/protocol/consts"
-	"github.com/cloudwego/hertz/pkg/protocol/sse"
 	"io"
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
+
+	"github.com/bytedance/gopkg/util/logger"
+	"github.com/cloudwego/hertz/pkg/app"
+	"github.com/cloudwego/hertz/pkg/protocol/consts"
+	"github.com/cloudwego/hertz/pkg/protocol/sse"
+
 	"workspace-yikou-ai-go/biz/dal/model"
 	appApi "workspace-yikou-ai-go/biz/model/api/app"
 	"workspace-yikou-ai-go/biz/model/api/common"
-	"workspace-yikou-ai-go/biz/model/enum"
 	"workspace-yikou-ai-go/biz/model/vo"
 	application "workspace-yikou-ai-go/biz/service/app"
 	chatHistory "workspace-yikou-ai-go/biz/service/chathistory"
@@ -140,7 +140,6 @@ func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
 	}
 	defer streamResp.Close()
 
-	var aiResponseBuilder strings.Builder
 	for {
 		select {
 		case <-ctx.Done():
@@ -159,8 +158,9 @@ func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
 			_ = w.WriteEvent(lastEventID, "done", []byte{1})
 			return
 		}
-		if chunk != "heartBeat" {
-			aiResponseBuilder.WriteString(chunk)
+
+		if chunk == "heartBeat" {
+			continue
 		}
 
 		wrapper := &map[string]string{
@@ -181,13 +181,6 @@ func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
 	}
 
 	_ = w.WriteEvent(lastEventID, "done", []byte{1})
-
-	if aiResponseBuilder.String() != "" {
-		err = a.chatHistoryService.AddChatMessage(ctx, appId, aiResponseBuilder.String(), enum.AIMessageType, userVo.ID)
-		if err != nil {
-			logger.Errorf("保存聊天消息失败: %v", err)
-		}
-	}
 }
 
 // StopStream 停止AI流式输出

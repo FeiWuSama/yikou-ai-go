@@ -8,7 +8,6 @@ import (
 	"github.com/cloudwego/eino/schema"
 	"os"
 	"path/filepath"
-	"strings"
 	file "yikou-ai-go-microservice/pkg/myfile"
 )
 
@@ -24,16 +23,11 @@ type FileWriteTool struct {
 func (t *FileWriteTool) GenerateToolExecutedResult(arguments string) string {
 	var params FileWriteToolParams
 	if err := json.Unmarshal([]byte(arguments), &params); err != nil {
-		return fmt.Sprintf("\n\n[工具调用] %s\n参数解析失败\n\n", t.displayName)
+		return fmt.Sprintf("\n\n<div class=\"tool-history tool-done\"><span class=\"tool-name\">%s</span><span class=\"tool-path\">参数解析失败</span><span class=\"tool-status\">完成</span></div>\n\n", t.displayName)
 	}
 
-	ext := ""
-	if idx := strings.LastIndex(params.RelativePath, "."); idx != -1 {
-		ext = params.RelativePath[idx+1:]
-	}
-
-	return fmt.Sprintf("\n\n[工具调用] %s %s\n```%s\n%s\n```\n\n",
-		t.displayName, params.RelativePath, ext, params.Content)
+	return fmt.Sprintf("\n\n<div class=\"tool-history tool-done\"><span class=\"tool-name\">%s</span><span class=\"tool-path\">%s</span><span class=\"tool-status\">完成</span></div>\n\n",
+		t.displayName, params.RelativePath)
 }
 
 func CreateFileWriteTool() (*FileWriteTool, error) {

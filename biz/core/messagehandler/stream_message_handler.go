@@ -12,6 +12,7 @@ import (
 
 type StreamHandler interface {
 	Handle(chunk string) string
+	GetChatHistory() string
 }
 
 type SimpleTextStreamHandler struct {
@@ -35,6 +36,10 @@ func (h *SimpleTextStreamHandler) Handle(chunk string) string {
 	return chunk
 }
 
+func (h *SimpleTextStreamHandler) GetChatHistory() string {
+	return h.responseBuilder.String()
+}
+
 type JsonMessageStreamHandler struct {
 	chatHistoryService chathistory.IChatHistoryService
 	toolManager        *aitools.ToolManager
@@ -55,6 +60,8 @@ func NewJsonMessageStreamHandler(chatHistoryService chathistory.IChatHistoryServ
 	}
 }
 
+// Handle 处理流式消息，直接透传原始JSON给前端
+// 前端根据消息类型做不同的UI渲染
 func (h *JsonMessageStreamHandler) Handle(chunk string) string {
 	var baseMsg aimessage.StreamMessage
 	if err := json.Unmarshal([]byte(chunk), &baseMsg); err != nil {
@@ -62,71 +69,64 @@ func (h *JsonMessageStreamHandler) Handle(chunk string) string {
 		return ""
 	}
 
-	switch baseMsg.Type {
+	// 构建聊天历史（用于持久化存储）
+	h.buildChatHistory(baseMsg.Type, chunk)
+
+	// 直接透传原始JSON给前端，前端根据type做不同渲染
+	return chunk
+}
+
+// buildChatHistory 构建聊天历史文本，用于持久化存储
+func (h *JsonMessageStreamHandler) buildChatHistory(msgType aimessage.StreamMessageType, chunk string) {
+	switch msgType {
 	case aimessage.AIResponse:
-		return h.handleAIResponse(chunk)
+		var msg aimessage.AIResponseMessage
+		if err := json.Unmarshal([]byte(chunk), &msg); err != nil {
+			return
+		}
+		h.chatHistoryBuilder.WriteString(msg.Data)
+
 	case aimessage.ToolRequest:
-		return h.handleToolRequest(chunk)
+		var msg aimessage.ToolRequestMessage
+		if err := json.Unmarshal([]byte(chunk), &msg); err != nil {
+			return
+		}
+		toolId := msg.Id
+		toolName := msg.Name
+		if toolId != "" && !h.seenToolIds[toolId] {
+			h.seenToolIds[toolId] = true
+			if h.toolManager != nil {
+				tool := h.toolManager.GetTool(toolName)
+				if tool != nil {
+					h.chatHistoryBuilder.WriteString(tool.GenerateToolRequestResponse())
+				}
+			}
+		}
+
 	case aimessage.ToolExecuted:
-		return h.handleToolExecuted(chunk)
-	default:
-		hlog.Errorf("不支持的消息类型: %s", baseMsg.Type)
-		return ""
-	}
-}
-
-func (h *JsonMessageStreamHandler) handleAIResponse(chunk string) string {
-	var msg aimessage.AIResponseMessage
-	if err := json.Unmarshal([]byte(chunk), &msg); err != nil {
-		hlog.Errorf("解析AI响应消息失败: %v", err)
-		return ""
-	}
-
-	h.chatHistoryBuilder.WriteString(msg.Data)
-	return msg.Data
-}
-
-func (h *JsonMessageStreamHandler) handleToolRequest(chunk string) string {
-	var msg aimessage.ToolRequestMessage
-	if err := json.Unmarshal([]byte(chunk), &msg); err != nil {
-		hlog.Errorf("解析工具请求消息失败: %v", err)
-		return ""
-	}
-
-	toolId := msg.Id
-	toolName := msg.Name
-
-	if toolId != "" && !h.seenToolIds[toolId] {
-		h.seenToolIds[toolId] = true
-
+		var msg aimessage.ToolExecutedMessage
+		if err := json.Unmarshal([]byte(chunk), &msg); err != nil {
+			return
+		}
+		toolName := msg.Name
+		arguments := msg.Arguments
 		if h.toolManager != nil {
 			tool := h.toolManager.GetTool(toolName)
 			if tool != nil {
-				return tool.GenerateToolRequestResponse()
+				result := tool.GenerateToolExecutedResult(arguments)
+				h.chatHistoryBuilder.WriteString("\n\n" + result + "\n\n")
 			}
 		}
+
+	case aimessage.Reasoning:
+		var msg aimessage.ReasoningMessage
+		if err := json.Unmarshal([]byte(chunk), &msg); err != nil {
+			return
+		}
+		h.chatHistoryBuilder.WriteString("\n\n<details>\n<summary>深度思考</summary>\n\n" + msg.Data + "\n\n</details>\n\n")
 	}
-	return ""
 }
 
-func (h *JsonMessageStreamHandler) handleToolExecuted(chunk string) string {
-	var msg aimessage.ToolExecutedMessage
-	if err := json.Unmarshal([]byte(chunk), &msg); err != nil {
-		hlog.Errorf("解析工具执行结果消息失败: %v", err)
-		return ""
-	}
-
-	toolName := msg.Name
-	arguments := msg.Arguments
-
-	if h.toolManager != nil {
-		tool := h.toolManager.GetTool(toolName)
-		if tool != nil {
-			result := tool.GenerateToolExecutedResult(arguments)
-			output := "\n\n" + result + "\n\n"
-			h.chatHistoryBuilder.WriteString(output)
-			return output
-		}
-	}
-	return ""
+func (h *JsonMessageStreamHandler) GetChatHistory() string {
+	return h.chatHistoryBuilder.String()
 }

@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 	"yikou-ai-go-microservice/services/app/service/download"
@@ -26,7 +25,6 @@ import (
 	"yikou-ai-go-microservice/pkg/myfile"
 	"yikou-ai-go-microservice/services/app/dal/model"
 	appApi "yikou-ai-go-microservice/services/app/model/api/app"
-	"yikou-ai-go-microservice/services/app/model/enum"
 	"yikou-ai-go-microservice/services/app/model/vo"
 	application "yikou-ai-go-microservice/services/app/service/app"
 	chatHistory "yikou-ai-go-microservice/services/app/service/chathistory"
@@ -181,7 +179,6 @@ func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
 	}
 	defer streamResp.Close()
 
-	var aiResponseBuilder strings.Builder
 	for {
 		select {
 		case <-ctx.Done():
@@ -200,7 +197,10 @@ func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
 			_ = w.WriteEvent(lastEventID, "done", []byte{1})
 			return
 		}
-		aiResponseBuilder.WriteString(chunk)
+
+		if chunk == "heartBeat" {
+			continue
+		}
 
 		wrapper := &map[string]string{
 			"d": chunk,
@@ -220,13 +220,7 @@ func (a *AppHandler) ChatToGenCode(ctx context.Context, c *app.RequestContext) {
 	}
 
 	_ = w.WriteEvent(lastEventID, "done", []byte{1})
-
-	if aiResponseBuilder.String() != "" {
-		err = a.chatHistoryService.AddChatMessage(ctx, appId, aiResponseBuilder.String(), enum.AIMessageType, userVo.ID)
-		if err != nil {
-			logger.Errorf("保存聊天消息失败: %v", err)
-		}
-	}
+	// 聊天历史已在 logic 层自动保存
 }
 
 // StopStream 停止AI流式输出

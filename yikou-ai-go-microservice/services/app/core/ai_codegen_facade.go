@@ -343,12 +343,34 @@ func (y *YiKouAiCodegenFacade) processVueCodeStream(respStream *schema.StreamRea
 		// 初始化工具响应缓存map
 		toolCallsBuffer := make(map[int]*toolCallBuffer)
 		idToIndex := make(map[string]int)
+		// 深度思考内容缓存
+		var reasoningBuilder strings.Builder
+
+		// 发送缓存的深度思考内容
+		sendReasoningBuffer := func() {
+			if reasoningBuilder.Len() > 0 {
+				reasoningMsg := aimessage.NewReasoningMessage(reasoningBuilder.String())
+				msgBytes, err := json.Marshal(reasoningMsg)
+				if err != nil {
+					logger.Errorf("序列化深度思考消息失败: %v", err)
+					return
+				}
+				newMsg := &schema.Message{
+					Content: string(msgBytes),
+				}
+				writer.Send(newMsg, nil)
+				// 清空缓存
+				reasoningBuilder.Reset()
+			}
+		}
 
 		for {
 			// 消费流
 			msg, err := respStream.Recv()
 			if err != nil {
 				if err == io.EOF {
+					// 结束前发送缓存的深度思考内容
+					sendReasoningBuffer()
 					break
 				}
 				writer.Send(nil, err)
@@ -362,6 +384,8 @@ func (y *YiKouAiCodegenFacade) processVueCodeStream(respStream *schema.StreamRea
 			var streamMsg interface{}
 
 			if len(msg.ToolCalls) > 0 {
+				// 收到工具请求，先发送缓存的深度思考内容
+				sendReasoningBuffer()
 				// 判断是工具请求类型信息
 				for _, tc := range msg.ToolCalls {
 					idx := 0
@@ -390,6 +414,8 @@ func (y *YiKouAiCodegenFacade) processVueCodeStream(respStream *schema.StreamRea
 					}
 				}
 			} else if msg.Role == schema.Tool {
+				// 收到工具执行结果，先发送缓存的深度思考内容
+				sendReasoningBuffer()
 				toolCallID := msg.ToolCallID
 				arguments := ""
 
@@ -402,8 +428,14 @@ func (y *YiKouAiCodegenFacade) processVueCodeStream(respStream *schema.StreamRea
 				}
 				streamMsg = aimessage.NewToolExecutedMessage(0, msg.ToolCallID, msg.ToolName, arguments, msg.Content)
 			} else if msg.Content != "" {
+				// 收到AI响应，先发送缓存的深度思考内容
+				sendReasoningBuffer()
 				// 判断是ai响应类型信息
 				streamMsg = aimessage.NewAIResponseMessage(msg.Content)
+			} else if msg.ReasoningContent != "" {
+				// 深度思考内容，缓存起来不立即发送
+				reasoningBuilder.WriteString(msg.ReasoningContent)
+				continue
 			}
 
 			// 将自定义流消息写入通道流

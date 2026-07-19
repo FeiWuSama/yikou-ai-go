@@ -8,7 +8,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 	"os"
 	"path/filepath"
-	"yikou-ai-go-microservice/pkg/myfile"
+	file "yikou-ai-go-microservice/pkg/myfile"
 )
 
 type FileDeleteToolParams struct {
@@ -22,10 +22,11 @@ type FileDeleteTool struct {
 func (t *FileDeleteTool) GenerateToolExecutedResult(arguments string) string {
 	var params FileDeleteToolParams
 	if err := json.Unmarshal([]byte(arguments), &params); err != nil {
-		return fmt.Sprintf("\n\n[工具调用] %s\n参数解析失败\n\n", t.displayName)
+		return fmt.Sprintf("\n\n<div class=\"tool-history tool-done\"><span class=\"tool-name\">%s</span><span class=\"tool-path\">参数解析失败</span><span class=\"tool-status\">完成</span></div>\n\n", t.displayName)
 	}
 
-	return fmt.Sprintf("\n\n[工具调用] %s %s\n\n", t.displayName, params.RelativePath)
+	return fmt.Sprintf("\n\n<div class=\"tool-history tool-done\"><span class=\"tool-name\">%s</span><span class=\"tool-path\">%s</span><span class=\"tool-status\">完成</span></div>\n\n",
+		t.displayName, params.RelativePath)
 }
 
 func CreateFileDeleteTool() (*FileDeleteTool, error) {
@@ -49,7 +50,7 @@ func fileDeleteToolFunc(ctx context.Context, params FileDeleteToolParams) (*sche
 	path := filepath.Clean(relativePath)
 
 	if !filepath.IsAbs(path) {
-		codeOutputRoot, err := myfile.GetCodeOutputRoot()
+		codeOutputRoot, err := file.GetCodeOutputRoot()
 		if err != nil {
 			return nil, fmt.Errorf("获取代码输出根目录失败: %w", err)
 		}

@@ -38,9 +38,27 @@ const md: MarkdownIt = new MarkdownIt({
   },
 })
 
+// 预处理内容，确保 HTML 块级元素不被 MarkdownIt 包裹在 <p> 标签内
+const preprocessContent = (content: string): string => {
+  // 将 <div class="tool-history"> 和 <details> 标签前后添加足够的空行
+  // 确保 MarkdownIt 将它们视为块级 HTML 元素
+  let processed = content
+
+  // 处理 tool-history div 标签
+  processed = processed.replace(/(<div class="tool-history[^>]*>)/g, '\n\n$1')
+  processed = processed.replace(/(<\/div>)/g, '$1\n\n')
+
+  // 处理 details 标签
+  processed = processed.replace(/(<details>)/g, '\n\n$1')
+  processed = processed.replace(/(<\/details>)/g, '$1\n\n')
+
+  return processed
+}
+
 // 计算渲染后的 Markdown
 const renderedMarkdown = computed(() => {
-  return md.render(props.content)
+  const processed = preprocessContent(props.content)
+  return md.render(processed)
 })
 </script>
 
@@ -213,5 +231,122 @@ const renderedMarkdown = computed(() => {
 .markdown-content :deep(.hljs-title) {
   color: #6f42c1;
   font-weight: 600;
+}
+
+/* 深度思考 details 标签样式 - 折叠框效果 */
+.markdown-content :deep(details) {
+  margin: 8px 0;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e8e8e8;
+  overflow: hidden;
+}
+
+.markdown-content :deep(summary) {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #666;
+  user-select: none;
+  background: #f0f1f2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  list-style: none;
+}
+
+.markdown-content :deep(summary::-webkit-details-marker) {
+  display: none;
+}
+
+.markdown-content :deep(summary::marker) {
+  display: none;
+}
+
+.markdown-content :deep(summary:hover) {
+  background: #e8e9ea;
+}
+
+/* 箭头指示器 - 收起时向下 */
+.markdown-content :deep(summary)::after {
+  content: '▼';
+  font-size: 10px;
+  color: #999;
+}
+
+/* 展开时箭头旋转向上 */
+.markdown-content :deep(details[open] > summary)::after {
+  transform: rotate(180deg);
+}
+
+.markdown-content :deep(details[open] > summary) {
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.markdown-content :deep(details > *:not(summary)) {
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #555;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* 工具调用文本样式 - 黑色条框 */
+.markdown-content :deep(p) {
+  margin: 0.5em 0;
+}
+
+/* 工具调用文本中的代码块 */
+.markdown-content :deep(pre) {
+  margin: 0.5em 0;
+}
+
+/* 历史工具调用卡片样式 - 黑色条框 */
+.markdown-content :deep(.tool-history) {
+  background: #1e1e1e;
+  border-radius: 8px;
+  margin: 8px 0;
+  overflow: hidden;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+}
+
+.markdown-content :deep(.tool-history.tool-pending) {
+  border-left: 3px solid #1890ff;
+}
+
+.markdown-content :deep(.tool-history.tool-done) {
+  border-left: 3px solid #52c41a;
+  opacity: 0.85;
+}
+
+.markdown-content :deep(.tool-history .tool-name) {
+  color: #e0e0e0;
+  font-weight: 500;
+}
+
+.markdown-content :deep(.tool-history .tool-path) {
+  color: #ce9178;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+.markdown-content :deep(.tool-history .tool-status) {
+  font-size: 12px;
+  padding: 1px 8px;
+  border-radius: 10px;
+}
+
+.markdown-content :deep(.tool-history.tool-pending .tool-status) {
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.15);
+}
+
+.markdown-content :deep(.tool-history.tool-done .tool-status) {
+  color: #52c41a;
+  background: rgba(82, 196, 26, 0.15);
 }
 </style>

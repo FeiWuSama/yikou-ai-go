@@ -31,7 +31,7 @@ type FileDirReadTool struct {
 func (t *FileDirReadTool) GenerateToolExecutedResult(arguments string) string {
 	var params FileDirReadToolParams
 	if err := json.Unmarshal([]byte(arguments), &params); err != nil {
-		return fmt.Sprintf("\n\n[工具调用] %s\n参数解析失败\n\n", t.displayName)
+		return fmt.Sprintf("\n\n<div class=\"tool-history tool-done\"><span class=\"tool-name\">%s</span><span class=\"tool-path\">参数解析失败</span><span class=\"tool-status\">完成</span></div>\n\n", t.displayName)
 	}
 
 	path := params.RelativePath
@@ -39,7 +39,8 @@ func (t *FileDirReadTool) GenerateToolExecutedResult(arguments string) string {
 		path = "/"
 	}
 
-	return fmt.Sprintf("\n\n[工具调用] %s %s\n\n", t.displayName, path)
+	return fmt.Sprintf("\n\n<div class=\"tool-history tool-done\"><span class=\"tool-name\">%s</span><span class=\"tool-path\">%s</span><span class=\"tool-status\">完成</span></div>\n\n",
+		t.displayName, path)
 }
 
 func CreateFileDirReadTool() (*FileDirReadTool, error) {

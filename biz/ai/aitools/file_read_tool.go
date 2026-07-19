@@ -22,10 +22,11 @@ type FileReadTool struct {
 func (t *FileReadTool) GenerateToolExecutedResult(arguments string) string {
 	var params FileReadToolParams
 	if err := json.Unmarshal([]byte(arguments), &params); err != nil {
-		return fmt.Sprintf("\n\n[工具调用] %s\n参数解析失败\n\n", t.displayName)
+		return fmt.Sprintf("\n\n<div class=\"tool-history tool-done\"><span class=\"tool-name\">%s</span><span class=\"tool-path\">参数解析失败</span><span class=\"tool-status\">完成</span></div>\n\n", t.displayName)
 	}
 
-	return fmt.Sprintf("\n\n[工具调用] %s %s\n\n", t.displayName, params.RelativePath)
+	return fmt.Sprintf("\n\n<div class=\"tool-history tool-done\"><span class=\"tool-name\">%s</span><span class=\"tool-path\">%s</span><span class=\"tool-status\">完成</span></div>\n\n",
+		t.displayName, params.RelativePath)
 }
 
 func CreateFileReadTool() (*FileReadTool, error) {

@@ -8,6 +8,11 @@ import (
 	"path/filepath"
 	"strconv"
 	"time"
+
+	"github.com/cloudwego/eino/schema"
+	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"gorm.io/gorm"
+
 	common "yikou-ai-go-microservice/pkg/commonapi"
 	"yikou-ai-go-microservice/pkg/commonenum"
 	"yikou-ai-go-microservice/pkg/constants"
@@ -33,8 +38,6 @@ import (
 	uservo "yikou-ai-go-microservice/services/user/model/vo"
 
 	"github.com/bytedance/gopkg/util/logger"
-	"github.com/cloudwego/eino/schema"
-	"gorm.io/gorm"
 )
 
 func NewAppService(
@@ -175,10 +178,10 @@ func (s *AppService) ChatToGenCode(ctx context.Context, appId int64, message str
 	if err != nil {
 		return nil, err
 	}
-	return s.processStreamMessage(appId, commonenum.CodeGenTypeEnum(app.CodeGenType), loginUser.ID, streamResp), nil
+	return s.processStreamMessage(ctx, appId, commonenum.CodeGenTypeEnum(app.CodeGenType), loginUser.ID, streamResp), nil
 }
 
-func (s *AppService) processStreamMessage(appId int64, codeGenType commonenum.CodeGenTypeEnum, userId int64, stream *schema.StreamReader[*schema.Message]) *schema.StreamReader[string] {
+func (s *AppService) processStreamMessage(ctx context.Context, appId int64, codeGenType commonenum.CodeGenTypeEnum, userId int64, stream *schema.StreamReader[*schema.Message]) *schema.StreamReader[string] {
 	reader, writer := schema.Pipe[string](2)
 
 	handler := s.streamHandlerExecutor.CreateHandler(appId, userId, codeGenType)
@@ -209,10 +212,20 @@ func (s *AppService) processStreamMessage(appId int64, codeGenType commonenum.Co
 				writer.Send("heartBeat", nil)
 
 			case err := <-errChan:
+				// 无论流是否正常结束，都保存已有的聊天历史
+				chatHistory := handler.GetChatHistory()
+				if chatHistory != "" {
+					if saveErr := s.chatHistoryService.AddChatMessage(ctx, appId, chatHistory, enum.AIMessageType, userId); saveErr != nil {
+						hlog.Errorf("保存AI聊天消息失败: %v", saveErr)
+					}
+				}
+
 				if err == io.EOF {
+					// 流正常结束，执行项目构建
 					s.executeNpmInstall(appId, codeGenType)
 					return
 				}
+				// 流异常结束，返回错误
 				writer.Send("", err)
 				return
 

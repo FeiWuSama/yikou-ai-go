@@ -6,12 +6,14 @@ const (
 	AIResponse   StreamMessageType = "ai_response"
 	ToolRequest  StreamMessageType = "tool_request"
 	ToolExecuted StreamMessageType = "tool_executed"
+	Reasoning    StreamMessageType = "reasoning"
 )
 
 var StreamMessageTypeEnum = map[StreamMessageType]string{
 	AIResponse:   "AI响应",
 	ToolRequest:  "工具请求",
 	ToolExecuted: "工具执行结果",
+	Reasoning:    "深度思考结果",
 }
 
 type StreamMessage struct {
@@ -40,6 +42,11 @@ type ToolExecutedMessage struct {
 	Result    string `json:"result"`
 }
 
+type ReasoningMessage struct {
+	StreamMessage
+	Data string `json:"data"`
+}
+
 func NewAIResponseMessage(data string) *AIResponseMessage {
 	return &AIResponseMessage{
 		StreamMessage: StreamMessage{Type: AIResponse},
@@ -65,5 +72,12 @@ func NewToolExecutedMessage(index int, id, name, arguments, result string) *Tool
 		Name:          name,
 		Arguments:     arguments,
 		Result:        result,
+	}
+}
+
+func NewReasoningMessage(data string) *ReasoningMessage {
+	return &ReasoningMessage{
+		StreamMessage: StreamMessage{Type: Reasoning},
+		Data:          data,
 	}
 }
