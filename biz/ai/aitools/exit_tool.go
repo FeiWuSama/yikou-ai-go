@@ -14,7 +14,7 @@ type ExitTool struct {
 }
 
 func (t *ExitTool) GenerateToolExecutedResult(arguments string) string {
-	return "\n\n<div class=\"tool-history tool-done\"><span class=\"tool-name\">退出工具调用</span><span class=\"tool-status\">完成</span></div>\n\n"
+	return "\n\n<div class=\"tool-history tool-done\"><div class=\"tool-left\"><span class=\"tool-name\">退出工具调用</span></div><span class=\"tool-status\">完成</span></div>\n\n"
 }
 
 func CreateExitTool() (*ExitTool, error) {
@@ -45,5 +45,5 @@ func (t *ExitTool) GetToolInfo() ToolInfo {
 }
 
 func (t *ExitTool) GenerateToolRequestResponse() string {
-	return "\n\n<div class=\"tool-history tool-pending\"><span class=\"tool-name\">退出工具调用</span><span class=\"tool-status\">执行中...</span></div>\n\n"
+	return "\n\n<div class=\"tool-history tool-pending\"><div class=\"tool-left\"><span class=\"tool-name\">退出工具调用</span></div><span class=\"tool-status\">执行中...</span></div>\n\n"
 }

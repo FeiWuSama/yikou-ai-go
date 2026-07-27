@@ -309,9 +309,8 @@ const renderedMarkdown = computed(() => {
   overflow: hidden;
   font-size: 13px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
+  padding: 3px 12px;
 }
 
 .markdown-content :deep(.tool-history.tool-pending) {
@@ -323,21 +322,33 @@ const renderedMarkdown = computed(() => {
   opacity: 0.85;
 }
 
+.markdown-content :deep(.tool-history .tool-left) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
 .markdown-content :deep(.tool-history .tool-name) {
   color: #e0e0e0;
   font-weight: 500;
+  flex-shrink: 0;
 }
 
 .markdown-content :deep(.tool-history .tool-path) {
   color: #ce9178;
   font-size: 12px;
-  margin-left: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .markdown-content :deep(.tool-history .tool-status) {
   font-size: 12px;
   padding: 1px 8px;
   border-radius: 10px;
+  flex-shrink: 0;
 }
 
 .markdown-content :deep(.tool-history.tool-pending .tool-status) {

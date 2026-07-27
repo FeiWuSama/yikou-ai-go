@@ -86,23 +86,6 @@ func (h *JsonMessageStreamHandler) buildChatHistory(msgType aimessage.StreamMess
 		}
 		h.chatHistoryBuilder.WriteString(msg.Data)
 
-	case aimessage.ToolRequest:
-		var msg aimessage.ToolRequestMessage
-		if err := json.Unmarshal([]byte(chunk), &msg); err != nil {
-			return
-		}
-		toolId := msg.Id
-		toolName := msg.Name
-		if toolId != "" && !h.seenToolIds[toolId] {
-			h.seenToolIds[toolId] = true
-			if h.toolManager != nil {
-				tool := h.toolManager.GetTool(toolName)
-				if tool != nil {
-					h.chatHistoryBuilder.WriteString(tool.GenerateToolRequestResponse())
-				}
-			}
-		}
-
 	case aimessage.ToolExecuted:
 		var msg aimessage.ToolExecutedMessage
 		if err := json.Unmarshal([]byte(chunk), &msg); err != nil {

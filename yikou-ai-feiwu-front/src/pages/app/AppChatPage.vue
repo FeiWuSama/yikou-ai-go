@@ -499,15 +499,10 @@ const parseHistoryMessage = (rawMessage: string): MessageSegment[] => {
   })
 
   const filteredSegments = segments.filter((seg) => {
-    // 如果是 tool_request，且有对应的 tool_executed（相同 id），则过滤掉
-    if (seg.type === 'tool_request' && seg.id) {
-      // 检查是否存在相同 id 的 tool_executed
-      const hasExecuted = segments.some(
-        (s) => s.type === 'tool_executed' && s.id === seg.id
-      )
-      if (hasExecuted) {
-        return false // 过滤掉重复的 tool_request
-      }
+    // 历史消息中过滤掉 tool_request（执行中的请求）
+    // 保留 tool_executed（已完成的工具）
+    if (seg.type === 'tool_request') {
+      return false
     }
     return true
   })

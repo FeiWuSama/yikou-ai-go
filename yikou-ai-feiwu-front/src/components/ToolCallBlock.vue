@@ -1,12 +1,10 @@
 <template>
   <div :class="['tool-call-block', { 'tool-completed': completed }]">
     <div class="tool-header">
-      <div class="tool-header-left">
-        <a-spin v-if="!completed" size="small" class="tool-spin" />
-        <span v-else class="tool-icon">✓</span>
-        <span class="tool-name">{{ displayName }}</span>
-        <span v-if="toolPath" class="tool-path">{{ toolPath }}</span>
-      </div>
+      <a-spin v-if="!completed" size="small" class="tool-spin" />
+      <span v-else class="tool-icon">✓</span>
+      <span class="tool-name">{{ displayName }}</span>
+      <span v-if="toolPath" class="tool-path">{{ toolPath }}</span>
       <span :class="['tool-status', completed ? 'status-done' : 'status-running']">
         {{ completed ? '完成' : '执行中...' }}
       </span>
@@ -65,7 +63,7 @@ const toolPath = computed(() => {
   margin: 8px 0;
   overflow: hidden;
   font-size: 13px;
-  transition: all 0.3s ease;
+  width: 100%;
 }
 
 .tool-call-block:not(.tool-completed) {
@@ -79,24 +77,20 @@ const toolPath = computed(() => {
 
 .tool-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-}
-
-.tool-header-left {
-  display: flex;
   align-items: center;
   gap: 8px;
+  padding: 8px 12px;
 }
 
 .tool-icon {
   color: #52c41a;
   font-weight: bold;
+  flex-shrink: 0;
 }
 
 .tool-spin {
   display: inline-flex;
+  flex-shrink: 0;
 }
 
 .tool-spin :deep(.ant-spin-dot-item) {
@@ -106,18 +100,25 @@ const toolPath = computed(() => {
 .tool-name {
   color: #e0e0e0;
   font-weight: 500;
+  flex-shrink: 0;
 }
 
 .tool-path {
   color: #ce9178;
   font-size: 12px;
-  margin-left: 4px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tool-status {
   font-size: 12px;
   padding: 1px 8px;
   border-radius: 10px;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .status-running {

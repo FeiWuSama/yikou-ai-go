@@ -23,10 +23,10 @@ type FileWriteTool struct {
 func (t *FileWriteTool) GenerateToolExecutedResult(arguments string) string {
 	var params FileWriteToolParams
 	if err := json.Unmarshal([]byte(arguments), &params); err != nil {
-		return fmt.Sprintf("\n\n<div class=\"tool-history tool-done\"><span class=\"tool-name\">%s</span><span class=\"tool-path\">参数解析失败</span><span class=\"tool-status\">完成</span></div>\n\n", t.displayName)
+		return fmt.Sprintf("\n\n<div class=\"tool-history tool-done\"><div class=\"tool-left\"><span class=\"tool-name\">%s</span><span class=\"tool-path\">参数解析失败</span></div><span class=\"tool-status\">完成</span></div>\n\n", t.displayName)
 	}
 
-	return fmt.Sprintf("\n\n<div class=\"tool-history tool-done\"><span class=\"tool-name\">%s</span><span class=\"tool-path\">%s</span><span class=\"tool-status\">完成</span></div>\n\n",
+	return fmt.Sprintf("\n\n<div class=\"tool-history tool-done\"><div class=\"tool-left\"><span class=\"tool-name\">%s</span><span class=\"tool-path\">%s</span></div><span class=\"tool-status\">完成</span></div>\n\n",
 		t.displayName, params.RelativePath)
 }
 
