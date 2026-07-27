@@ -80,7 +80,7 @@ func (a *BaseAgent) NewAdkAgent(name, description, instruction string, tools []t
 				},
 			},
 		},
-		MaxIterations: 50,
+		MaxIterations: 30,
 		ModelRetryConfig: &adk.ModelRetryConfig{
 			MaxRetries: 3,
 			IsRetryAble: func(ctx context.Context, err error) bool {
