@@ -2,11 +2,6 @@
 
 <div align="center">
 
-[![Go Version](https://img.shields.io/badge/Go-1.24.9-blue.svg)](https://golang.org)
-[![Docker](https://img.shields.io/badge/Docker-Ready-brightgreen.svg)](https://www.docker.com)
-
-</div>
-
 ---
 
 ## 🚀 项目介绍
@@ -21,10 +16,10 @@
 
 本项目提供两种架构版本，满足不同场景需求：
 
-| 版本 | 目录 | 适用场景 | 特点 |
-|------|------|----------|------|
-| 单体架构 | `/` (根目录) | 快速开发、学习入门、小规模应用 | 部署简单、调试方便、资源占用少 |
-| 微服务架构 | `/yikou-ai-go-microservice` | 企业级生产、高并发、团队协作 | 服务解耦、独立部署、易于扩展 |
+| 版本       | 目录                          | 适用场景                       | 特点                           |
+| ---------- | ----------------------------- | ------------------------------ | ------------------------------ |
+| 单体架构   | `/` (根目录)                | 快速开发、学习入门、小规模应用 | 部署简单、调试方便、资源占用少 |
+| 微服务架构 | `/yikou-ai-go-microservice` | 企业级生产、高并发、团队协作   | 服务解耦、独立部署、易于扩展   |
 
 ---
 
@@ -33,32 +28,35 @@
 ### 1. 完整的全栈项目经验
 
 **单体架构版本：**
+
 - 后端：Go + Hertz + GORM + Redis + MySQL + Eino
 - 前端：Vue3 + TypeScript + Ant Design Vue
 - 从零到一构建完整的企业级应用
 
 **微服务架构版本：**
+
 - 后端：Go + Kitex + Hertz + GORM + Redis + MySQL + Eino + Nacos
 - 服务网关：统一入口、路由转发
 - 服务治理：服务注册发现、RPC 通信
 
 ### 2. 主流技术栈覆盖
 
-| 技术领域 | 单体架构技术 | 微服务架构技术 | 学习价值 |
-| -------- | ------------ | -------------- | -------- |
-| Web框架 | Hertz (字节跳动开源) | Hertz + Kitex | 学习高性能HTTP服务和RPC服务开发 |
-| AI集成 | Eino (AI工作流框架) | Eino (AI工作流框架) | 掌握AI应用开发范式 |
-| 依赖注入 | Wire (Google开源) | Wire (Google开源) | 理解依赖注入设计模式 |
-| ORM | GORM | GORM | 掌握数据库操作最佳实践 |
-| 缓存 | Redis | Redis | 学习缓存策略和会话管理 |
-| 配置管理 | Viper | Viper | 掌握多环境配置管理 |
-| 服务发现 | - | Nacos | 学习微服务注册与发现 |
-| RPC框架 | - | Kitex | 掌握高性能RPC通信 |
-| 容器化 | Docker | Docker Compose | 学习容器编排和部署 |
+| 技术领域 | 单体架构技术         | 微服务架构技术      | 学习价值                        |
+| -------- | -------------------- | ------------------- | ------------------------------- |
+| Web框架  | Hertz (字节跳动开源) | Hertz + Kitex       | 学习高性能HTTP服务和RPC服务开发 |
+| AI集成   | Eino (AI工作流框架)  | Eino (AI工作流框架) | 掌握AI应用开发范式              |
+| 依赖注入 | Wire (Google开源)    | Wire (Google开源)   | 理解依赖注入设计模式            |
+| ORM      | GORM                 | GORM                | 掌握数据库操作最佳实践          |
+| 缓存     | Redis                | Redis               | 学习缓存策略和会话管理          |
+| 配置管理 | Viper                | Viper               | 掌握多环境配置管理              |
+| 服务发现 | -                    | Nacos               | 学习微服务注册与发现            |
+| RPC框架  | -                    | Kitex               | 掌握高性能RPC通信               |
+| 容器化   | Docker               | Docker Compose      | 学习容器编排和部署              |
 
 ### 3. 企业级架构设计
 
 **单体架构：**
+
 ```
 ├── biz/           # 业务逻辑层 - 学习分层架构
 ├── pkg/           # 公共工具包 - 学习代码复用
@@ -66,6 +64,7 @@
 ```
 
 **微服务架构：**
+
 ```
 ├── services/              # 微服务集合
 │   ├── gateway/          # API网关服务
@@ -87,7 +86,7 @@
 ### 🤖 AI 代码生成
 
 - **自然语言编程**：通过对话方式描述需求，AI 自动生成代码
-  ![AI 代码生成功能](image/img7.png)
+  ![AI 代码生成功能](image/img9.png)
 
 ### 🔄 工作流编排
 
@@ -194,13 +193,13 @@ graph TB
 
 ### 微服务说明
 
-| 服务名称 | 端口   | 职责 | 技术栈 |
-|----------|------|------|--------|
-| Gateway | 8142 | API网关、路由转发、负载均衡、认证鉴权 | Hertz |
-| User | 8881 | 用户管理、登录认证、会话管理 | Kitex + Hertz + GORM |
-| App | 8882 | 应用管理、代码生成、部署服务 | Kitex + Hertz + GORM |
-| AI | 8883 | AI对话、工作流编排、代码生成 | Kitex + Hertz + Eino |
-| Screenshot | 8884 | 网页截图、图片处理 | Kitex + Chromedp |
+| 服务名称   | 端口 | 职责                                  | 技术栈               |
+| ---------- | ---- | ------------------------------------- | -------------------- |
+| Gateway    | 8142 | API网关、路由转发、负载均衡、认证鉴权 | Hertz                |
+| User       | 8881 | 用户管理、登录认证、会话管理          | Kitex + Hertz + GORM |
+| App        | 8882 | 应用管理、代码生成、部署服务          | Kitex + Hertz + GORM |
+| AI         | 8883 | AI对话、工作流编排、代码生成          | Kitex + Hertz + Eino |
+| Screenshot | 8884 | 网页截图、图片处理                    | Kitex + Chromedp     |
 
 ### 服务间通信
 
@@ -625,15 +624,15 @@ rpc:
 | POST | /api/user/login             | 用户登录        | User |
 | GET  | /api/user/get/login         | 获取登录用户    | User |
 | POST | /api/user/logout            | 用户登出        | User |
-| POST | /api/app/add                | 创建应用        | App |
-| POST | /api/app/update             | 更新应用        | App |
-| POST | /api/app/delete             | 删除应用        | App |
-| GET  | /api/app/get                | 获取应用详情    | App |
-| POST | /api/app/list               | 获取应用列表    | App |
-| POST | /api/app/deploy             | 部署应用        | App |
-| GET  | /api/app/chat/gen/code      | AI 对话生成代码 | App |
-| POST | /api/workflow/execute       | 执行工作流      | AI |
-| GET  | /api/chatHistory/app/:appId | 获取聊天历史    | App |
+| POST | /api/app/add                | 创建应用        | App  |
+| POST | /api/app/update             | 更新应用        | App  |
+| POST | /api/app/delete             | 删除应用        | App  |
+| GET  | /api/app/get                | 获取应用详情    | App  |
+| POST | /api/app/list               | 获取应用列表    | App  |
+| POST | /api/app/deploy             | 部署应用        | App  |
+| GET  | /api/app/chat/gen/code      | AI 对话生成代码 | App  |
+| POST | /api/workflow/execute       | 执行工作流      | AI   |
+| GET  | /api/chatHistory/app/:appId | 获取聊天历史    | App  |
 
 ---
 
@@ -656,9 +655,3 @@ rpc:
 ---
 
 <div align="center">
-
-**⭐ 如果这个项目对您有帮助，请给我们一个 Star！⭐**
-
-Made with ❤️ by FeiWuSama
-
-</div>
