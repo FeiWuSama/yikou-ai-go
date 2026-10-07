@@ -1,6 +1,5 @@
 # 易扣AI - 智能代码生成平台
 
-<div align="center">
 
 ---
 
